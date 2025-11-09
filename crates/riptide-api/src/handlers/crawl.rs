@@ -125,9 +125,7 @@ pub async fn crawl(
     }
 
     // Record metrics for crawl request
-    state
-        .metrics
-        .record_http_request("POST", "/crawl", 200, start_time.elapsed().as_secs_f64());
+    state.record_http_request("POST", "/crawl", 200, start_time.elapsed().as_secs_f64());
 
     Ok(Json(response))
 }

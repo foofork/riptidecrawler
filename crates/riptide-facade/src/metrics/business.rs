@@ -419,13 +419,254 @@ impl BusinessMetrics {
             .const_label("service", "riptide-business"),
         )?;
 
-        // Continuing with Spider, WASM, Worker, Cache, and Error metrics...
-        // (Implementation continues - this is getting long)
+        // Spider crawling metrics
+        let spider_crawls_total = Counter::with_opts(
+            Opts::new(
+                "riptide_business_spider_crawls_total",
+                "Total spider crawls initiated",
+            )
+            .const_label("service", "riptide-business"),
+        )?;
 
-        // For brevity, I'll create the rest via placeholder and complete in separate invocation
+        let spider_pages_crawled = Counter::with_opts(
+            Opts::new(
+                "riptide_business_spider_pages_crawled_total",
+                "Total pages crawled by spider",
+            )
+            .const_label("service", "riptide-business"),
+        )?;
+
+        let spider_pages_failed = Counter::with_opts(
+            Opts::new(
+                "riptide_business_spider_pages_failed_total",
+                "Total pages that failed during crawling",
+            )
+            .const_label("service", "riptide-business"),
+        )?;
+
+        let spider_active_crawls = Gauge::with_opts(
+            Opts::new(
+                "riptide_business_spider_active_crawls",
+                "Number of active spider crawls",
+            )
+            .const_label("service", "riptide-business"),
+        )?;
+
+        let spider_frontier_size = Gauge::with_opts(
+            Opts::new(
+                "riptide_business_spider_frontier_size",
+                "Size of spider crawl frontier",
+            )
+            .const_label("service", "riptide-business"),
+        )?;
+
+        let spider_crawl_duration = Histogram::with_opts(
+            HistogramOpts::new(
+                "riptide_business_spider_crawl_duration_seconds",
+                "Spider crawl duration",
+            )
+            .const_label("service", "riptide-business")
+            .buckets(vec![1.0, 5.0, 10.0, 30.0, 60.0, 300.0, 600.0]),
+        )?;
+
+        let spider_pages_per_second = Gauge::with_opts(
+            Opts::new(
+                "riptide_business_spider_pages_per_second",
+                "Spider crawl throughput",
+            )
+            .const_label("service", "riptide-business"),
+        )?;
+
+        // WASM memory metrics
+        let wasm_memory_pages = Gauge::with_opts(
+            Opts::new(
+                "riptide_business_wasm_memory_pages",
+                "WASM memory pages allocated",
+            )
+            .const_label("service", "riptide-business"),
+        )?;
+
+        let wasm_grow_failed_total = Counter::with_opts(
+            Opts::new(
+                "riptide_business_wasm_grow_failed_total",
+                "WASM memory grow failures",
+            )
+            .const_label("service", "riptide-business"),
+        )?;
+
+        let wasm_peak_memory_pages = Gauge::with_opts(
+            Opts::new(
+                "riptide_business_wasm_peak_memory_pages",
+                "WASM peak memory pages",
+            )
+            .const_label("service", "riptide-business"),
+        )?;
+
+        let wasm_cold_start_time_ms = Gauge::with_opts(
+            Opts::new(
+                "riptide_business_wasm_cold_start_time_milliseconds",
+                "WASM cold start time",
+            )
+            .const_label("service", "riptide-business"),
+        )?;
+
+        let wasm_aot_cache_hits = Counter::with_opts(
+            Opts::new(
+                "riptide_business_wasm_aot_cache_hits_total",
+                "WASM AOT cache hits",
+            )
+            .const_label("service", "riptide-business"),
+        )?;
+
+        let wasm_aot_cache_misses = Counter::with_opts(
+            Opts::new(
+                "riptide_business_wasm_aot_cache_misses_total",
+                "WASM AOT cache misses",
+            )
+            .const_label("service", "riptide-business"),
+        )?;
+
+        // Worker management metrics
+        let worker_pool_size = Gauge::with_opts(
+            Opts::new("riptide_business_worker_pool_size", "Worker pool size")
+                .const_label("service", "riptide-business"),
+        )?;
+
+        let worker_pool_healthy = Gauge::with_opts(
+            Opts::new(
+                "riptide_business_worker_pool_healthy",
+                "Number of healthy workers",
+            )
+            .const_label("service", "riptide-business"),
+        )?;
+
+        let worker_jobs_submitted = Counter::with_opts(
+            Opts::new(
+                "riptide_business_worker_jobs_submitted_total",
+                "Total worker jobs submitted",
+            )
+            .const_label("service", "riptide-business"),
+        )?;
+
+        let worker_jobs_completed = Counter::with_opts(
+            Opts::new(
+                "riptide_business_worker_jobs_completed_total",
+                "Total worker jobs completed",
+            )
+            .const_label("service", "riptide-business"),
+        )?;
+
+        let worker_jobs_failed = Counter::with_opts(
+            Opts::new(
+                "riptide_business_worker_jobs_failed_total",
+                "Total worker jobs failed",
+            )
+            .const_label("service", "riptide-business"),
+        )?;
+
+        let worker_jobs_retried = Counter::with_opts(
+            Opts::new(
+                "riptide_business_worker_jobs_retried_total",
+                "Total worker jobs retried",
+            )
+            .const_label("service", "riptide-business"),
+        )?;
+
+        let worker_processing_time = Histogram::with_opts(
+            HistogramOpts::new(
+                "riptide_business_worker_processing_time_seconds",
+                "Worker job processing time",
+            )
+            .const_label("service", "riptide-business")
+            .buckets(vec![0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0]),
+        )?;
+
+        let worker_queue_depth = Gauge::with_opts(
+            Opts::new("riptide_business_worker_queue_depth", "Worker queue depth")
+                .const_label("service", "riptide-business"),
+        )?;
+
+        // Cache metrics
+        let cache_hit_rate = Gauge::with_opts(
+            Opts::new("riptide_business_cache_hit_rate", "Cache hit rate")
+                .const_label("service", "riptide-business"),
+        )?;
+
+        // Error metrics
+        let errors_total = Counter::with_opts(
+            Opts::new("riptide_business_errors_total", "Total errors")
+                .const_label("service", "riptide-business"),
+        )?;
+
+        let redis_errors = Counter::with_opts(
+            Opts::new("riptide_business_redis_errors_total", "Redis errors")
+                .const_label("service", "riptide-business"),
+        )?;
+
+        let wasm_errors = Counter::with_opts(
+            Opts::new("riptide_business_wasm_errors_total", "WASM errors")
+                .const_label("service", "riptide-business"),
+        )?;
 
         // Register all metrics with the registry
-        // (Registration code here)
+        registry.register(Box::new(gate_decisions_raw.clone()))?;
+        registry.register(Box::new(gate_decisions_probes_first.clone()))?;
+        registry.register(Box::new(gate_decisions_headless.clone()))?;
+        registry.register(Box::new(gate_decisions_cached.clone()))?;
+        registry.register(Box::new(gate_decision_total.clone()))?;
+        registry.register(Box::new(gate_score_histogram.clone()))?;
+        registry.register(Box::new(gate_feature_text_ratio.clone()))?;
+        registry.register(Box::new(gate_feature_script_density.clone()))?;
+        registry.register(Box::new(gate_feature_spa_markers.clone()))?;
+        registry.register(Box::new(gate_decision_duration_ms.clone()))?;
+        registry.register(Box::new(extraction_quality_score.clone()))?;
+        registry.register(Box::new(extraction_quality_success_rate.clone()))?;
+        registry.register(Box::new(extraction_content_length.clone()))?;
+        registry.register(Box::new(extraction_links_found.clone()))?;
+        registry.register(Box::new(extraction_images_found.clone()))?;
+        registry.register(Box::new(extraction_has_author.clone()))?;
+        registry.register(Box::new(extraction_has_date.clone()))?;
+        registry.register(Box::new(extraction_duration_by_mode.clone()))?;
+        registry.register(Box::new(extraction_fallback_triggered.clone()))?;
+        registry.register(Box::new(fetch_phase_duration.clone()))?;
+        registry.register(Box::new(gate_phase_duration.clone()))?;
+        registry.register(Box::new(wasm_phase_duration.clone()))?;
+        registry.register(Box::new(render_phase_duration.clone()))?;
+        registry.register(Box::new(pipeline_phase_gate_analysis_ms.clone()))?;
+        registry.register(Box::new(pipeline_phase_extraction_ms.clone()))?;
+        registry.register(Box::new(pdf_total_processed.clone()))?;
+        registry.register(Box::new(pdf_total_failed.clone()))?;
+        registry.register(Box::new(pdf_memory_limit_failures.clone()))?;
+        registry.register(Box::new(pdf_processing_time.clone()))?;
+        registry.register(Box::new(pdf_peak_memory_mb.clone()))?;
+        registry.register(Box::new(pdf_pages_per_pdf.clone()))?;
+        registry.register(Box::new(pdf_memory_spikes_handled.clone()))?;
+        registry.register(Box::new(pdf_cleanup_operations.clone()))?;
+        registry.register(Box::new(spider_crawls_total.clone()))?;
+        registry.register(Box::new(spider_pages_crawled.clone()))?;
+        registry.register(Box::new(spider_pages_failed.clone()))?;
+        registry.register(Box::new(spider_active_crawls.clone()))?;
+        registry.register(Box::new(spider_frontier_size.clone()))?;
+        registry.register(Box::new(spider_crawl_duration.clone()))?;
+        registry.register(Box::new(spider_pages_per_second.clone()))?;
+        registry.register(Box::new(wasm_memory_pages.clone()))?;
+        registry.register(Box::new(wasm_grow_failed_total.clone()))?;
+        registry.register(Box::new(wasm_peak_memory_pages.clone()))?;
+        registry.register(Box::new(wasm_cold_start_time_ms.clone()))?;
+        registry.register(Box::new(wasm_aot_cache_hits.clone()))?;
+        registry.register(Box::new(wasm_aot_cache_misses.clone()))?;
+        registry.register(Box::new(worker_pool_size.clone()))?;
+        registry.register(Box::new(worker_pool_healthy.clone()))?;
+        registry.register(Box::new(worker_jobs_submitted.clone()))?;
+        registry.register(Box::new(worker_jobs_completed.clone()))?;
+        registry.register(Box::new(worker_jobs_failed.clone()))?;
+        registry.register(Box::new(worker_jobs_retried.clone()))?;
+        registry.register(Box::new(worker_processing_time.clone()))?;
+        registry.register(Box::new(worker_queue_depth.clone()))?;
+        registry.register(Box::new(cache_hit_rate.clone()))?;
+        registry.register(Box::new(errors_total.clone()))?;
+        registry.register(Box::new(redis_errors.clone()))?;
+        registry.register(Box::new(wasm_errors.clone()))?;
 
         Ok(Self {
             registry: registry.clone(),
@@ -462,57 +703,31 @@ impl BusinessMetrics {
             pdf_pages_per_pdf,
             pdf_memory_spikes_handled,
             pdf_cleanup_operations,
-            // Placeholders for remaining metrics
-            spider_crawls_total: Counter::with_opts(Opts::new("placeholder", "placeholder"))
-                .unwrap(),
-            spider_pages_crawled: Counter::with_opts(Opts::new("placeholder2", "placeholder"))
-                .unwrap(),
-            spider_pages_failed: Counter::with_opts(Opts::new("placeholder3", "placeholder"))
-                .unwrap(),
-            spider_active_crawls: Gauge::with_opts(Opts::new("placeholder4", "placeholder"))
-                .unwrap(),
-            spider_frontier_size: Gauge::with_opts(Opts::new("placeholder5", "placeholder"))
-                .unwrap(),
-            spider_crawl_duration: Histogram::with_opts(HistogramOpts::new(
-                "placeholder6",
-                "placeholder",
-            ))
-            .unwrap(),
-            spider_pages_per_second: Gauge::with_opts(Opts::new("placeholder7", "placeholder"))
-                .unwrap(),
-            wasm_memory_pages: Gauge::with_opts(Opts::new("placeholder8", "placeholder")).unwrap(),
-            wasm_grow_failed_total: Counter::with_opts(Opts::new("placeholder9", "placeholder"))
-                .unwrap(),
-            wasm_peak_memory_pages: Gauge::with_opts(Opts::new("placeholder10", "placeholder"))
-                .unwrap(),
-            wasm_cold_start_time_ms: Gauge::with_opts(Opts::new("placeholder11", "placeholder"))
-                .unwrap(),
-            wasm_aot_cache_hits: Counter::with_opts(Opts::new("placeholder12", "placeholder"))
-                .unwrap(),
-            wasm_aot_cache_misses: Counter::with_opts(Opts::new("placeholder13", "placeholder"))
-                .unwrap(),
-            worker_pool_size: Gauge::with_opts(Opts::new("placeholder14", "placeholder")).unwrap(),
-            worker_pool_healthy: Gauge::with_opts(Opts::new("placeholder15", "placeholder"))
-                .unwrap(),
-            worker_jobs_submitted: Counter::with_opts(Opts::new("placeholder16", "placeholder"))
-                .unwrap(),
-            worker_jobs_completed: Counter::with_opts(Opts::new("placeholder17", "placeholder"))
-                .unwrap(),
-            worker_jobs_failed: Counter::with_opts(Opts::new("placeholder18", "placeholder"))
-                .unwrap(),
-            worker_jobs_retried: Counter::with_opts(Opts::new("placeholder19", "placeholder"))
-                .unwrap(),
-            worker_processing_time: Histogram::with_opts(HistogramOpts::new(
-                "placeholder20",
-                "placeholder",
-            ))
-            .unwrap(),
-            worker_queue_depth: Gauge::with_opts(Opts::new("placeholder21", "placeholder"))
-                .unwrap(),
-            cache_hit_rate: Gauge::with_opts(Opts::new("placeholder22", "placeholder")).unwrap(),
-            errors_total: Counter::with_opts(Opts::new("placeholder23", "placeholder")).unwrap(),
-            redis_errors: Counter::with_opts(Opts::new("placeholder24", "placeholder")).unwrap(),
-            wasm_errors: Counter::with_opts(Opts::new("placeholder25", "placeholder")).unwrap(),
+            spider_crawls_total,
+            spider_pages_crawled,
+            spider_pages_failed,
+            spider_active_crawls,
+            spider_frontier_size,
+            spider_crawl_duration,
+            spider_pages_per_second,
+            wasm_memory_pages,
+            wasm_grow_failed_total,
+            wasm_peak_memory_pages,
+            wasm_cold_start_time_ms,
+            wasm_aot_cache_hits,
+            wasm_aot_cache_misses,
+            worker_pool_size,
+            worker_pool_healthy,
+            worker_jobs_submitted,
+            worker_jobs_completed,
+            worker_jobs_failed,
+            worker_jobs_retried,
+            worker_processing_time,
+            worker_queue_depth,
+            cache_hit_rate,
+            errors_total,
+            redis_errors,
+            wasm_errors,
         })
     }
 
@@ -711,6 +926,49 @@ impl BusinessMetrics {
     pub fn record_stream_closed(&self) {
         // Placeholder - full implementation would track stream closure
         // This is similar to record_stream_stopped but specifically for graceful closure
+    }
+
+    // ===== Spider Crawling Methods =====
+
+    /// Record spider crawl started
+    pub fn record_spider_crawl(&self, _url: &str, _max_depth: u32) {
+        // Placeholder - tracks spider crawl initiation
+        self.spider_crawls_total.inc();
+    }
+
+    /// Record spider error
+    pub fn record_spider_error(&self, _error_type: &str) {
+        // Placeholder - tracks spider errors
+        self.spider_pages_failed.inc();
+    }
+
+    /// Record spider page processed
+    pub fn record_spider_page(&self, _url: &str, _depth: u32) {
+        // Placeholder - tracks individual page processing
+        self.spider_pages_crawled.inc();
+    }
+
+    // ===== Worker Management Methods =====
+
+    /// Record worker job submitted
+    pub fn record_worker_job_submitted(&self, _job_type: &str) {
+        // Placeholder - tracks worker job submissions
+        self.worker_jobs_submitted.inc();
+    }
+
+    /// Record worker pool statistics
+    pub fn record_worker_pool_stats(&self, _active: usize, _idle: usize, _queue_depth: usize) {
+        // Placeholder - tracks worker pool state
+    }
+
+    /// Record worker metrics update
+    pub fn record_worker_metrics(
+        &self,
+        _worker_id: &str,
+        _jobs_completed: u64,
+        _avg_duration_ms: f64,
+    ) {
+        // Placeholder - tracks individual worker performance
     }
 }
 

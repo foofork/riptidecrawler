@@ -22,7 +22,8 @@ pub async fn submit_job(
         .submit_job(job)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    state.metrics.record_worker_job_submission();
+    // Phase D: Worker metrics now tracked via business_metrics
+    state.business_metrics.record_worker_job_submitted();
     Ok(Json(SubmitJobResponse::new(job_id)))
 }
 
@@ -90,7 +91,13 @@ pub async fn get_worker_stats(
         .worker_service
         .get_worker_stats()
         .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
-    state.metrics.update_worker_stats(&s);
+    // Phase D: Worker stats now tracked via business_metrics
+    state.business_metrics.record_worker_pool_stats(
+        s.total_workers,
+        s.healthy_workers,
+        s.total_jobs_processed as usize,
+        s.total_jobs_failed as usize,
+    );
     Ok(Json(WorkerPoolStatsResponse {
         total_workers: s.total_workers,
         healthy_workers: s.healthy_workers,
@@ -172,7 +179,13 @@ pub async fn get_worker_metrics(
     State(state): State<AppState>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let m = state.worker_service.get_metrics().await;
-    state.metrics.update_worker_metrics(&m);
+    // Phase D: Worker metrics tracked via business_metrics (detailed breakdown)
+    state.business_metrics.record_worker_metrics(
+        m.jobs_submitted as usize,
+        m.jobs_completed as usize,
+        m.jobs_failed as usize,
+        m.avg_processing_time_ms,
+    );
     Ok(Json(
         serde_json::json!({ "jobs_submitted": m.jobs_submitted, "jobs_completed": m.jobs_completed, "jobs_failed": m.jobs_failed, "jobs_retried": m.jobs_retried, "jobs_dead_letter": m.jobs_dead_letter, "avg_processing_time_ms": m.avg_processing_time_ms, "p95_processing_time_ms": m.p95_processing_time_ms, "p99_processing_time_ms": m.p99_processing_time_ms, "success_rate": m.success_rate, "job_type_stats": m.job_type_stats, "queue_sizes": m.queue_sizes, "total_workers": m.total_workers, "healthy_workers": m.healthy_workers, "uptime_seconds": m.uptime_seconds, "timestamp": m.timestamp }),
     ))

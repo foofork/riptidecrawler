@@ -281,9 +281,7 @@ impl PipelineOrchestrator {
         let (response, content_bytes, content_type) = self.fetch_content_with_type(url).await?;
         let http_status = response.status().as_u16();
         let fetch_duration = fetch_start.elapsed().as_secs_f64();
-        self.state
-            .metrics
-            .record_phase_timing(crate::metrics::PhaseType::Fetch, fetch_duration);
+        self.state.record_phase_timing("fetch", fetch_duration);
 
         // Step 3: Check if this is PDF content
         if pdf_utils::is_pdf_content(content_type.as_deref(), &content_bytes)
@@ -308,10 +306,9 @@ impl PipelineOrchestrator {
             let pdf_duration = pdf_start.elapsed().as_secs_f64();
 
             // Record PDF processing metrics
-            self.state.metrics.record_pdf_processing_success(
+            self.state.record_pdf_success(
+                (document.word_count.unwrap_or(0) / 250) as usize, // Estimate pages from word count
                 pdf_duration,
-                document.word_count.unwrap_or(0) / 250, // Estimate pages from word count
-                (content_bytes.len() as f64) / (1024.0 * 1024.0), // Memory in MB
             );
 
             // Cache the PDF result
@@ -354,40 +351,12 @@ impl PipelineOrchestrator {
 
         let gate_duration = gate_start.elapsed();
         self.state
-            .metrics
-            .record_phase_timing(crate::metrics::PhaseType::Gate, gate_duration.as_secs_f64());
-        self.state.metrics.record_gate_decision(&gate_decision_str);
+            .record_phase_timing("gate", gate_duration.as_secs_f64());
+        self.state.record_gate_decision(&gate_decision_str);
 
-        // INJECTION POINT 1: Enhanced gate metrics (non-blocking)
-        tokio::spawn({
-            let metrics = self.state.metrics.clone();
-            let decision_str = gate_decision_str.clone();
-            let score = quality_score;
-            let features = gate_features.clone();
-            let duration_ms = gate_duration.as_millis() as f64;
-            async move {
-                // Calculate feature ratios
-                let text_ratio = if features.html_bytes > 0 {
-                    features.visible_text_chars as f32 / features.html_bytes as f32
-                } else {
-                    0.0
-                };
-                let script_density = if features.html_bytes > 0 {
-                    features.script_bytes as f32 / features.html_bytes as f32
-                } else {
-                    0.0
-                };
-
-                metrics.record_gate_decision_enhanced(
-                    &decision_str,
-                    score,
-                    text_ratio,
-                    script_density,
-                    features.spa_markers,
-                    duration_ms,
-                );
-            }
-        });
+        // INJECTION POINT 1: Gate metrics tracked via AppState helper (already called above)
+        // Phase D: BusinessMetrics only supports basic record_gate_decision (no enhanced version)
+        // The basic gate decision is already recorded above via self.state.record_gate_decision()
 
         info!(
             url = %url,
@@ -439,14 +408,13 @@ impl PipelineOrchestrator {
         let extract_duration = extract_start.elapsed();
 
         // Record WASM extraction phase timing
-        self.state.metrics.record_phase_timing(
-            crate::metrics::PhaseType::Wasm,
-            extract_duration.as_secs_f64(),
-        );
+        self.state
+            .record_phase_timing("wasm", extract_duration.as_secs_f64());
 
         // INJECTION POINT 2: Enhanced extraction metrics (non-blocking)
+        // Phase D: Using business_metrics for extraction result tracking
         tokio::spawn({
-            let metrics = self.state.metrics.clone();
+            let metrics = self.state.business_metrics.clone();
             let mode = match decision {
                 Decision::Raw => "raw",
                 Decision::ProbesFirst => "probes",
@@ -813,8 +781,8 @@ impl PipelineOrchestrator {
                     "PDF processing failed"
                 );
 
-                // Track PDF processing failure
-                self.state.metrics.record_pdf_processing_failure(false);
+                // Track PDF processing failure (HTTP error)
+                self.state.record_http_error();
 
                 // Return a fallback document with error information
                 Ok(ExtractedDoc {

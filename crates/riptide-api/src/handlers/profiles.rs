@@ -21,7 +21,7 @@ pub async fn create_profile(
 ) -> Result<impl IntoResponse, ApiError> {
     let facade = ProfileFacade::new();
     let profile = facade
-        .create_profile(
+        .create_with_config(
             request.domain.clone(),
             request.config.map(Into::into),
             request.metadata.map(Into::into),
@@ -100,7 +100,7 @@ pub async fn batch_create_profiles(
             )
         })
         .collect();
-    let result = facade.batch_create_profiles(facade_requests);
+    let result = facade.batch_create(facade_requests);
     Ok((
         StatusCode::CREATED,
         Json(BatchCreateResponse {

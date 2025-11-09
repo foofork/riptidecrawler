@@ -64,14 +64,12 @@ impl AppStateBuilder {
     pub async fn build(self) -> Result<AppState> {
         let config = self.config.unwrap_or_default();
         let api_config = self.api_config.unwrap_or_default();
-        let metrics = self
-            .metrics
-            .unwrap_or_else(|| Arc::new(RipTideMetrics::new().expect("Failed to create metrics")));
+        // Phase D: Removed deprecated metrics parameter
         let health_checker = self
             .health_checker
             .unwrap_or_else(|| Arc::new(HealthChecker::new()));
 
-        AppState::new_base(config, api_config, metrics, health_checker, None).await
+        AppState::new_base(config, api_config, health_checker, None).await
     }
 }
 

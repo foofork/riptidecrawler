@@ -133,11 +133,8 @@ pub async fn get_resource_status(
             #[cfg(not(feature = "jemalloc"))]
             let jemalloc_stats = None;
 
-            // Update metrics with latest jemalloc stats
-            #[cfg(feature = "jemalloc")]
-            if jemalloc_stats.is_some() {
-                state.metrics.update_jemalloc_stats();
-            }
+            // Phase D: Removed deprecated state.metrics.update_jemalloc_stats() call
+            // Stats are collected directly via JemallocStats::collect() above
 
             MemoryStatus {
                 current_usage_mb: resource_status.memory_usage_mb,
@@ -209,11 +206,8 @@ pub async fn get_memory_status(
     #[cfg(not(feature = "jemalloc"))]
     let jemalloc_stats = None;
 
-    // Update metrics with latest jemalloc stats
-    #[cfg(feature = "jemalloc")]
-    if jemalloc_stats.is_some() {
-        state.metrics.update_jemalloc_stats();
-    }
+    // Phase D: Removed deprecated state.metrics.update_jemalloc_stats() call
+    // Stats are collected directly via JemallocStats::collect() above
 
     Ok(Json(MemoryStatus {
         current_usage_mb: resource_status.memory_usage_mb,

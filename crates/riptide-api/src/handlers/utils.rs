@@ -9,9 +9,9 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse};
 pub async fn metrics(State(state): State<AppState>) -> Result<impl IntoResponse, ApiError> {
     // Update streaming metrics before gathering all metrics
     let streaming_metrics = state.streaming.metrics().await;
-    state.metrics.update_streaming_metrics(&streaming_metrics);
+    state.update_streaming_metrics(&streaming_metrics);
 
-    let registry = &state.metrics.registry;
+    let registry = &state.metrics_registry();
     let encoder = prometheus::TextEncoder::new();
 
     match encoder.encode_to_string(&registry.gather()) {

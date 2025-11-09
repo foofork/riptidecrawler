@@ -275,7 +275,7 @@ pub async fn get_current_provider_info(
     );
 
     // Record metrics
-    state.metrics.record_http_request(
+    state.record_http_request(
         "GET",
         "/api/v1/llm/providers/current",
         200,
@@ -351,7 +351,7 @@ pub async fn list_providers(
     );
 
     // Record metrics
-    state.metrics.record_http_request(
+    state.record_http_request(
         "GET",
         "/api/v1/llm/providers",
         200,
@@ -528,7 +528,7 @@ pub async fn switch_provider(
     );
 
     // Record metrics
-    state.metrics.record_http_request(
+    state.record_http_request(
         "POST",
         "/api/v1/llm/providers/switch",
         status_code.as_u16(),
@@ -648,7 +648,7 @@ pub async fn update_config(
     );
 
     // Record metrics
-    state.metrics.record_http_request(
+    state.record_http_request(
         "POST",
         "/api/v1/llm/config",
         status_code.as_u16(),
@@ -689,7 +689,7 @@ pub async fn get_config(State(state): State<AppState>) -> Result<impl IntoRespon
     );
 
     // Record metrics
-    state.metrics.record_http_request(
+    state.record_http_request(
         "GET",
         "/api/v1/llm/config",
         200,

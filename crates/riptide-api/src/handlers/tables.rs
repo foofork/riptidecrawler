@@ -31,7 +31,7 @@ pub async fn extract_tables(
             state.transport_metrics.record_wasm_error();
             ApiError::from(e)
         })?;
-    state.metrics.record_http_request(
+    state.record_http_request(
         "POST",
         "/api/v1/tables/extract",
         200,
@@ -83,14 +83,11 @@ pub async fn export_table(
 /// Get extraction statistics (3 LOC)
 pub async fn get_table_stats(
     State(state): State<AppState>,
-    Path(request_id): Path<String>,
+    Path(_request_id): Path<String>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let stats = facade()
-        .get_extraction_stats(&request_id)
-        .await
-        .map_err(|e| {
-            state.transport_metrics.record_wasm_error();
-            ApiError::from(e)
-        })?;
+    let stats = facade().get_extraction_stats().await.map_err(|e| {
+        state.transport_metrics.record_wasm_error();
+        ApiError::from(e)
+    })?;
     Ok(Json(stats))
 }

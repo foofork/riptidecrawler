@@ -62,6 +62,7 @@ use crate::jemalloc_stats::JemallocStats;
     since = "4.5.0",
     note = "Split into BusinessMetrics (facade) and TransportMetrics (API). Use CombinedMetrics for unified endpoint."
 )]
+#[allow(deprecated)]
 #[derive(Debug)]
 pub struct RipTideMetrics {
     /// Prometheus registry for metrics
@@ -201,6 +202,7 @@ pub struct RipTideMetrics {
     pub jemalloc_metadata_ratio: Gauge,  // Metadata overhead ratio
 }
 
+#[allow(deprecated)]
 impl RipTideMetrics {
     /// Initialize metrics with Prometheus registry
     pub fn new() -> anyhow::Result<Self> {
@@ -1112,12 +1114,13 @@ impl RipTideMetrics {
     }
 
     /// Record phase timing
-    pub fn record_phase_timing(&self, phase: PhaseType, duration: f64) {
+    pub fn record_phase_timing(&self, phase: &str, duration: f64) {
         match phase {
-            PhaseType::Fetch => self.fetch_phase_duration.observe(duration),
-            PhaseType::Gate => self.gate_phase_duration.observe(duration),
-            PhaseType::Wasm => self.wasm_phase_duration.observe(duration),
-            PhaseType::Render => self.render_phase_duration.observe(duration),
+            "fetch" => self.fetch_phase_duration.observe(duration),
+            "gate" => self.gate_phase_duration.observe(duration),
+            "wasm" => self.wasm_phase_duration.observe(duration),
+            "render" => self.render_phase_duration.observe(duration),
+            _ => {} // Ignore unknown phases
         }
     }
 
@@ -1686,6 +1689,7 @@ impl PhaseTimer {
     }
 
     /// End timing and log results
+    #[allow(deprecated)]
     pub fn end(self, metrics: &RipTideMetrics, success: bool) {
         let duration = self.start_time.elapsed();
         let duration_secs = duration.as_secs_f64();
@@ -1699,7 +1703,14 @@ impl PhaseTimer {
             "Phase completed"
         );
 
-        metrics.record_phase_timing(self.phase, duration_secs);
+        // Convert PhaseType to string for record_phase_timing
+        let phase_str = match self.phase {
+            PhaseType::Fetch => "fetch",
+            PhaseType::Gate => "gate",
+            PhaseType::Wasm => "wasm",
+            PhaseType::Render => "render",
+        };
+        metrics.record_phase_timing(phase_str, duration_secs);
 
         if !success {
             match self.phase {

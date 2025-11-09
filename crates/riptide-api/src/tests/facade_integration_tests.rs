@@ -51,10 +51,10 @@ async fn create_test_app_state() -> Result<AppState> {
     api_config.headless.max_pool_size = 2;
     api_config.headless.idle_timeout_secs = 60;
 
-    let metrics = Arc::new(RipTideMetrics::new()?);
+    // Phase D: Removed deprecated metrics parameter
     let health_checker = Arc::new(HealthChecker::new());
 
-    AppState::new_base(config, api_config, metrics, health_checker, None).await
+    AppState::new_base(config, api_config, health_checker, None).await
 }
 
 /// Create a mock HTTP server for testing fetch operations

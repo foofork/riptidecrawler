@@ -501,7 +501,7 @@ impl HealthChecker {
         let memory_usage_bytes = system_metrics.memory_usage_bytes;
 
         // Get metrics from Prometheus registry
-        let metrics_data = state.metrics.registry.gather();
+        let metrics_data = state.metrics_registry().gather();
 
         // Extract key metrics from the prometheus data
         let mut total_requests = 0u64;

@@ -16,7 +16,6 @@
 /// - ENHANCED_PIPELINE_FETCH_TIMEOUT: Fetch phase timeout in seconds
 /// - ENHANCED_PIPELINE_RENDER_TIMEOUT: Render phase timeout in seconds
 use crate::errors::ApiResult;
-use crate::metrics::{ErrorType, PhaseTimer, PhaseType, RipTideMetrics};
 use crate::pipeline::{PipelineOrchestrator, PipelineResult, PipelineStats};
 use crate::state::{AppState, EnhancedPipelineConfig};
 use anyhow::Result;
@@ -40,9 +39,6 @@ pub struct EnhancedPipelineOrchestrator {
     /// Crawl options
     options: CrawlOptions,
 
-    /// Metrics collector
-    metrics: Arc<RipTideMetrics>,
-
     /// Enhanced pipeline configuration
     config: EnhancedPipelineConfig,
 
@@ -53,14 +49,12 @@ pub struct EnhancedPipelineOrchestrator {
 impl EnhancedPipelineOrchestrator {
     /// Create new enhanced pipeline orchestrator
     pub fn new(state: AppState, options: CrawlOptions) -> Self {
-        let metrics = state.metrics.clone();
         let config = state.config.enhanced_pipeline_config.clone();
         let pipeline = PipelineOrchestrator::new(state.clone(), options.clone());
 
         Self {
             state,
             options,
-            metrics,
             config,
             pipeline,
         }
@@ -276,8 +270,7 @@ impl EnhancedPipelineOrchestrator {
             Ok(data) => data,
             Err(e) => {
                 result.error = Some(format!("Fetch phase failed: {}", e));
-                #[allow(deprecated)]
-                self.metrics.record_error(ErrorType::Http);
+                self.state.record_http_error();
                 return Ok(result);
             }
         };
@@ -289,7 +282,7 @@ impl EnhancedPipelineOrchestrator {
         result.quality_score = gate_result.quality_score;
 
         // Record gate decision in metrics
-        self.metrics.record_gate_decision(&gate_result.decision);
+        self.state.record_gate_decision(&gate_result.decision);
 
         // Phase 3: WASM Extraction
         let wasm_result = self
@@ -301,8 +294,7 @@ impl EnhancedPipelineOrchestrator {
             Ok(doc) => doc,
             Err(e) => {
                 result.error = Some(format!("WASM phase failed: {}", e));
-                #[allow(deprecated)]
-                self.metrics.record_error(ErrorType::Wasm);
+                self.state.record_wasm_error();
                 return Ok(result);
             }
         };
@@ -345,14 +337,14 @@ impl EnhancedPipelineOrchestrator {
 
     /// Execute fetch phase with timing
     async fn execute_fetch_phase(&self, url: &str) -> PhaseResult<(String, u16)> {
-        let timer = PhaseTimer::start(PhaseType::Fetch, url.to_string());
         let start = Instant::now();
 
         let result = self.fetch_content(url).await;
         let duration_ms = start.elapsed().as_millis() as u64;
 
         // Record timing in metrics
-        timer.end(&self.metrics, result.is_ok());
+        let duration_secs = start.elapsed().as_secs_f64();
+        self.state.record_phase_timing("fetch", duration_secs);
 
         PhaseResult {
             result,
@@ -362,14 +354,14 @@ impl EnhancedPipelineOrchestrator {
 
     /// Execute gate analysis phase with timing
     async fn execute_gate_phase(&self, url: &str, content: &str) -> GateResult {
-        let timer = PhaseTimer::start(PhaseType::Gate, url.to_string());
         let start = Instant::now();
 
         let (decision, quality_score) = self.analyze_content_gate(url, content).await;
         let duration_ms = start.elapsed().as_millis() as u64;
 
         // Record timing in metrics
-        timer.end(&self.metrics, true); // Gate analysis always succeeds
+        let duration_secs = start.elapsed().as_secs_f64();
+        self.state.record_phase_timing("gate", duration_secs);
 
         debug!(
             url = %url,
@@ -393,14 +385,14 @@ impl EnhancedPipelineOrchestrator {
         content: &str,
         gate_decision: &str,
     ) -> PhaseResult<ExtractedDoc> {
-        let timer = PhaseTimer::start(PhaseType::Wasm, url.to_string());
         let start = Instant::now();
 
         let result = self.extract_with_wasm(url, content, gate_decision).await;
         let duration_ms = start.elapsed().as_millis() as u64;
 
         // Record timing in metrics
-        timer.end(&self.metrics, result.is_ok());
+        let duration_secs = start.elapsed().as_secs_f64();
+        self.state.record_phase_timing("wasm", duration_secs);
 
         PhaseResult {
             result,
@@ -410,14 +402,14 @@ impl EnhancedPipelineOrchestrator {
 
     /// Execute render phase with timing (for headless content)
     async fn execute_render_phase(&self, url: &str) -> PhaseResult<ExtractedDoc> {
-        let timer = PhaseTimer::start(PhaseType::Render, url.to_string());
         let start = Instant::now();
 
         let result = self.render_with_headless(url).await;
         let duration_ms = start.elapsed().as_millis() as u64;
 
         // Record timing in metrics
-        timer.end(&self.metrics, result.is_ok());
+        let duration_secs = start.elapsed().as_secs_f64();
+        self.state.record_phase_timing("render", duration_secs);
 
         PhaseResult {
             result,
@@ -577,7 +569,6 @@ impl Clone for EnhancedPipelineOrchestrator {
         Self {
             state: self.state.clone(),
             options: self.options.clone(),
-            metrics: self.metrics.clone(),
             config: self.config.clone(),
             pipeline: self.pipeline.clone(),
         }

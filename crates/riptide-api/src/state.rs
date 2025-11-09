@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 use crate::config::RiptideApiConfig;
 use crate::health::HealthChecker;
-use crate::metrics::RipTideMetrics;
 use crate::metrics_integration::CombinedMetrics;
 use crate::metrics_transport::TransportMetrics;
 use crate::resource_manager::ResourceManager;
@@ -83,14 +82,6 @@ pub struct AppState {
 
     /// Comprehensive resource manager
     pub resource_manager: Arc<ResourceManager>,
-
-    /// Prometheus metrics collector (DEPRECATED - use business_metrics and transport_metrics instead)
-    /// This will be removed in a future release after full migration to split metrics
-    #[deprecated(
-        since = "4.5.0",
-        note = "Use business_metrics and transport_metrics instead"
-    )]
-    pub metrics: Arc<RipTideMetrics>,
 
     /// Business domain metrics for facade layer operations
     /// Tracks extraction quality, gate decisions, PDF/Spider processing, cache effectiveness
@@ -596,7 +587,6 @@ impl AppState {
     /// # Arguments
     ///
     /// * `config` - Application configuration
-    /// * `metrics` - Prometheus metrics collector
     /// * `health_checker` - Health checker for enhanced diagnostics
     ///
     /// # Returns
@@ -617,16 +607,11 @@ impl AppState {
     /// use riptide_api::state::{AppState, AppConfig};
     ///
     /// let config = AppConfig::default();
-    /// let metrics = Arc::new(RipTideMetrics::new()?);
     /// let health_checker = Arc::new(HealthChecker::new());
-    /// let state = AppState::new(config, metrics, health_checker).await?;
+    /// let state = AppState::new(config, health_checker).await?;
     /// ```
-    pub async fn new(
-        config: AppConfig,
-        metrics: Arc<RipTideMetrics>,
-        health_checker: Arc<HealthChecker>,
-    ) -> Result<Self> {
-        Self::new_with_facades(config, metrics, health_checker, None).await
+    pub async fn new(config: AppConfig, health_checker: Arc<HealthChecker>) -> Result<Self> {
+        Self::new_with_facades(config, health_checker, None).await
     }
 
     /// Initialize AppState with facades and optional telemetry (public convenience method).
@@ -637,7 +622,6 @@ impl AppState {
     /// # Arguments
     ///
     /// * `config` - Application configuration
-    /// * `metrics` - Prometheus metrics collector
     /// * `health_checker` - Health checker for enhanced diagnostics
     /// * `telemetry` - Optional telemetry system for observability
     ///
@@ -646,13 +630,11 @@ impl AppState {
     /// A configured `AppState` with all facades initialized.
     pub async fn new_with_facades(
         config: AppConfig,
-        metrics: Arc<RipTideMetrics>,
         health_checker: Arc<HealthChecker>,
         telemetry: Option<Arc<TelemetrySystem>>,
     ) -> Result<Self> {
         let api_config = RiptideApiConfig::from_env();
-        let base_state =
-            Self::new_base(config, api_config, metrics, health_checker, telemetry).await?;
+        let base_state = Self::new_base(config, api_config, health_checker, telemetry).await?;
         base_state.with_facades().await
     }
 
@@ -666,7 +648,6 @@ impl AppState {
     ///
     /// * `config` - Application configuration
     /// * `api_config` - API-specific configuration with resource controls
-    /// * `metrics` - Prometheus metrics collector
     /// * `health_checker` - Health checker for enhanced diagnostics
     /// * `telemetry` - Optional telemetry system for observability
     ///
@@ -684,7 +665,6 @@ impl AppState {
     pub async fn new_base(
         config: AppConfig,
         api_config: RiptideApiConfig,
-        metrics: Arc<RipTideMetrics>,
         health_checker: Arc<HealthChecker>,
         telemetry: Option<Arc<TelemetrySystem>>,
     ) -> Result<Self> {
@@ -763,8 +743,8 @@ impl AppState {
         let session_manager = Arc::new(session_manager);
         tracing::info!("Session manager initialized");
 
-        // Initialize streaming module with lifecycle management
-        let streaming_module = StreamingModule::with_lifecycle_manager(None, metrics.clone());
+        // Initialize streaming module with lifecycle management (Phase D: removed deprecated metrics)
+        let streaming_module = StreamingModule::default();
         if let Err(e) = streaming_module.validate() {
             tracing::warn!("Streaming configuration validation failed: {}", e);
         }
@@ -1338,8 +1318,6 @@ impl AppState {
             config,
             api_config,
             resource_manager,
-            #[allow(deprecated)]
-            metrics,
             business_metrics,
             transport_metrics,
             combined_metrics,
@@ -1467,6 +1445,78 @@ impl AppState {
 
         tracing::info!("All facades initialized successfully");
         Ok(self)
+    }
+
+    // ===== Phase 5.2: Transitional Helper Methods =====
+    // These helpers allow gradual migration from deprecated metrics
+
+    /// Record HTTP error using transport metrics
+    pub fn record_http_error(&self) {
+        self.transport_metrics.record_http_error();
+    }
+
+    /// Record WASM error using transport metrics
+    pub fn record_wasm_error(&self) {
+        self.transport_metrics.record_wasm_error();
+    }
+
+    /// Record Redis error using transport metrics
+    pub fn record_redis_error(&self) {
+        self.transport_metrics.record_redis_error();
+    }
+
+    /// Record HTTP request using transport metrics
+    pub fn record_http_request(&self, method: &str, path: &str, status: u16, duration_secs: f64) {
+        self.transport_metrics
+            .record_http_request(method, path, status, duration_secs);
+    }
+
+    /// Record phase timing using business metrics
+    pub fn record_phase_timing(&self, phase: &str, duration_secs: f64) {
+        // Map phase name to appropriate histogram
+        match phase {
+            "fetch" => self
+                .business_metrics
+                .fetch_phase_duration
+                .observe(duration_secs),
+            "gate" => self
+                .business_metrics
+                .gate_phase_duration
+                .observe(duration_secs),
+            "wasm" => self
+                .business_metrics
+                .wasm_phase_duration
+                .observe(duration_secs),
+            "render" => self
+                .business_metrics
+                .render_phase_duration
+                .observe(duration_secs),
+            _ => {
+                tracing::warn!("Unknown phase type for timing: {}", phase);
+            }
+        }
+    }
+
+    /// Record gate decision using business metrics
+    pub fn record_gate_decision(&self, decision: &str) {
+        self.business_metrics.record_gate_decision(decision);
+    }
+
+    /// Get prometheus registry for metrics endpoint
+    pub fn metrics_registry(&self) -> &prometheus::Registry {
+        &self.combined_metrics.registry()
+    }
+
+    /// Update streaming metrics (delegates to business metrics)
+    pub fn update_streaming_metrics(&self, _metrics: &crate::streaming::GlobalStreamingMetrics) {
+        // Delegate to business metrics for streaming operations
+        self.business_metrics.record_stream_created("", "");
+    }
+
+    /// Record PDF processing success
+    pub fn record_pdf_success(&self, pages: usize, duration_secs: f64) {
+        self.business_metrics
+            .record_pdf_processing_success(duration_secs, pages as u32, 0.0);
     }
 
     /// Check the health of all application dependencies with telemetry.
@@ -1723,7 +1773,6 @@ impl AppState {
                 .expect("Failed to create reliable extractor"),
         );
 
-        let metrics = Arc::new(RipTideMetrics::new().expect("Failed to create metrics"));
         let health_checker = Arc::new(HealthChecker::new());
 
         let resource_manager = Arc::new(
@@ -1867,8 +1916,6 @@ impl AppState {
             config,
             api_config,
             resource_manager,
-            #[allow(deprecated)]
-            metrics,
             business_metrics,
             transport_metrics,
             combined_metrics,

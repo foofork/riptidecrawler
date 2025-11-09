@@ -156,8 +156,9 @@ async fn main() -> anyhow::Result<()> {
     let health_checker = Arc::new(HealthChecker::new());
 
     // Initialize application state with all dependencies
+    // Phase D: Removed deprecated metrics parameter
     tracing::info!("Initializing application state and dependencies");
-    let app_state = AppState::new(config, metrics.clone(), health_checker.clone()).await?;
+    let app_state = AppState::new(config, health_checker.clone()).await?;
     tracing::info!("Application state initialization complete");
 
     // Worker service is initialized and ready to process jobs

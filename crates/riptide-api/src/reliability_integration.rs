@@ -31,6 +31,8 @@ impl WasmExtractorAdapter {
     }
 
     /// Create adapter with metrics tracking
+    /// Phase D: Deprecated metrics parameter - kept for reliability integration compatibility
+    #[allow(deprecated)]
     pub fn with_metrics(
         extractor: Arc<riptide_extraction::UnifiedExtractor>,
         metrics: Arc<crate::metrics::RipTideMetrics>,
@@ -101,6 +103,8 @@ impl WasmExtractorTrait for WasmExtractorAdapter {
 }
 
 /// Implement ReliabilityMetricsRecorder for RipTideMetrics
+/// Phase D: Deprecated metrics - kept with #[allow(deprecated)] for reliability integration
+#[allow(deprecated)]
 impl ReliabilityMetricsRecorder for crate::metrics::RipTideMetrics {
     fn record_extraction_fallback(&self, from_mode: &str, to_mode: &str, reason: &str) {
         self.record_extraction_fallback(from_mode, to_mode, reason);
