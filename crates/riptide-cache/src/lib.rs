@@ -45,8 +45,8 @@
 //! ```
 
 pub mod key;
-pub mod manager;
-pub mod redis;
+pub mod pool; // Redis connection pooling
+pub mod redis; // Contains both CacheManager and RedisManager
 pub mod redis_storage; // CacheStorage trait adapter
                        // pub mod integrated;  // Temporarily disabled: circular dependency with riptide-core
 pub mod warming;
@@ -62,13 +62,10 @@ pub use key::{
     generate_fetch_cache_key, generate_strategies_cache_key, generate_wasm_cache_key,
     CacheKeyBuilder, CacheKeyParams,
 };
-pub use manager::{
-    CacheConfig, CacheEntry, CacheManager, CacheMetadata, CacheStats, ConditionalResult,
-};
+pub use pool::{RedisConfig, RedisPool};
 pub use redis::{
-    CacheConfig as RedisCacheConfig, CacheEntry as RedisCacheEntry,
-    CacheManager as RedisCacheManager, CacheMetadata as RedisCacheMetadata,
-    CacheStats as RedisCacheStats, ConditionalResult as RedisConditionalResult,
+    CacheConfig, CacheEntry, CacheManager, CacheMetadata, CacheStats, ConditionalResult,
+    RedisManager,
 };
 pub use redis_storage::RedisStorage; // Port adapter for CacheStorage trait
                                      // pub use integrated::{
@@ -97,10 +94,10 @@ pub use wasm::{
 /// Prelude module for convenient imports
 pub mod prelude {
     pub use crate::key::{CacheKeyBuilder, CacheKeyParams};
-    pub use crate::manager::{
+    pub use crate::redis::{
         CacheConfig, CacheEntry, CacheManager, CacheMetadata, CacheStats, ConditionalResult,
+        RedisManager,
     };
-    pub use crate::redis::{CacheConfig as RedisCacheConfig, CacheManager as RedisCacheManager};
     // pub use crate::integrated::{IntegratedCacheManager, IntegratedCacheConfig};
     #[cfg(feature = "wasm-pool")]
     pub use crate::warming::{CacheWarmingConfig, CacheWarmingManager};

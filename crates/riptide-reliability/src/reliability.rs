@@ -1,5 +1,5 @@
 use anyhow::Result;
-use riptide_fetch::{CircuitBreakerConfig, ReliableHttpClient, RetryConfig};
+use riptide_fetch::ReliableHttpClient;
 /// Enhanced reliability patterns for RipTide Phase-2 Lite
 ///
 /// This module implements timeout and reliability patterns for robust web scraping:
@@ -10,6 +10,7 @@ use riptide_fetch::{CircuitBreakerConfig, ReliableHttpClient, RetryConfig};
 // Use trait abstraction instead of concrete type to avoid circular dependency
 use riptide_types::extractors::HtmlParser;
 use riptide_types::ExtractedDoc;
+use riptide_types::{CircuitBreakerConfig, RetryConfig};
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
 use tracing::{debug, error, info, warn};

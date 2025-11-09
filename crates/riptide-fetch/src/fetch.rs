@@ -9,52 +9,9 @@ use std::sync::Arc;
 use std::time::Duration;
 use tracing::{debug, error, info, instrument};
 
-/// Circuit breaker configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CircuitBreakerConfig {
-    pub failure_threshold: u32,
-    pub open_cooldown_ms: u64,
-    pub half_open_max_in_flight: u32,
-}
-
-impl Default for CircuitBreakerConfig {
-    fn default() -> Self {
-        Self {
-            failure_threshold: 5,
-            open_cooldown_ms: 30_000,
-            half_open_max_in_flight: 3,
-        }
-    }
-}
-
+// Re-export types from riptide-types to maintain backward compatibility
+pub use riptide_types::{CircuitBreakerConfig, RetryConfig};
 pub use riptide_utils::circuit_breaker::State as CircuitState;
-
-/// Retry configuration with exponential backoff
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RetryConfig {
-    /// Maximum number of retry attempts
-    pub max_attempts: u32,
-    /// Initial delay between retries
-    pub initial_delay: Duration,
-    /// Maximum delay between retries
-    pub max_delay: Duration,
-    /// Backoff multiplier
-    pub backoff_multiplier: f64,
-    /// Add jitter to prevent thundering herd
-    pub jitter: bool,
-}
-
-impl Default for RetryConfig {
-    fn default() -> Self {
-        Self {
-            max_attempts: 3,
-            initial_delay: Duration::from_millis(100),
-            max_delay: Duration::from_secs(10),
-            backoff_multiplier: 2.0,
-            jitter: true,
-        }
-    }
-}
 
 /// Enhanced HTTP client with reliability patterns and robots.txt compliance
 #[derive(Debug)]

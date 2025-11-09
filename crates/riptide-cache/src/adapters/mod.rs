@@ -13,9 +13,14 @@ pub mod redis_idempotency;
 #[cfg(feature = "idempotency")]
 pub mod redis_session_storage;
 
+// Sprint 4.4: Rate limiting adapter
+pub mod redis_rate_limiter;
+
 // Re-export adapters when features are enabled
 #[cfg(feature = "idempotency")]
 pub use redis_idempotency::RedisIdempotencyStore;
 
 #[cfg(feature = "idempotency")]
 pub use redis_session_storage::RedisSessionStorage;
+
+pub use redis_rate_limiter::{RedisPerHostRateLimiter, RedisRateLimiter};

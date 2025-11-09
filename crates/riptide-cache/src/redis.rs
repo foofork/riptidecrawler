@@ -5,6 +5,7 @@ use redis::{AsyncCommands, Client};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
+use std::time::Duration;
 use tracing::{debug, info, warn};
 
 /// Default cache TTL (24 hours)
@@ -70,6 +71,59 @@ pub struct CacheMetadata {
     pub url_hash: String,
     /// Content type
     pub content_type: Option<String>,
+}
+
+/// Redis manager for low-level Redis operations
+/// Used by adapters that need direct Redis access
+pub struct RedisManager {
+    conn: MultiplexedConnection,
+    #[allow(dead_code)]
+    client: Client,
+}
+
+impl RedisManager {
+    /// Create a new Redis manager
+    pub async fn new(redis_url: &str) -> Result<Self> {
+        let client = Client::open(redis_url)?;
+        let conn = client.get_multiplexed_tokio_connection().await?;
+        Ok(Self { conn, client })
+    }
+
+    /// Create a test instance for unit tests
+    #[cfg(test)]
+    pub fn new_test_instance() -> Self {
+        // This is a placeholder that will fail if used in tests without Redis
+        // Tests should use integration tests with real Redis
+        panic!("Use integration tests with real Redis instance")
+    }
+
+    /// Get a value from Redis
+    pub async fn get(&self, _namespace: &str, key: &str) -> Result<Option<Vec<u8>>> {
+        let mut conn = self.conn.clone();
+        let data: Option<Vec<u8>> = conn.get(key).await?;
+        Ok(data)
+    }
+
+    /// Delete a key from Redis
+    pub async fn delete(&self, _namespace: &str, key: &str) -> Result<bool> {
+        let mut conn = self.conn.clone();
+        let deleted: u64 = conn.del(key).await?;
+        Ok(deleted > 0)
+    }
+
+    /// Increment a counter with TTL
+    pub async fn incr(
+        &self,
+        _namespace: &str,
+        key: &str,
+        amount: usize,
+        ttl: Duration,
+    ) -> Result<i64> {
+        let mut conn = self.conn.clone();
+        let result: i64 = conn.incr(key, amount as i64).await?;
+        conn.expire::<_, ()>(key, ttl.as_secs() as i64).await?;
+        Ok(result)
+    }
 }
 
 /// Enhanced cache manager with security and HTTP caching support

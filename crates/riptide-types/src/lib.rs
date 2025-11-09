@@ -47,6 +47,7 @@ pub mod extractors;
 pub mod http_types;
 pub mod pipeline;
 pub mod ports; // Port interfaces for hexagonal architecture
+pub mod reliability; // Reliability configuration types (circuit breaker, retry)
 pub mod secrets;
 pub mod traits;
 pub mod types;
@@ -72,6 +73,7 @@ pub use pipeline::{
     CombinedPipelineExecutor, GateDecisionStats, PipelineExecutor, PipelineResult,
     PipelineRetryConfig, PipelineStats, StrategiesPipelineExecutor, StrategiesPipelineResult,
 };
+pub use reliability::{CircuitBreakerConfig, RetryConfig};
 pub use traits::{Browser, Extractor, Scraper};
 pub use types::{
     BrowserConfig, ExtractionConfig, ExtractionRequest, ExtractionResult, ScrapedContent,

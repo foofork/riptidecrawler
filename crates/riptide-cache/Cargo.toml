@@ -67,7 +67,7 @@ testcontainers-modules = { version = "0.3", features = ["redis"] }
 anyhow = "1.0"
 
 [features]
-default = []
+default = ["idempotency"]
 distributed = []
 warming = []
 # Phase 1: WASM Optional - Feature flags for WASM functionality

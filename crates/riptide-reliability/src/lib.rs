@@ -140,10 +140,14 @@
 //! ```
 
 // Circuit breaker canonical implementation is in riptide-utils (shared infrastructure)
+pub mod buffer;
 pub mod circuit_breaker_pool;
 pub mod engine_selection;
 pub mod gate;
 pub mod http_client;
+// NOTE: Circular dependency RESOLVED - config types moved to riptide-types
+// The reliability module now uses CircuitBreakerConfig and RetryConfig from riptide-types
+// ReliableHttpClient still comes from riptide-fetch (which is fine - no circular dependency)
 #[cfg(feature = "reliability-patterns")]
 pub mod reliability;
 pub mod timeout;
@@ -168,6 +172,10 @@ pub use Clock as TypesClock;
 pub use RealClock as TypesRealClock;
 pub use State as TypesCircuitState;
 
+pub use buffer::{
+    BackpressureHandler, BackpressureMetrics, BufferConfig, BufferError, BufferManager,
+    BufferResult, BufferStats, DynamicBuffer,
+};
 pub use circuit_breaker_pool::{
     record_extraction_result, CircuitBreakerState, ExtractionResult as CircuitExtractionResult,
 };
@@ -179,6 +187,7 @@ pub use gate::{decide, score, should_use_headless, Decision, GateFeatures};
 pub use http_client::{
     CircuitBreakerPreset, FetchOptions, HttpClientService, HttpConfig, ReliableHttpClient,
 };
+// NOTE: Reliability patterns now re-enabled - circular dependency resolved
 #[cfg(feature = "reliability-patterns")]
 pub use reliability::{
     ExtractionMode, ReliabilityConfig, ReliabilityMetrics, ReliabilityMetricsRecorder,

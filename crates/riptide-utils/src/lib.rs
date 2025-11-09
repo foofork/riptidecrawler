@@ -2,7 +2,6 @@
 //!
 //! This crate provides common utilities used across the Riptide EventMesh platform:
 //!
-//! - **Redis**: Connection pool management with health checks
 //! - **HTTP**: HTTP client factory with connection pooling
 //! - **Retry**: Retry policies with exponential backoff
 //! - **Time**: Time utilities and timestamp conversions
@@ -15,6 +14,8 @@
 //!
 //! **Note**: Circuit breaker functionality is provided in the `circuit_breaker` module.
 //! This is infrastructure-level shared code that avoids circular dependencies.
+//!
+//! **Note**: Redis functionality has been moved to `riptide-cache` for better consolidation.
 
 #![deny(missing_docs)]
 #![warn(clippy::all)]
@@ -23,7 +24,6 @@ pub mod circuit_breaker;
 pub mod error;
 pub mod health_registry;
 pub mod http;
-pub mod redis;
 pub mod retry;
 pub mod time;
 
@@ -34,7 +34,6 @@ pub use circuit_breaker::{
 pub use error::{Error, Result};
 pub use health_registry::{InMemoryHealthRegistry, SimpleHealthCheck};
 pub use http::{HttpClientFactory, HttpConfig};
-pub use redis::{RedisConfig, RedisPool};
 pub use retry::RetryPolicy;
 
 #[cfg(test)]
@@ -44,7 +43,6 @@ mod tests {
     #[test]
     fn test_module_exports() {
         // Test that all modules are accessible
-        let _ = RedisConfig::default();
         let _ = HttpConfig::default();
         let _ = RetryPolicy::default();
     }

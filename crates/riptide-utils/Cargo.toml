@@ -12,7 +12,7 @@ tokio = { workspace = true }
 async-trait = { workspace = true }
 
 # Redis client
-redis = { workspace = true }
+# redis moved to riptide-cache for consolidation
 
 # HTTP client
 reqwest = { workspace = true }

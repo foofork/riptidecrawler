@@ -13,6 +13,8 @@ categories = ["web-programming", "network-programming"]
 riptide-types = { path = "../riptide-types" }
 riptide-utils = { path = "../riptide-utils" }
 riptide-config = { path = "../riptide-config" }
+# NOTE: riptide-reliability dependency removed to break circular dependency
+# Users should use riptide-reliability::http_client::ReliableHttpClient directly
 
 # Core dependencies
 anyhow.workspace = true
