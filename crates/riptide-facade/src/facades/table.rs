@@ -316,8 +316,11 @@ impl TableFacade {
         })
     }
 
-    /// Get extraction statistics for a table request
-    pub async fn get_extraction_stats(&self, _table_id: &str) -> Result<ExtractionStats> {
+    /// Get extraction statistics for all table operations
+    ///
+    /// Returns global statistics about table extraction performance.
+    /// In Phase 6, this will track actual metrics from the cache and facade operations.
+    pub async fn get_extraction_stats(&self) -> Result<ExtractionStats> {
         // TODO: Implement actual stats tracking in Phase 6
         // For now, return placeholder stats
         Ok(ExtractionStats {

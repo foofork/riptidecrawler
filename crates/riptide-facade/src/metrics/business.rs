@@ -706,6 +706,12 @@ impl BusinessMetrics {
     pub fn record_stream_created(&self, _tenant_id: &str, _format: &str) {
         // Placeholder - full implementation would track stream creation
     }
+
+    /// Record stream closed
+    pub fn record_stream_closed(&self) {
+        // Placeholder - full implementation would track stream closure
+        // This is similar to record_stream_stopped but specifically for graceful closure
+    }
 }
 
 impl Default for BusinessMetrics {

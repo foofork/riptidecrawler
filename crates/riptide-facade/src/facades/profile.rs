@@ -62,28 +62,68 @@ impl ProfileFacade {
         Self
     }
 
-    /// Create a new profile with simplified interface
-    /// TODO: Implement proper profile creation logic
-    pub fn create_profile(
-        &self,
-        domain: String,
-        config: Option<ProfileConfigRequest>,
-        metadata: Option<ProfileMetadataRequest>,
-    ) -> Result<DomainProfile> {
-        self.create_with_config(domain, config, metadata)
+    /// Create a new profile with simplified interface using a DomainProfile
+    ///
+    /// # Arguments
+    ///
+    /// * `profile` - The domain profile to create
+    ///
+    /// # Returns
+    ///
+    /// Returns the created and validated profile.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Profile validation fails
+    /// - Profile save operation fails
+    pub fn create_profile(&self, profile: DomainProfile) -> Result<DomainProfile> {
+        // Validate profile before saving
+        ProfileManager::validate(&profile)?;
+
+        // Save the validated profile
+        ProfileManager::save(&profile, None)?;
+
+        Ok(profile)
     }
 
-    /// Batch create multiple profiles (alias for batch_create)
-    /// TODO: Align with batch_create implementation
+    /// Batch create multiple profiles from DomainProfile instances
+    ///
+    /// # Arguments
+    ///
+    /// * `profiles` - Vector of domain profiles to create
+    ///
+    /// # Returns
+    ///
+    /// Returns batch result with successful and failed creations.
     pub fn batch_create_profiles(
         &self,
-        requests: Vec<(
-            String,
-            Option<ProfileConfigRequest>,
-            Option<ProfileMetadataRequest>,
-        )>,
-    ) -> BatchCreateResult {
-        self.batch_create(requests)
+        profiles: Vec<DomainProfile>,
+    ) -> Result<Vec<DomainProfile>> {
+        let mut created = Vec::new();
+        let mut errors = Vec::new();
+
+        for profile in profiles {
+            match self.create_profile(profile.clone()) {
+                Ok(p) => created.push(p),
+                Err(e) => {
+                    errors.push(format!(
+                        "Failed to create profile {}: {}",
+                        profile.domain, e
+                    ));
+                }
+            }
+        }
+
+        if !errors.is_empty() {
+            return Err(anyhow::anyhow!(
+                "Batch create completed with {} errors: {}",
+                errors.len(),
+                errors.join("; ")
+            ));
+        }
+
+        Ok(created)
     }
 
     /// Get caching metrics

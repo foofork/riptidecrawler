@@ -208,6 +208,17 @@ struct ActiveStream {
     updated_at: Instant,
 }
 
+/// Lifecycle manager for advanced stream lifecycle management (Phase 6)
+#[derive(Debug, Clone)]
+pub struct LifecycleManager {
+    /// Maximum concurrent streams
+    pub max_concurrent_streams: usize,
+    /// Automatic cleanup enabled
+    pub auto_cleanup: bool,
+    /// Health check interval in seconds
+    pub health_check_interval: u64,
+}
+
 // ============================================================================
 // StreamingFacade Implementation
 // ============================================================================
@@ -219,6 +230,7 @@ pub struct StreamingFacade {
     authz_policies: Vec<Box<dyn AuthorizationPolicy>>,
     metrics: Arc<BusinessMetrics>,
     active_streams: Arc<RwLock<HashMap<String, ActiveStream>>>,
+    lifecycle_manager: Option<LifecycleManager>,
 }
 
 impl StreamingFacade {
@@ -235,6 +247,7 @@ impl StreamingFacade {
             authz_policies,
             metrics,
             active_streams: Arc::new(RwLock::new(HashMap::new())),
+            lifecycle_manager: None,
         }
     }
 
@@ -988,6 +1001,150 @@ impl StreamingFacade {
 
         Ok(StreamSummary {
             stream_id: stream_id.to_string(),
+            total_chunks: stream.stats.chunks_processed,
+            total_bytes: stream.stats.bytes_processed,
+            successful_chunks: stream.stats.chunks_processed - stream.stats.errors,
+            failed_chunks: stream.stats.errors,
+            average_throughput_bps: average_throughput,
+            duration_ms,
+            final_state: stream.state,
+        })
+    }
+
+    // ========================================================================
+    // Phase 5.1: Additional Facade Methods
+    // ========================================================================
+
+    /// Attach a lifecycle manager to the streaming facade
+    ///
+    /// Enables advanced stream lifecycle management features including:
+    /// - Maximum concurrent stream limits
+    /// - Automatic cleanup of idle streams
+    /// - Periodic health checks
+    ///
+    /// # Arguments
+    ///
+    /// * `manager` - The lifecycle manager configuration
+    ///
+    /// # Returns
+    ///
+    /// Returns a new StreamingFacade instance with the lifecycle manager attached.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// let manager = LifecycleManager {
+    ///     max_concurrent_streams: 100,
+    ///     auto_cleanup: true,
+    ///     health_check_interval: 60,
+    /// };
+    /// let facade = facade.with_lifecycle_manager(manager);
+    /// ```
+    pub fn with_lifecycle_manager(mut self, manager: LifecycleManager) -> Self {
+        self.lifecycle_manager = Some(manager);
+        self
+    }
+
+    /// Get list of all active streams with their current status
+    ///
+    /// Returns information about all currently active streams in the system,
+    /// including their IDs, configurations, and current processing state.
+    ///
+    /// # Returns
+    ///
+    /// Vector of tuples containing (stream_id, config, state, stats)
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// let active = facade.get_active_streams().await;
+    /// for (id, config, state, stats) in active {
+    ///     println!("Stream {}: {:?} - {} chunks", id, state, stats.chunks_processed);
+    /// }
+    /// ```
+    pub async fn get_active_streams(
+        &self,
+    ) -> Vec<(String, StreamConfig, StreamState, StreamStats)> {
+        let streams = self.active_streams.read().await;
+        streams
+            .iter()
+            .map(|(id, stream)| {
+                (
+                    id.clone(),
+                    stream.config.clone(),
+                    stream.state,
+                    stream.stats.clone(),
+                )
+            })
+            .collect()
+    }
+
+    /// Gracefully close a specific stream by ID
+    ///
+    /// Stops the stream processing, generates a final summary, and removes
+    /// the stream from the active streams registry. This is the proper way
+    /// to terminate a stream without using the authorization context.
+    ///
+    /// # Arguments
+    ///
+    /// * `stream_id` - The unique identifier of the stream to close
+    ///
+    /// # Returns
+    ///
+    /// Returns the final stream summary on success, or an error if the
+    /// stream doesn't exist or cannot be closed.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Stream ID is not found
+    /// - Stream is in an invalid state for closing
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// match facade.close_stream("stream_123").await {
+    ///     Ok(summary) => println!("Closed stream: {} chunks processed", summary.total_chunks),
+    ///     Err(e) => eprintln!("Failed to close stream: {}", e),
+    /// }
+    /// ```
+    pub async fn close_stream(&self, stream_id: String) -> RiptideResult<StreamSummary> {
+        // Get and remove the stream from active registry
+        let stream = {
+            let mut streams = self.active_streams.write().await;
+            streams
+                .remove(&stream_id)
+                .ok_or_else(|| RiptideError::NotFound(format!("Stream not found: {}", stream_id)))?
+        };
+
+        // Generate final summary
+        let duration_ms = stream.created_at.elapsed().as_millis() as u64;
+        let average_throughput = if duration_ms > 0 {
+            (stream.stats.bytes_processed as f64 * 1000.0) / duration_ms as f64
+        } else {
+            0.0
+        };
+
+        // Emit stream closed event
+        let event = DomainEvent::new(
+            "stream_closed",
+            stream_id.clone(),
+            serde_json::json!({
+                "tenant_id": stream.config.tenant_id.clone(),
+                "total_chunks": stream.stats.chunks_processed,
+                "total_bytes": stream.stats.bytes_processed,
+                "duration_ms": duration_ms,
+            }),
+        );
+
+        // Best effort event publishing (don't fail if event bus is down)
+        let _ = self.event_bus.publish(event).await;
+
+        // Record metrics
+        self.metrics.record_stream_closed();
+
+        Ok(StreamSummary {
+            stream_id,
             total_chunks: stream.stats.chunks_processed,
             total_bytes: stream.stats.bytes_processed,
             successful_chunks: stream.stats.chunks_processed - stream.stats.errors,

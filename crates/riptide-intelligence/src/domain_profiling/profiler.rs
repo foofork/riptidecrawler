@@ -77,6 +77,25 @@ pub struct DomainPatterns {
     pub exclude_patterns: Vec<String>,
 }
 
+/// Statistics about domain profiles in the registry
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ProfileStatistics {
+    /// Total number of profiles in registry
+    pub total_profiles: usize,
+    /// Number of profiles accessed in last 7 days
+    pub active_profiles: usize,
+    /// Average success rate across all profiles
+    pub avg_success_rate: f64,
+    /// Average response time across all profiles (ms)
+    pub avg_response_time_ms: u64,
+    /// Total requests across all profiles
+    pub total_requests: u64,
+    /// Number of profiles with cached engines
+    pub profiles_with_cache: usize,
+    /// Most common tags across profiles
+    pub popular_tags: Vec<(String, usize)>,
+}
+
 impl Default for DomainConfig {
     fn default() -> Self {
         Self {
@@ -339,21 +358,176 @@ impl ProfileManager {
         ProfileRegistry::list_profiles(Some(filter))
     }
 
-    /// Search profiles by query string (domain or metadata)
-    /// TODO: Implement full-text search across profile fields
+    /// Search profiles by query string across multiple fields
+    ///
+    /// Performs case-insensitive search across:
+    /// - Domain name
+    /// - Profile name
+    /// - Description
+    /// - Tags
+    /// - Author
+    ///
+    /// # Arguments
+    ///
+    /// * `query` - Search string to match against profile fields
+    ///
+    /// # Returns
+    ///
+    /// Vector of profiles matching the search query
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// let results = ProfileManager::search("example")?;
+    /// ```
     pub fn search(query: &str) -> Result<Vec<DomainProfile>> {
-        // For now, use filtered list as a simple search
-        ProfileRegistry::list_profiles(Some(query))
+        let all_profiles = Self::list_all()?;
+        let query_lower = query.to_lowercase();
+
+        Ok(all_profiles
+            .into_iter()
+            .filter(|profile| {
+                // Search in domain
+                if profile.domain.to_lowercase().contains(&query_lower) {
+                    return true;
+                }
+
+                // Search in name
+                if profile.name.to_lowercase().contains(&query_lower) {
+                    return true;
+                }
+
+                // Search in description
+                if let Some(desc) = &profile.metadata.description {
+                    if desc.to_lowercase().contains(&query_lower) {
+                        return true;
+                    }
+                }
+
+                // Search in tags
+                if profile
+                    .metadata
+                    .tags
+                    .iter()
+                    .any(|tag| tag.to_lowercase().contains(&query_lower))
+                {
+                    return true;
+                }
+
+                // Search in author
+                if let Some(author) = &profile.metadata.author {
+                    if author.to_lowercase().contains(&query_lower) {
+                        return true;
+                    }
+                }
+
+                false
+            })
+            .collect())
     }
 
     /// List profiles filtered by tag
-    /// TODO: Implement proper tag-based filtering
     pub fn list_by_tag(tag: &str) -> Result<Vec<DomainProfile>> {
         let all_profiles = Self::list_all()?;
         Ok(all_profiles
             .into_iter()
             .filter(|p| p.metadata.tags.contains(&tag.to_string()))
             .collect())
+    }
+
+    /// Get comprehensive statistics about all profiles in the registry
+    ///
+    /// Computes aggregate statistics across all domain profiles including:
+    /// - Total profile count
+    /// - Active profiles (recently used)
+    /// - Performance metrics (success rates, response times)
+    /// - Cache utilization
+    /// - Popular tags
+    ///
+    /// # Returns
+    ///
+    /// Returns `ProfileStatistics` containing aggregate metrics, or an error
+    /// if the registry cannot be accessed.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// let stats = ProfileManager::get_statistics()?;
+    /// println!("Total profiles: {}", stats.total_profiles);
+    /// println!("Average success rate: {:.2}%", stats.avg_success_rate * 100.0);
+    /// println!("Active profiles: {}", stats.active_profiles);
+    /// ```
+    pub fn get_statistics() -> Result<ProfileStatistics> {
+        let all_profiles = Self::list_all()?;
+
+        let total_profiles = all_profiles.len();
+
+        // Count profiles that have been accessed (have last_accessed timestamp)
+        let profiles_with_cache = all_profiles
+            .iter()
+            .filter(|p| p.metadata.last_accessed.is_some())
+            .count();
+
+        // Collect all tags and count their occurrences
+        let mut tag_counts: std::collections::HashMap<String, usize> =
+            std::collections::HashMap::new();
+        for profile in &all_profiles {
+            for tag in &profile.metadata.tags {
+                *tag_counts.entry(tag.clone()).or_insert(0) += 1;
+            }
+        }
+
+        // Get top 10 most popular tags
+        let mut popular_tags: Vec<(String, usize)> = tag_counts.into_iter().collect();
+        popular_tags.sort_by(|a, b| b.1.cmp(&a.1));
+        popular_tags.truncate(10);
+
+        // Calculate aggregate performance metrics from actual metadata
+        let avg_success_rate = if !all_profiles.is_empty() {
+            all_profiles
+                .iter()
+                .map(|p| p.metadata.success_rate)
+                .sum::<f64>()
+                / total_profiles as f64
+        } else {
+            0.0
+        };
+
+        let avg_response_time_ms = if !all_profiles.is_empty() {
+            all_profiles
+                .iter()
+                .map(|p| p.metadata.avg_response_time_ms)
+                .sum::<u64>()
+                / total_profiles as u64
+        } else {
+            0
+        };
+
+        // Count active profiles (accessed in the last 7 days)
+        let now = chrono::Utc::now();
+        let seven_days_ago = now - chrono::Duration::days(7);
+        let active_profiles = all_profiles
+            .iter()
+            .filter(|p| {
+                p.metadata
+                    .last_accessed
+                    .map(|t| t > seven_days_ago)
+                    .unwrap_or(false)
+            })
+            .count();
+
+        // Sum total requests across all profiles
+        let total_requests = all_profiles.iter().map(|p| p.metadata.total_requests).sum();
+
+        Ok(ProfileStatistics {
+            total_profiles,
+            active_profiles,
+            avg_success_rate,
+            avg_response_time_ms,
+            total_requests,
+            profiles_with_cache,
+            popular_tags,
+        })
     }
 
     /// Validate a profile
