@@ -46,7 +46,6 @@
 
 use crate::authorization::{AuthorizationContext, AuthorizationPolicy, Resource};
 use crate::error::{RiptideError, RiptideResult};
-use futures::FutureExt;
 use riptide_types::ports::{CacheStorage, DomainEvent, EventBus};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -210,7 +209,7 @@ pub struct LlmFacade {
     /// Authorization policies
     authz_policies: Vec<Box<dyn AuthorizationPolicy>>,
 
-    /// Metrics collector
+    /// Business metrics collector
     metrics: Arc<dyn MetricsCollector>,
 
     /// Default cache TTL
@@ -317,11 +316,13 @@ impl LlmFacade {
 
         // Step 3: Execute via provider
         debug!(provider = %self.provider.name(), "Executing via provider");
-        let response = self.provider.execute(&request).await.inspect_err(|_e| {
-            self.metrics
-                .record_error("llm_execution_failed")
-                .now_or_never();
-        })?;
+        let response = match self.provider.execute(&request).await {
+            Ok(resp) => resp,
+            Err(e) => {
+                self.metrics.record_error("llm_execution_failed").await;
+                return Err(e);
+            }
+        };
 
         let latency_ms = start_time.elapsed().as_millis() as u64;
 
@@ -608,10 +609,10 @@ mod tests {
         }
     }
 
-    struct MockMetricsCollector;
-
+    // Mock metrics collector for testing
+    struct MockMetrics;
     #[async_trait::async_trait]
-    impl MetricsCollector for MockMetricsCollector {
+    impl MetricsCollector for MockMetrics {
         async fn record_llm_execution(
             &self,
             _provider: &str,
@@ -621,9 +622,7 @@ mod tests {
             _latency_ms: u64,
         ) {
         }
-
         async fn record_cache_hit(&self, _hit: bool) {}
-
         async fn record_error(&self, _error_type: &str) {}
     }
 
@@ -633,7 +632,7 @@ mod tests {
         let event_bus = Arc::new(MockEventBus) as Arc<dyn EventBus>;
         let authz_policies: Vec<Box<dyn AuthorizationPolicy>> =
             vec![Box::new(TenantScopingPolicy::new())];
-        let metrics = Arc::new(MockMetricsCollector) as Arc<dyn MetricsCollector>;
+        let metrics = Arc::new(MockMetrics) as Arc<dyn MetricsCollector>;
 
         LlmFacade::new(provider, cache, event_bus, authz_policies, metrics)
     }

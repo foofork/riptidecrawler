@@ -71,6 +71,9 @@ axum = { workspace = true, features = ["multipart"] }
 async-stream = "0.3"
 futures-util = "0.3"
 
+# Metrics
+prometheus = "0.14"  # Business metrics instrumentation
+
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }
 wiremock.workspace = true
@@ -79,7 +82,7 @@ scraper.workspace = true
 spider_chromiumoxide_cdp = { workspace = true }
 
 [features]
-default = []
+default = ["llm"]
 # Phase 1: WASM Optional - Feature flag for WASM extraction
 wasm-extractor = ["riptide-extraction/wasm-extractor", "riptide-cache/wasm-extractor"]
 llm = ["riptide-intelligence"]

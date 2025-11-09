@@ -5,5 +5,7 @@
 //! metrics like HTTP requests or database queries.
 
 pub mod business;
+pub mod performance;
 
 pub use business::BusinessMetrics;
+pub use performance::{PerformanceMonitor, PerformanceStats};

@@ -207,7 +207,7 @@ fn test_rbac_with_defaults() {
 #[test]
 fn test_complex_authorization_scenario() {
     // Scenario: Multi-tenant system with RBAC and ownership
-    let mut rbac = RbacPolicy::with_defaults();
+    let rbac = RbacPolicy::with_defaults();
     let mut ownership = ResourceOwnershipPolicy::with_admin_override();
 
     // Register some resources

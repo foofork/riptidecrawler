@@ -1,4 +1,48 @@
+//! # DEPRECATED MODULE - Sprint 4.5 Metrics Split
+//!
+//! **This module is deprecated and will be removed in a future release.**
+//!
+//! Use the new split metrics architecture instead:
+//! - `riptide_facade::metrics::BusinessMetrics` for business domain metrics
+//!   (extraction quality, gate decisions, PDF processing, cache effectiveness)
+//! - `crate::metrics_transport::TransportMetrics` for transport-level metrics
+//!   (HTTP requests, WebSocket connections, streaming protocols)
+//! - `crate::metrics_integration::CombinedMetrics` for unified /metrics endpoint
+//!
+//! Migration Guide:
+//! ```rust
+//! // OLD (deprecated):
+//! let metrics = Arc::new(RipTideMetrics::new()?);
+//! metrics.gate_decisions_raw.inc();
+//! metrics.http_requests_total.inc();
+//!
+//! // NEW (recommended):
+//! let business_metrics = Arc::new(BusinessMetrics::new()?);
+//! let transport_metrics = Arc::new(TransportMetrics::new()?);
+//! let combined = Arc::new(CombinedMetrics::new(business_metrics.clone(), transport_metrics.clone())?);
+//!
+//! // Business domain operations use business_metrics:
+//! combined.record_gate_decision("raw");
+//!
+//! // Transport operations use transport_metrics:
+//! combined.record_http_request("GET", "/api/extract", 200, 0.150);
+//!
+//! // Serve unified /metrics endpoint:
+//! let all_metrics = combined.gather_all();
+//! ```
+//!
+//! This split provides:
+//! - Clear separation of concerns
+//! - Better organization and maintainability
+//! - Easier testing and mocking
+//! - Improved performance through targeted metric collection
+
 #![allow(dead_code)]
+#![deprecated(
+    since = "4.5.0",
+    note = "Use BusinessMetrics + TransportMetrics + CombinedMetrics instead. See module docs for migration guide."
+)]
+
 use axum_prometheus::{metrics_exporter_prometheus::PrometheusHandle, PrometheusMetricLayer};
 use prometheus::{
     Counter, Gauge, GaugeVec, Histogram, HistogramOpts, HistogramVec, IntCounterVec, Opts, Registry,
@@ -12,6 +56,12 @@ use tracing::{info, warn};
 use crate::jemalloc_stats::JemallocStats;
 
 /// Metrics collection and management for RipTide API
+///
+/// **DEPRECATED**: Use `BusinessMetrics` + `TransportMetrics` + `CombinedMetrics` instead
+#[deprecated(
+    since = "4.5.0",
+    note = "Split into BusinessMetrics (facade) and TransportMetrics (API). Use CombinedMetrics for unified endpoint."
+)]
 #[derive(Debug)]
 pub struct RipTideMetrics {
     /// Prometheus registry for metrics

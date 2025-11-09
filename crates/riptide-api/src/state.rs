@@ -2,12 +2,15 @@
 use crate::config::RiptideApiConfig;
 use crate::health::HealthChecker;
 use crate::metrics::RipTideMetrics;
+use crate::metrics_integration::CombinedMetrics;
+use crate::metrics_transport::TransportMetrics;
 use crate::resource_manager::ResourceManager;
 use crate::sessions::{SessionConfig, SessionManager};
 use crate::streaming::StreamingModule;
 use anyhow::{Context, Result};
 use reqwest::Client;
 use riptide_cache::CacheManager;
+use riptide_facade::metrics::BusinessMetrics;
 // CacheWarmingConfig requires wasm-pool feature which is not available in riptide-api
 // #[cfg(feature = "wasm-pool")]
 // use riptide_cache::CacheWarmingConfig;
@@ -81,8 +84,25 @@ pub struct AppState {
     /// Comprehensive resource manager
     pub resource_manager: Arc<ResourceManager>,
 
-    /// Prometheus metrics collector
+    /// Prometheus metrics collector (DEPRECATED - use business_metrics and transport_metrics instead)
+    /// This will be removed in a future release after full migration to split metrics
+    #[deprecated(
+        since = "4.5.0",
+        note = "Use business_metrics and transport_metrics instead"
+    )]
     pub metrics: Arc<RipTideMetrics>,
+
+    /// Business domain metrics for facade layer operations
+    /// Tracks extraction quality, gate decisions, PDF/Spider processing, cache effectiveness
+    pub business_metrics: Arc<BusinessMetrics>,
+
+    /// Transport-level metrics for HTTP/WebSocket/SSE protocols
+    /// Tracks request/response metrics, connection tracking, streaming protocols
+    pub transport_metrics: Arc<TransportMetrics>,
+
+    /// Combined metrics collector merging business and transport metrics
+    /// Use this for the /metrics endpoint to serve all metrics
+    pub combined_metrics: Arc<CombinedMetrics>,
 
     /// Health checker for enhanced diagnostics
     pub health_checker: Arc<HealthChecker>,
@@ -168,6 +188,16 @@ pub struct AppState {
     /// Engine selection facade for intelligent engine selection
     /// Phase 3 Sprint 3.1: Engine selection business logic
     pub engine_facade: Arc<riptide_facade::facades::EngineFacade>,
+
+    /// Streaming facade for real-time data delivery
+    /// Phase 4 Sprint 4.3: Streaming business logic consolidation
+    /// TODO: Enable when dependencies are properly wired
+    // pub streaming_facade: Arc<riptide_facade::facades::StreamingFacade>,
+
+    /// Resource facade for centralized resource orchestration
+    /// Phase 4 Sprint 4.4: Resource management business logic
+    pub resource_facade:
+        Arc<riptide_facade::facades::ResourceFacade<crate::adapters::ResourceSlot>>,
 
     /// Trace backend for distributed trace storage and retrieval
     pub trace_backend: Option<Arc<dyn crate::handlers::trace_backend::TraceBackend>>,
@@ -658,12 +688,33 @@ impl AppState {
         health_checker: Arc<HealthChecker>,
         telemetry: Option<Arc<TelemetrySystem>>,
     ) -> Result<Self> {
-        tracing::info!("Initializing application state with resource controls");
+        tracing::info!(
+            "Initializing application state with resource controls and split metrics architecture"
+        );
 
         // Validate API configuration
         api_config
             .validate()
             .map_err(|e| anyhow::anyhow!("Invalid API configuration: {}", e))?;
+
+        // Initialize business domain metrics for facade layer
+        let business_metrics =
+            Arc::new(BusinessMetrics::new().context("Failed to initialize business metrics")?);
+        tracing::info!("Business metrics initialized for facade layer operations");
+
+        // Initialize transport-level metrics for HTTP/WebSocket/SSE
+        let transport_metrics =
+            Arc::new(TransportMetrics::new().context("Failed to initialize transport metrics")?);
+        tracing::info!("Transport metrics initialized for protocol-level tracking");
+
+        // Create combined metrics collector for unified /metrics endpoint
+        let combined_metrics = Arc::new(
+            CombinedMetrics::new(business_metrics.clone(), transport_metrics.clone())
+                .context("Failed to create combined metrics collector")?,
+        );
+        tracing::info!(
+            "Combined metrics collector created - business + transport registries merged for /metrics endpoint"
+        );
 
         // Initialize HTTP client with optimized settings
         #[cfg(feature = "fetch")]
@@ -1227,11 +1278,45 @@ impl AppState {
                 })?,
         );
 
-        // Initialize engine facade with cache
-        let engine_facade = Arc::new(riptide_facade::facades::EngineFacade::new(Arc::new(
-            riptide_cache::RedisCache::from_cache_manager(cache.clone()),
-        )));
+        // Initialize engine facade with cache storage adapter
+        let cache_storage = Arc::new(riptide_cache::RedisStorage::new(cache.clone()));
+        let engine_facade = Arc::new(riptide_facade::facades::EngineFacade::new(cache_storage));
         tracing::info!("EngineFacade initialized successfully");
+
+        // Initialize resource facade (Sprint 4.4)
+        use crate::adapters::ResourceManagerPoolAdapter;
+        let resource_pool_adapter =
+            Arc::new(ResourceManagerPoolAdapter::new(resource_manager.clone()));
+        let redis_manager = Arc::new(
+            riptide_cache::redis::RedisManager::new(&config.redis_url)
+                .await
+                .context("Failed to create Redis manager for rate limiting")?,
+        );
+        let redis_rate_limiter = Arc::new(riptide_cache::adapters::RedisRateLimiter::new(
+            redis_manager,
+            api_config.rate_limiting.requests_per_second_per_host * 60, // requests per minute
+            std::time::Duration::from_secs(60),
+        ));
+        let resource_facade = Arc::new(riptide_facade::facades::ResourceFacade::new(
+            resource_pool_adapter
+                as Arc<dyn riptide_types::ports::Pool<crate::adapters::ResourceSlot>>,
+            redis_rate_limiter as Arc<dyn riptide_types::ports::RateLimiter>,
+            business_metrics.clone() as Arc<dyn riptide_types::ports::BusinessMetrics>,
+            riptide_facade::facades::ResourceConfig::default(),
+        ));
+        tracing::info!(
+            "ResourceFacade initialized successfully with pool adapter and Redis rate limiter"
+        );
+
+        // TODO Phase 4.3: Initialize streaming facade with proper dependencies
+        // For now, create a placeholder that will be properly wired later
+        // let streaming_facade = Arc::new(riptide_facade::facades::StreamingFacade::new(
+        //     cache_storage.clone(),
+        //     Arc::new(NoopEventBus),
+        //     vec![],
+        //     Arc::new(NoopMetrics),
+        // ));
+        // tracing::info!("StreamingFacade initialized successfully for real-time data delivery");
 
         // Optional facades are None in base state - will be initialized by with_facades()
         #[cfg(feature = "spider")]
@@ -1249,7 +1334,11 @@ impl AppState {
             config,
             api_config,
             resource_manager,
+            #[allow(deprecated)]
             metrics,
+            business_metrics,
+            transport_metrics,
+            combined_metrics,
             health_checker,
             session_manager,
             streaming,
@@ -1279,6 +1368,10 @@ impl AppState {
             search_facade,
             // Engine facade (Phase 3 Sprint 3.1)
             engine_facade,
+            // TODO Phase 4.3: Streaming facade (Phase 4 Sprint 4.3)
+            // streaming_facade,
+            // Resource facade (Phase 4 Sprint 4.4)
+            resource_facade,
             trace_backend,
             #[cfg(feature = "persistence")]
             persistence_adapter: None, // TODO: Initialize actual persistence adapter when integrated
@@ -1714,9 +1807,48 @@ impl AppState {
         let search_facade = None;
 
         // Initialize engine facade for tests
-        let engine_facade = Arc::new(riptide_facade::facades::EngineFacade::new(Arc::new(
-            riptide_cache::RedisCache::from_cache_manager(cache.clone()),
-        )));
+        let cache_storage = Arc::new(riptide_cache::RedisStorage::new(cache.clone()));
+        let engine_facade = Arc::new(riptide_facade::facades::EngineFacade::new(cache_storage));
+
+        // Initialize resource facade for tests (Sprint 4.4)
+        let resource_pool_adapter = Arc::new(crate::adapters::ResourceManagerPoolAdapter::new(
+            resource_manager.clone(),
+        ));
+        let redis_manager = Arc::new(
+            riptide_cache::redis::RedisManager::new(&redis_url)
+                .await
+                .expect("Failed to create Redis manager for tests"),
+        );
+        let redis_rate_limiter = Arc::new(riptide_cache::adapters::RedisRateLimiter::new(
+            redis_manager,
+            1000,
+            std::time::Duration::from_secs(60),
+        ));
+        let business_metrics_test = Arc::new(
+            riptide_facade::metrics::BusinessMetrics::new()
+                .expect("Failed to create business metrics for tests"),
+        );
+        let resource_facade = Arc::new(riptide_facade::facades::ResourceFacade::new(
+            resource_pool_adapter
+                as Arc<dyn riptide_types::ports::Pool<crate::adapters::ResourceSlot>>,
+            redis_rate_limiter as Arc<dyn riptide_types::ports::RateLimiter>,
+            business_metrics_test.clone() as Arc<dyn riptide_types::ports::BusinessMetrics>,
+            riptide_facade::facades::ResourceConfig::default(),
+        ));
+
+        // TODO Phase 4.3: Initialize streaming facade for tests
+        // let streaming_facade = Arc::new(riptide_facade::facades::StreamingFacade::new(...));
+
+        // Create placeholder metrics for test state
+        let business_metrics =
+            Arc::new(BusinessMetrics::new().expect("Failed to create business metrics for tests"));
+        let transport_metrics = Arc::new(
+            TransportMetrics::new().expect("Failed to create transport metrics for tests"),
+        );
+        let combined_metrics = Arc::new(
+            CombinedMetrics::new(business_metrics.clone(), transport_metrics.clone())
+                .expect("Failed to create combined metrics for tests"),
+        );
 
         Self {
             http_client,
@@ -1727,7 +1859,11 @@ impl AppState {
             config,
             api_config,
             resource_manager,
+            #[allow(deprecated)]
             metrics,
+            business_metrics,
+            transport_metrics,
+            combined_metrics,
             health_checker,
             session_manager,
             streaming,
@@ -1757,6 +1893,10 @@ impl AppState {
             search_facade,
             // Engine facade (Phase 3 Sprint 3.1)
             engine_facade,
+            // TODO Phase 4.3: Streaming facade (Phase 4 Sprint 4.3)
+            // streaming_facade,
+            // Resource facade (Phase 4 Sprint 4.4)
+            resource_facade,
             trace_backend: None,
             #[cfg(feature = "persistence")]
             persistence_adapter: None, // TODO: Initialize actual persistence adapter when integrated
