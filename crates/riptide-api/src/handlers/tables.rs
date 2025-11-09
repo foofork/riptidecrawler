@@ -3,7 +3,7 @@
 //! Handlers delegate all business logic to riptide-facade::TableFacade.
 //! Responsible only for HTTP mapping, metrics, and error conversion.
 
-use crate::{dto::tables::*, errors::ApiError, metrics::ErrorType, state::AppState};
+use crate::{dto::tables::*, errors::ApiError, state::AppState};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -28,7 +28,7 @@ pub async fn extract_tables(
         .extract_tables_full(req.to_facade_request())
         .await
         .map_err(|e| {
-            state.metrics.record_error(ErrorType::Wasm);
+            state.transport_metrics.record_wasm_error();
             ApiError::from(e)
         })?;
     state.metrics.record_http_request(
@@ -71,13 +71,13 @@ pub async fn export_table(
         _ => return Err(ApiError::validation("Invalid format")),
     };
     let exported = facade()
-        .export_table(&request_id, format, query.include_headers)
+        .export_table(&request_id, format, query.include_headers, false)
         .await
         .map_err(|e| {
-            state.metrics.record_error(ErrorType::Wasm);
+            state.transport_metrics.record_wasm_error();
             ApiError::from(e)
         })?;
-    Ok(exported)
+    Ok(Json(exported))
 }
 
 /// Get extraction statistics (3 LOC)
@@ -89,9 +89,8 @@ pub async fn get_table_stats(
         .get_extraction_stats(&request_id)
         .await
         .map_err(|e| {
-            state.metrics.record_error(ErrorType::Wasm);
+            state.transport_metrics.record_wasm_error();
             ApiError::from(e)
-        })?
-        .ok_or_else(|| ApiError::not_found("Stats not found"))?;
+        })?;
     Ok(Json(stats))
 }

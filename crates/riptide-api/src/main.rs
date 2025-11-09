@@ -1,10 +1,15 @@
+mod adapters;
 mod config;
 mod dto;
 mod errors;
 mod facades;
 mod handlers;
 mod health;
+#[cfg(all(feature = "jemalloc", not(target_env = "msvc")))]
+mod jemalloc_stats;
 mod metrics;
+mod metrics_integration;
+mod metrics_transport;
 mod middleware;
 mod models;
 mod pipeline;

@@ -85,6 +85,10 @@ pub enum ApiError {
     #[error("Request payload too large: {message}")]
     PayloadTooLarge { message: String },
 
+    /// Rate limit exceeded with retry information (429 Too Many Requests)
+    #[error("Rate limit exceeded. Retry after {retry_after} seconds")]
+    RateLimitExceeded { retry_after: u64 },
+
     /// Invalid Content-Type header (415 Unsupported Media Type)
     #[allow(dead_code)]
     #[error("Invalid Content-Type: {content_type}. {message}")]
@@ -241,6 +245,7 @@ impl ApiError {
             ApiError::InvalidHeaderValue { .. } => StatusCode::BAD_REQUEST,
             ApiError::InvalidParameter { .. } => StatusCode::BAD_REQUEST,
             ApiError::FeatureNotEnabled { .. } => StatusCode::NOT_IMPLEMENTED,
+            ApiError::RateLimitExceeded { .. } => StatusCode::TOO_MANY_REQUESTS,
         }
     }
 
@@ -267,6 +272,7 @@ impl ApiError {
             ApiError::InvalidHeaderValue { .. } => "invalid_header_value",
             ApiError::InvalidParameter { .. } => "invalid_parameter",
             ApiError::FeatureNotEnabled { .. } => "feature_not_enabled",
+            ApiError::RateLimitExceeded { .. } => "rate_limit_exceeded",
         }
     }
 
@@ -358,13 +364,8 @@ impl From<reqwest::Error> for ApiError {
     }
 }
 
-impl From<redis::RedisError> for ApiError {
-    fn from(err: redis::RedisError) -> Self {
-        ApiError::CacheError {
-            message: err.to_string(),
-        }
-    }
-}
+// Redis error conversion removed - use riptide-cache's error types instead
+// Redis errors are now wrapped through RiptideError::Cache
 
 impl From<url::ParseError> for ApiError {
     fn from(err: url::ParseError) -> Self {

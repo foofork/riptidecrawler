@@ -271,6 +271,7 @@ impl SessionStorage for RedisSessionStorage {
 mod tests {
     use super::*;
     use std::collections::HashMap;
+    use std::time::{Duration, SystemTime};
 
     async fn create_test_storage() -> RedisSessionStorage {
         let redis_url =

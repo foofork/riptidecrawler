@@ -1,4 +1,4 @@
-use crate::resource_manager::{ResourceManager, ResourceResult};
+use crate::resource_manager::ResourceManager;
 /// Adapter to bridge ResourceManager to Pool<T> interface for ResourceFacade integration.
 ///
 /// This adapter allows ResourceFacade to work with the existing ResourceManager
@@ -59,7 +59,7 @@ impl Pool<ResourceSlot> for ResourceManagerPoolAdapter {
     async fn size(&self) -> usize {
         // Return a nominal size - actual limits are in ResourceManager
         let status = self.resource_manager.get_resource_status().await;
-        status.headless_pool_capacity
+        status.headless_pool_total
     }
 
     async fn available(&self) -> usize {
@@ -71,9 +71,9 @@ impl Pool<ResourceSlot> for ResourceManagerPoolAdapter {
         let status = self.resource_manager.get_resource_status().await;
 
         PoolHealth {
-            total: status.headless_pool_capacity,
+            total: status.headless_pool_total,
             available: status.headless_pool_available,
-            in_use: status.headless_pool_in_use,
+            in_use: status.headless_pool_total - status.headless_pool_available,
             failed: 0, // ResourceManager doesn't track failed separately
             success_rate: if status.timeout_count > 0 {
                 0.95 // Assume 95% success if timeouts occurred

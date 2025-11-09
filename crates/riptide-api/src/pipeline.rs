@@ -1017,9 +1017,7 @@ impl PipelineOrchestrator {
             .get::<ExtractedDoc>(cache_key)
             .await
             .map_err(|e| {
-                self.state
-                    .metrics
-                    .record_error(crate::metrics::ErrorType::Redis);
+                self.state.transport_metrics.record_redis_error();
                 ApiError::cache(format!("Cache read failed: {}", e))
             })
             .map(|entry| entry.map(|e| e.data))
@@ -1036,9 +1034,7 @@ impl PipelineOrchestrator {
             .set_simple(cache_key, document, self.state.config.cache_ttl)
             .await
             .map_err(|e| {
-                self.state
-                    .metrics
-                    .record_error(crate::metrics::ErrorType::Redis);
+                self.state.transport_metrics.record_redis_error();
                 ApiError::cache(format!("Cache write failed: {}", e))
             })
     }

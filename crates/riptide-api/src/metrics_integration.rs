@@ -82,7 +82,7 @@ impl CombinedMetrics {
 
     /// Export all metrics as Prometheus text format
     pub fn export_text_format(&self) -> Result<String> {
-        use prometheus::TextEncoder;
+        use prometheus::{Encoder, TextEncoder};
 
         let encoder = TextEncoder::new();
         let metric_families = self.gather_all();

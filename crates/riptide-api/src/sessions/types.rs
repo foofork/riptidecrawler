@@ -432,6 +432,21 @@ impl CookieJar {
         self.cookies
             .retain(|_, domain_cookies| !domain_cookies.is_empty());
     }
+
+    /// Get total number of domains with cookies
+    pub fn len(&self) -> usize {
+        self.cookies.len()
+    }
+
+    /// Check if the jar is empty
+    pub fn is_empty(&self) -> bool {
+        self.cookies.is_empty()
+    }
+
+    /// Get an iterator over domain cookie maps
+    pub fn values(&self) -> impl Iterator<Item = &HashMap<String, Cookie>> {
+        self.cookies.values()
+    }
 }
 
 impl Cookie {

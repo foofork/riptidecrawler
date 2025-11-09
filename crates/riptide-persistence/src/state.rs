@@ -26,8 +26,8 @@ use uuid::Uuid;
 
 /// Comprehensive state manager
 pub struct StateManager {
-    /// Redis connection for persistence
-    conn: Arc<Mutex<MultiplexedConnection>>,
+    /// Redis connection pool for persistence
+    pool: Arc<Mutex<MultiplexedConnection>>,
     /// Configuration
     config: StateConfig,
     /// Active sessions
@@ -182,7 +182,7 @@ impl StateManager {
         let (shutdown_tx, _) = broadcast::channel(1);
 
         let mut state_manager = Self {
-            conn: Arc::new(Mutex::new(conn)),
+            pool: Arc::new(Mutex::new(conn)),
             config: config.clone(),
             sessions: Arc::new(RwLock::new(HashMap::new())),
             config_manager,
@@ -336,7 +336,7 @@ impl StateManager {
         let session_key = format!("riptide:session:{}", session_id);
         let session_data = serde_json::to_vec(&session)?;
 
-        let mut conn = self.conn.lock().await;
+        let mut conn = self.pool.lock().await;
         conn.set_ex::<_, _, ()>(&session_key, &session_data, session.ttl_seconds)
             .await?;
 
@@ -409,7 +409,7 @@ impl StateManager {
 
         // Try Redis
         let session_key = format!("riptide:session:{}", session_id);
-        let mut conn = self.conn.lock().await;
+        let mut conn = self.pool.lock().await;
         let session_data: Option<Vec<u8>> = conn.get(&session_key).await?;
 
         if let Some(data) = session_data {
@@ -470,7 +470,7 @@ impl StateManager {
         let session_key = format!("riptide:session:{}", session_id);
         let session_data = serde_json::to_vec(session)?;
 
-        let mut conn = self.conn.lock().await;
+        let mut conn = self.pool.lock().await;
         conn.set_ex::<_, _, ()>(&session_key, &session_data, session.ttl_seconds)
             .await?;
 
@@ -487,7 +487,7 @@ impl StateManager {
     async fn update_session_access(&self, session_id: &str) -> PersistenceResult<()> {
         // Avoid recursion by directly accessing the session storage
         let session_key = format!("riptide:session:{}", session_id);
-        let mut conn = self.conn.lock().await;
+        let mut conn = self.pool.lock().await;
         let session_data: Option<Vec<u8>> = conn.get(&session_key).await?;
 
         if let Some(data) = session_data {
@@ -506,7 +506,7 @@ impl StateManager {
         let session_key = format!("riptide:session:{}", session_id);
 
         // Remove from Redis
-        let mut conn = self.conn.lock().await;
+        let mut conn = self.pool.lock().await;
         let deleted: u64 = conn.del(&session_key).await?;
 
         // Remove from memory
@@ -783,7 +783,7 @@ impl StateManager {
 impl Clone for StateManager {
     fn clone(&self) -> Self {
         Self {
-            conn: Arc::clone(&self.conn),
+            pool: Arc::clone(&self.pool),
             config: self.config.clone(),
             sessions: Arc::clone(&self.sessions),
             config_manager: Arc::clone(&self.config_manager),

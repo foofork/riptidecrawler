@@ -27,11 +27,11 @@
 //! ```
 
 use async_trait::async_trait;
-use deadpool_redis::{redis::AsyncCommands, Pool};
-use redis_script::Script;
+use redis::{aio::MultiplexedConnection, AsyncCommands, Script};
 use riptide_types::{IdempotencyStore, IdempotencyToken, Result as RiptideResult, RiptideError};
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::Mutex;
 use tracing::{debug, error, instrument, warn};
 
 /// Redis implementation of the IdempotencyStore port
@@ -45,8 +45,8 @@ use tracing::{debug, error, instrument, warn};
 ///
 /// The version prefix allows for key format changes without breaking existing locks.
 pub struct RedisIdempotencyStore {
-    /// Redis connection pool
-    pool: Arc<Pool>,
+    /// Redis connection
+    conn: Arc<Mutex<MultiplexedConnection>>,
 
     /// Key version for forward compatibility
     key_version: String,
@@ -57,17 +57,18 @@ impl RedisIdempotencyStore {
     ///
     /// # Arguments
     ///
-    /// * `pool` - Redis connection pool
+    /// * `conn` - Redis multiplexed connection
     ///
     /// # Example
     ///
     /// ```rust,ignore
-    /// let pool = Config::from_url("redis://localhost").create_pool(Some(Runtime::Tokio1))?;
-    /// let store = RedisIdempotencyStore::new(pool);
+    /// let client = redis::Client::open("redis://localhost")?;
+    /// let conn = client.get_multiplexed_async_connection().await?;
+    /// let store = RedisIdempotencyStore::new(Arc::new(Mutex::new(conn)));
     /// ```
-    pub fn new(pool: Arc<Pool>) -> Self {
+    pub fn new(conn: Arc<Mutex<MultiplexedConnection>>) -> Self {
         Self {
-            pool,
+            conn,
             key_version: "v1".to_string(),
         }
     }
@@ -75,9 +76,12 @@ impl RedisIdempotencyStore {
     /// Create new store with custom key version
     ///
     /// Useful for testing or migrations.
-    pub fn with_version(pool: Arc<Pool>, version: impl Into<String>) -> Self {
+    pub fn with_version(
+        conn: Arc<Mutex<MultiplexedConnection>>,
+        version: impl Into<String>,
+    ) -> Self {
         Self {
-            pool,
+            conn,
             key_version: version.into(),
         }
     }
@@ -134,11 +138,8 @@ impl IdempotencyStore for RedisIdempotencyStore {
         let versioned_key = self.versioned_key(key);
         let ttl_secs = ttl.as_secs();
 
-        // Get connection from pool
-        let mut conn = self.pool.get().await.map_err(|e| {
-            error!("Failed to get Redis connection: {}", e);
-            RiptideError::Cache(format!("Failed to get Redis connection: {}", e))
-        })?;
+        // Get connection
+        let mut conn = self.conn.lock().await;
 
         // Atomic SET NX EX (set if not exists with expiration)
         let acquired: bool = conn.set_nx(&versioned_key, "locked").await.map_err(|e| {
@@ -179,10 +180,7 @@ impl IdempotencyStore for RedisIdempotencyStore {
             return Ok(());
         }
 
-        let mut conn = self.pool.get().await.map_err(|e| {
-            error!("Failed to get Redis connection: {}", e);
-            RiptideError::Cache(format!("Failed to get Redis connection: {}", e))
-        })?;
+        let mut conn = self.conn.lock().await;
 
         // Use Lua script for safe deletion
         let deleted: i32 = Script::new(Self::RELEASE_SCRIPT)
@@ -209,10 +207,7 @@ impl IdempotencyStore for RedisIdempotencyStore {
 
         let versioned_key = self.versioned_key(key);
 
-        let mut conn = self.pool.get().await.map_err(|e| {
-            error!("Failed to get Redis connection: {}", e);
-            RiptideError::Cache(format!("Failed to get Redis connection: {}", e))
-        })?;
+        let mut conn = self.conn.lock().await;
 
         let exists: bool = conn.exists(&versioned_key).await.map_err(|e| {
             error!("Failed to check existence: {}", e);
@@ -228,10 +223,7 @@ impl IdempotencyStore for RedisIdempotencyStore {
 
         let versioned_key = self.versioned_key(key);
 
-        let mut conn = self.pool.get().await.map_err(|e| {
-            error!("Failed to get Redis connection: {}", e);
-            RiptideError::Cache(format!("Failed to get Redis connection: {}", e))
-        })?;
+        let mut conn = self.conn.lock().await;
 
         let ttl_secs: i64 = conn.ttl(&versioned_key).await.map_err(|e| {
             error!("Failed to get TTL: {}", e);
@@ -254,10 +246,7 @@ impl IdempotencyStore for RedisIdempotencyStore {
         let result_key = self.result_key(key);
         let ttl_secs = ttl.as_secs();
 
-        let mut conn = self.pool.get().await.map_err(|e| {
-            error!("Failed to get Redis connection: {}", e);
-            RiptideError::Cache(format!("Failed to get Redis connection: {}", e))
-        })?;
+        let mut conn = self.conn.lock().await;
 
         // Use Lua script to store result only if lock exists
         let stored: i32 = Script::new(Self::STORE_RESULT_SCRIPT)
@@ -287,10 +276,7 @@ impl IdempotencyStore for RedisIdempotencyStore {
 
         let result_key = self.result_key(key);
 
-        let mut conn = self.pool.get().await.map_err(|e| {
-            error!("Failed to get Redis connection: {}", e);
-            RiptideError::Cache(format!("Failed to get Redis connection: {}", e))
-        })?;
+        let mut conn = self.conn.lock().await;
 
         let result: Option<Vec<u8>> = conn.get(&result_key).await.map_err(|e| {
             error!("Failed to get result: {}", e);

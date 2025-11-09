@@ -110,10 +110,14 @@ impl From<&DomainProfile> for ProfileStatsResponse {
     fn from(profile: &DomainProfile) -> Self {
         Self {
             domain: profile.domain.clone(),
-            total_requests: profile.total_requests,
-            success_rate: profile.success_rate,
-            avg_response_time_ms: profile.avg_response_time_ms,
-            last_accessed: profile.last_accessed.as_ref().map(|t| t.to_rfc3339()),
+            total_requests: profile.metadata.total_requests,
+            success_rate: profile.metadata.success_rate,
+            avg_response_time_ms: profile.metadata.avg_response_time_ms,
+            last_accessed: profile
+                .metadata
+                .last_accessed
+                .as_ref()
+                .map(|t| t.to_rfc3339()),
             cache_status: CacheStatusInfo::from_profile(profile),
         }
     }

@@ -16,7 +16,7 @@
 /// - ENHANCED_PIPELINE_FETCH_TIMEOUT: Fetch phase timeout in seconds
 /// - ENHANCED_PIPELINE_RENDER_TIMEOUT: Render phase timeout in seconds
 use crate::errors::ApiResult;
-use crate::metrics::{PhaseTimer, PhaseType, RipTideMetrics};
+use crate::metrics::{ErrorType, PhaseTimer, PhaseType, RipTideMetrics};
 use crate::pipeline::{PipelineOrchestrator, PipelineResult, PipelineStats};
 use crate::state::{AppState, EnhancedPipelineConfig};
 use anyhow::Result;
@@ -276,7 +276,8 @@ impl EnhancedPipelineOrchestrator {
             Ok(data) => data,
             Err(e) => {
                 result.error = Some(format!("Fetch phase failed: {}", e));
-                self.metrics.record_error(crate::metrics::ErrorType::Http);
+                #[allow(deprecated)]
+                self.metrics.record_error(ErrorType::Http);
                 return Ok(result);
             }
         };
@@ -300,7 +301,8 @@ impl EnhancedPipelineOrchestrator {
             Ok(doc) => doc,
             Err(e) => {
                 result.error = Some(format!("WASM phase failed: {}", e));
-                self.metrics.record_error(crate::metrics::ErrorType::Wasm);
+                #[allow(deprecated)]
+                self.metrics.record_error(ErrorType::Wasm);
                 return Ok(result);
             }
         };

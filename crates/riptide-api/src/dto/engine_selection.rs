@@ -5,7 +5,7 @@
 
 use riptide_facade::facades::EngineSelectionCriteria;
 use riptide_reliability::engine_selection::EngineSelectionFlags;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 /// Request for engine analysis
 #[derive(Debug, Deserialize)]

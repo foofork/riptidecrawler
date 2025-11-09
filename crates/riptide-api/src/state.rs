@@ -1279,7 +1279,11 @@ impl AppState {
         );
 
         // Initialize engine facade with cache storage adapter
-        let cache_storage = Arc::new(riptide_cache::RedisStorage::new(cache.clone()));
+        let cache_storage = Arc::new(
+            riptide_cache::RedisStorage::new(&config.redis_url)
+                .await
+                .context("Failed to create Redis storage for engine facade")?,
+        );
         let engine_facade = Arc::new(riptide_facade::facades::EngineFacade::new(cache_storage));
         tracing::info!("EngineFacade initialized successfully");
 
@@ -1294,14 +1298,14 @@ impl AppState {
         );
         let redis_rate_limiter = Arc::new(riptide_cache::adapters::RedisRateLimiter::new(
             redis_manager,
-            api_config.rate_limiting.requests_per_second_per_host * 60, // requests per minute
+            (api_config.rate_limiting.requests_per_second_per_host * 60.0) as usize, // requests per minute
             std::time::Duration::from_secs(60),
         ));
         let resource_facade = Arc::new(riptide_facade::facades::ResourceFacade::new(
             resource_pool_adapter
                 as Arc<dyn riptide_types::ports::Pool<crate::adapters::ResourceSlot>>,
             redis_rate_limiter as Arc<dyn riptide_types::ports::RateLimiter>,
-            business_metrics.clone() as Arc<dyn riptide_types::ports::BusinessMetrics>,
+            business_metrics.clone(),
             riptide_facade::facades::ResourceConfig::default(),
         ));
         tracing::info!(
@@ -1807,7 +1811,11 @@ impl AppState {
         let search_facade = None;
 
         // Initialize engine facade for tests
-        let cache_storage = Arc::new(riptide_cache::RedisStorage::new(cache.clone()));
+        let cache_storage = Arc::new(
+            riptide_cache::RedisStorage::new(&redis_url)
+                .await
+                .expect("Failed to create Redis storage for tests"),
+        );
         let engine_facade = Arc::new(riptide_facade::facades::EngineFacade::new(cache_storage));
 
         // Initialize resource facade for tests (Sprint 4.4)
@@ -1832,7 +1840,7 @@ impl AppState {
             resource_pool_adapter
                 as Arc<dyn riptide_types::ports::Pool<crate::adapters::ResourceSlot>>,
             redis_rate_limiter as Arc<dyn riptide_types::ports::RateLimiter>,
-            business_metrics_test.clone() as Arc<dyn riptide_types::ports::BusinessMetrics>,
+            business_metrics_test.clone(),
             riptide_facade::facades::ResourceConfig::default(),
         ));
 

@@ -3,17 +3,16 @@
 //! Handlers delegate business logic to riptide-facade::PdfFacade.
 //! Responsible only for HTTP mapping, resource management, and metrics.
 
-use crate::{
-    dto::pdf::*, errors::ApiError, metrics::ErrorType, resource_manager::ResourceResult,
-    state::AppState,
-};
+use crate::{dto::pdf::*, errors::ApiError, resource_manager::ResourceResult, state::AppState};
 use axum::{
     extract::{Multipart, State},
-    response::{sse::Event, Response, Sse},
+    response::{sse::Event, Sse},
     Json,
 };
 use futures_util::stream::Stream;
+use futures_util::StreamExt;
 use std::convert::Infallible;
+use tokio_stream::wrappers::UnboundedReceiverStream;
 
 /// PDF processing health check endpoint
 pub async fn pdf_health_check() -> axum::response::Json<serde_json::Value> {
@@ -52,6 +51,7 @@ pub async fn process_pdf(
 ) -> Result<Json<PdfProcessResponse>, ApiError> {
     let pdf_data = req
         .pdf_data
+        .clone()
         .ok_or_else(|| ApiError::validation("PDF data is required"))?;
     let _guard = acquire_pdf_resources(&state).await?;
     let facade = riptide_facade::facades::PdfFacade::new();
@@ -69,7 +69,7 @@ pub async fn process_pdf(
             stats: result.stats,
         })),
         Err(e) => {
-            state.metrics.record_error(ErrorType::Http);
+            state.transport_metrics.record_http_error();
             tracing::error!(error = %e, "PDF extraction failed");
             Err(ApiError::from(e))
         }
@@ -83,6 +83,7 @@ pub async fn process_pdf_stream(
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, ApiError> {
     let pdf_data = req
         .pdf_data
+        .clone()
         .ok_or_else(|| ApiError::validation("PDF data is required"))?;
     let _guard = acquire_pdf_resources(&state).await?;
     let facade = riptide_facade::facades::PdfFacade::new();
@@ -93,13 +94,13 @@ pub async fn process_pdf_stream(
         )
         .await
         .map_err(|e| {
-            state.metrics.record_error(ErrorType::Http);
+            state.transport_metrics.record_http_error();
             tracing::error!(error = %e, "PDF streaming failed");
             ApiError::from(e)
         })?;
 
     // Convert progress stream to SSE events (thin wrapper, no business logic)
-    let sse_stream = progress_stream.map(|item| {
+    let sse_stream = UnboundedReceiverStream::new(progress_stream).map(|item| {
         Ok(Event::default()
             .json_data(item)
             .unwrap_or_else(|_| Event::default().data("error")))
@@ -155,35 +156,46 @@ pub async fn process_pdf_upload(
 
 async fn acquire_pdf_resources(
     state: &AppState,
-) -> Result<riptide_resource::PdfResourceGuard, ApiError> {
-    // Use ResourceFacade for unified resource coordination (Sprint 4.4)
+) -> Result<crate::resource_manager::PdfResourceGuard, ApiError> {
+    // Use ResourceFacade for unified resource coordination (Sprint 4.4 - Phase 5 Complete)
     use riptide_facade::facades::ResourceResult as FacadeResult;
 
-    // Acquire WASM slot through facade (uses tenant_id for rate limiting)
-    let tenant_id = "pdf-processing"; // TODO: Extract from request context
+    // Acquire WASM slot through facade (handles rate limiting, memory pressure, pool coordination)
+    let tenant_id = "pdf-processing"; // TODO: Extract from request context in Phase 6
     match state.resource_facade.acquire_wasm_slot(tenant_id).await {
         Ok(FacadeResult::Success(_slot)) => {
-            // Now acquire PDF resources through resource manager
-            // The facade has already handled rate limiting and memory pressure
+            // ResourceFacade has validated all preconditions
+            // Now acquire PDF semaphore resources directly (legacy path until Phase 6)
             match state.resource_manager.acquire_pdf_resources().await {
-                Ok(crate::resource_manager::ResourceResult::Success(guard)) => Ok(guard),
-                Ok(crate::resource_manager::ResourceResult::Timeout) => {
-                    state.metrics.record_error(ErrorType::Http);
+                Ok(ResourceResult::Success(guard)) => Ok(guard),
+                Ok(ResourceResult::RateLimited { retry_after }) => {
+                    state.transport_metrics.record_http_error();
+                    Err(ApiError::rate_limited(&format!(
+                        "Rate limit exceeded, retry after {:?}",
+                        retry_after
+                    )))
+                }
+                Ok(ResourceResult::Timeout) => {
+                    state.transport_metrics.record_http_error();
                     Err(ApiError::timeout(
                         "Resource acquisition",
                         "Timeout waiting for PDF processing resources",
                     ))
                 }
-                Ok(crate::resource_manager::ResourceResult::ResourceExhausted) => {
-                    state.metrics.record_error(ErrorType::Http);
+                Ok(ResourceResult::ResourceExhausted) => {
+                    state.transport_metrics.record_http_error();
                     Err(ApiError::internal("PDF processing resources exhausted"))
                 }
-                Ok(crate::resource_manager::ResourceResult::MemoryPressure) => {
-                    state.metrics.record_error(ErrorType::Http);
+                Ok(ResourceResult::MemoryPressure) => {
+                    state.transport_metrics.record_http_error();
                     Err(ApiError::internal("System under memory pressure"))
                 }
+                Ok(ResourceResult::Error(e)) => {
+                    state.transport_metrics.record_http_error();
+                    Err(ApiError::internal(&format!("Resource error: {}", e)))
+                }
                 Err(e) => {
-                    state.metrics.record_error(ErrorType::Http);
+                    state.transport_metrics.record_http_error();
                     Err(ApiError::internal(&format!(
                         "Resource acquisition failed: {}",
                         e
@@ -192,29 +204,29 @@ async fn acquire_pdf_resources(
             }
         }
         Ok(FacadeResult::RateLimited { retry_after }) => {
-            state.metrics.record_error(ErrorType::Http);
+            state.transport_metrics.record_http_error();
             Err(ApiError::rate_limited(&format!(
                 "Rate limit exceeded, retry after {:?}",
                 retry_after
             )))
         }
         Ok(FacadeResult::MemoryPressure) => {
-            state.metrics.record_error(ErrorType::Http);
+            state.transport_metrics.record_http_error();
             Err(ApiError::internal("System under memory pressure"))
         }
         Ok(FacadeResult::ResourceExhausted) => {
-            state.metrics.record_error(ErrorType::Http);
+            state.transport_metrics.record_http_error();
             Err(ApiError::internal("WASM resources exhausted"))
         }
         Ok(FacadeResult::Timeout) => {
-            state.metrics.record_error(ErrorType::Http);
+            state.transport_metrics.record_http_error();
             Err(ApiError::timeout(
                 "Resource acquisition",
                 "Timeout acquiring WASM slot",
             ))
         }
         Err(e) => {
-            state.metrics.record_error(ErrorType::Http);
+            state.transport_metrics.record_http_error();
             Err(ApiError::internal(&format!("Resource facade error: {}", e)))
         }
     }

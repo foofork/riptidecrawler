@@ -26,7 +26,7 @@ use uuid::Uuid;
 /// Comprehensive tenant manager
 pub struct TenantManager {
     /// Redis connection pool
-    conn: Arc<Mutex<MultiplexedConnection>>,
+    pool: Arc<Mutex<MultiplexedConnection>>,
     /// Configuration
     config: crate::config::TenantConfig,
     /// Active tenants
@@ -279,7 +279,7 @@ impl TenantManager {
         let security_manager = Arc::new(SecurityBoundary::new(config.clone()).await?);
 
         let manager = Self {
-            conn: Arc::new(Mutex::new(conn)),
+            pool: Arc::new(Mutex::new(conn)),
             config: config.clone(),
             tenants: Arc::new(RwLock::new(HashMap::new())),
             usage_tracker,
@@ -408,7 +408,7 @@ impl TenantManager {
         let tenant_key = format!("riptide:tenant:{}", tenant_id);
         let tenant_data = serde_json::to_vec(&tenant_context)?;
 
-        let mut conn = self.conn.lock().await;
+        let mut conn = self.pool.lock().await;
         conn.set::<_, _, ()>(&tenant_key, &tenant_data).await?;
 
         let tenant_name = tenant_context.config.name.clone();
@@ -455,7 +455,7 @@ impl TenantManager {
 
         // Try Redis
         let tenant_key = format!("riptide:tenant:{}", tenant_id);
-        let mut conn = self.conn.lock().await;
+        let mut conn = self.pool.lock().await;
         let tenant_data: Option<Vec<u8>> = conn.get(&tenant_key).await?;
 
         if let Some(data) = tenant_data {
@@ -498,7 +498,7 @@ impl TenantManager {
             let tenant_key = format!("riptide:tenant:{}", tenant_id);
             let tenant_data = serde_json::to_vec(&tenant)?;
 
-            let mut conn = self.conn.lock().await;
+            let mut conn = self.pool.lock().await;
             conn.set::<_, _, ()>(&tenant_key, &tenant_data).await?;
 
             // Update memory
@@ -674,7 +674,7 @@ impl TenantManager {
             let tenant_key = format!("riptide:tenant:{}", tenant_id);
             let tenant_data = serde_json::to_vec(&tenant)?;
 
-            let mut conn = self.conn.lock().await;
+            let mut conn = self.pool.lock().await;
             conn.set::<_, _, ()>(&tenant_key, &tenant_data).await?;
 
             // Update memory
@@ -694,7 +694,7 @@ impl TenantManager {
     pub async fn delete_tenant(&self, tenant_id: &str) -> PersistenceResult<()> {
         // Remove from Redis
         let tenant_key = format!("riptide:tenant:{}", tenant_id);
-        let mut conn = self.conn.lock().await;
+        let mut conn = self.pool.lock().await;
         let deleted: u64 = conn.del(&tenant_key).await?;
 
         // Remove from memory
@@ -781,7 +781,7 @@ impl TenantManager {
     async fn cleanup_tenant_data(&self, tenant_id: &str) -> PersistenceResult<()> {
         // Clean up all tenant-specific data from Redis
         let pattern = format!("riptide:tenant:{}:*", tenant_id);
-        let mut conn = self.conn.lock().await;
+        let mut conn = self.pool.lock().await;
 
         let keys: Vec<String> = redis::cmd("KEYS")
             .arg(&pattern)
@@ -805,7 +805,7 @@ impl TenantManager {
 impl Clone for TenantManager {
     fn clone(&self) -> Self {
         Self {
-            conn: Arc::clone(&self.conn),
+            pool: Arc::clone(&self.pool),
             config: self.config.clone(),
             tenants: Arc::clone(&self.tenants),
             usage_tracker: Arc::clone(&self.usage_tracker),

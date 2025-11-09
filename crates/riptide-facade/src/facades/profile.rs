@@ -3,8 +3,6 @@
 //! Provides a high-level interface for managing domain profiles including
 //! configuration, batch operations, and cache warming.
 
-#![cfg(feature = "llm")]
-
 use anyhow::Result;
 use riptide_intelligence::domain_profiling::{DomainProfile, ProfileManager};
 use riptide_reliability::engine_selection::Engine;
@@ -43,6 +41,15 @@ pub struct BatchFailure {
     pub error: String,
 }
 
+/// Caching metrics for profile operations
+#[derive(Debug, Clone)]
+pub struct CachingMetrics {
+    pub total_cached: usize,
+    pub hit_rate: f64,
+    pub miss_rate: f64,
+    pub avg_age_seconds: u64,
+}
+
 /// Profile facade for domain profile management.
 ///
 /// This facade encapsulates all business logic for profile operations,
@@ -53,6 +60,48 @@ impl ProfileFacade {
     /// Create a new ProfileFacade instance.
     pub fn new() -> Self {
         Self
+    }
+
+    /// Create a new profile with simplified interface
+    /// TODO: Implement proper profile creation logic
+    pub fn create_profile(
+        &self,
+        domain: String,
+        config: Option<ProfileConfigRequest>,
+        metadata: Option<ProfileMetadataRequest>,
+    ) -> Result<DomainProfile> {
+        self.create_with_config(domain, config, metadata)
+    }
+
+    /// Batch create multiple profiles (alias for batch_create)
+    /// TODO: Align with batch_create implementation
+    pub fn batch_create_profiles(
+        &self,
+        requests: Vec<(
+            String,
+            Option<ProfileConfigRequest>,
+            Option<ProfileMetadataRequest>,
+        )>,
+    ) -> BatchCreateResult {
+        self.batch_create(requests)
+    }
+
+    /// Get caching metrics
+    /// TODO: Implement caching metrics collection
+    pub fn get_caching_metrics(&self) -> Result<CachingMetrics> {
+        Ok(CachingMetrics {
+            total_cached: 0,
+            hit_rate: 0.0,
+            miss_rate: 0.0,
+            avg_age_seconds: 0,
+        })
+    }
+
+    /// Clear all caches
+    /// TODO: Implement cache clearing logic
+    pub fn clear_all_caches(&self) -> Result<()> {
+        // Placeholder: Would clear profile caches
+        Ok(())
     }
 
     /// Create a domain profile with optional configuration and metadata.

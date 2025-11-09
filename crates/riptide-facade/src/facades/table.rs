@@ -17,7 +17,7 @@ use uuid::Uuid;
 pub type Result<T> = std::result::Result<T, RiptideError>;
 
 /// Table summary for API responses
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TableSummary {
     pub id: String,
     pub rows: usize,
@@ -28,7 +28,7 @@ pub struct TableSummary {
 }
 
 /// Table metadata
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TableMetadata {
     pub has_headers: bool,
     pub data_types: Vec<String>,
@@ -315,6 +315,27 @@ impl TableFacade {
             RiptideError::Validation("Format must be 'csv' or 'markdown'".to_string())
         })
     }
+
+    /// Get extraction statistics for a table request
+    pub async fn get_extraction_stats(&self, _table_id: &str) -> Result<ExtractionStats> {
+        // TODO: Implement actual stats tracking in Phase 6
+        // For now, return placeholder stats
+        Ok(ExtractionStats {
+            total_extractions: 0,
+            successful_extractions: 0,
+            failed_extractions: 0,
+            avg_extraction_time_ms: 0.0,
+        })
+    }
+}
+
+/// Statistics for table extraction operations
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ExtractionStats {
+    pub total_extractions: u64,
+    pub successful_extractions: u64,
+    pub failed_extractions: u64,
+    pub avg_extraction_time_ms: f64,
 }
 
 impl Default for TableFacade {

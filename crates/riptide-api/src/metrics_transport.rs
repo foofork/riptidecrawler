@@ -448,6 +448,28 @@ impl TransportMetrics {
             .with_label_values(&[operation])
             .observe(duration_seconds);
     }
+
+    /// Record HTTP transport error
+    pub fn record_http_error(&self) {
+        self.http_errors.inc();
+        self.streaming_errors_total
+            .with_label_values(&["http"])
+            .inc();
+    }
+
+    /// Record Redis transport error
+    pub fn record_redis_error(&self) {
+        self.streaming_errors_total
+            .with_label_values(&["redis"])
+            .inc();
+    }
+
+    /// Record WASM transport error
+    pub fn record_wasm_error(&self) {
+        self.streaming_errors_total
+            .with_label_values(&["wasm"])
+            .inc();
+    }
 }
 
 /// Phase timing tracker for structured logging and metrics

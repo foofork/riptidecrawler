@@ -22,8 +22,8 @@ use uuid::Uuid;
 pub struct DistributedSync {
     /// Node configuration
     config: DistributedConfig,
-    /// Redis connection for coordination
-    conn: Arc<Mutex<MultiplexedConnection>>,
+    /// Redis connection pool for coordination
+    pool: Arc<Mutex<MultiplexedConnection>>,
     /// Consensus manager
     consensus: Arc<ConsensusManager>,
     /// Leader election manager
@@ -120,7 +120,7 @@ impl DistributedSync {
 
         let sync_manager = Self {
             config: config.clone(),
-            conn: Arc::new(Mutex::new(conn)),
+            pool: Arc::new(Mutex::new(conn)),
             consensus,
             leader_election,
             state,
@@ -180,7 +180,7 @@ impl DistributedSync {
         let channel = format!("riptide:sync:{}", "operations");
         let message = serde_json::to_string(&operation)?;
 
-        let mut conn = self.conn.lock().await;
+        let mut conn = self.pool.lock().await;
         conn.publish::<_, _, ()>(&channel, &message).await?;
 
         debug!(
@@ -297,7 +297,7 @@ impl DistributedSync {
     /// Apply set operation
     async fn apply_set_operation(&self, operation: &SyncOperation) -> PersistenceResult<()> {
         if let Some(value) = &operation.value {
-            let mut conn = self.conn.lock().await;
+            let mut conn = self.pool.lock().await;
             if let Some(ttl) = operation.ttl {
                 conn.set_ex::<_, _, ()>(&operation.key, value, ttl).await?;
             } else {
@@ -315,7 +315,7 @@ impl DistributedSync {
 
     /// Apply delete operation
     async fn apply_delete_operation(&self, operation: &SyncOperation) -> PersistenceResult<()> {
-        let mut conn = self.conn.lock().await;
+        let mut conn = self.pool.lock().await;
         let deleted: u64 = conn.del(&operation.key).await?;
 
         debug!(
@@ -329,7 +329,7 @@ impl DistributedSync {
 
     /// Apply invalidate pattern operation
     async fn apply_invalidate_operation(&self, operation: &SyncOperation) -> PersistenceResult<()> {
-        let mut conn = self.conn.lock().await;
+        let mut conn = self.pool.lock().await;
 
         // Get keys matching pattern
         let keys: Vec<String> = redis::cmd("KEYS")
@@ -352,7 +352,7 @@ impl DistributedSync {
 
     /// Apply clear operation
     async fn apply_clear_operation(&self, _operation: &SyncOperation) -> PersistenceResult<()> {
-        let mut conn = self.conn.lock().await;
+        let mut conn = self.pool.lock().await;
         let _: () = redis::cmd("FLUSHDB").query_async(&mut *conn).await?;
 
         info!("Cache clear operation applied");
@@ -514,7 +514,7 @@ impl Clone for DistributedSync {
     fn clone(&self) -> Self {
         Self {
             config: self.config.clone(),
-            conn: Arc::clone(&self.conn),
+            pool: Arc::clone(&self.pool),
             consensus: Arc::clone(&self.consensus),
             leader_election: Arc::clone(&self.leader_election),
             state: Arc::clone(&self.state),

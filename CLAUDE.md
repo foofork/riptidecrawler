@@ -28,6 +28,7 @@ cargo check -p [affected-crate]
 - ❌ No failing tests, warnings, compile errors
 - ❌ No `#[ignore]` tests — all tests must run and pass  
 - ❌ No dead code — remove it or guard behind a documented #[cfg(...)] or #[cfg(test)]
+- ✅ Commit often, but only clean, tested, self-contained work
 * ✅ Complete each phase before starting the next; update status after each
 
 ---

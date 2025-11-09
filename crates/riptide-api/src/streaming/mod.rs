@@ -212,6 +212,15 @@ impl StreamingModule {
         }
     }
 
+    /// Initialize with lifecycle manager and metrics
+    pub fn with_lifecycle_manager(
+        _lifecycle: Option<std::sync::Arc<()>>, // Placeholder type
+        _metrics: std::sync::Arc<crate::metrics::RipTideMetrics>,
+    ) -> Self {
+        // TODO: Integrate lifecycle manager in Phase 6
+        Self::new(None)
+    }
+
     /// Get the configuration
     pub fn config(&self) -> &StreamConfig {
         &self.config

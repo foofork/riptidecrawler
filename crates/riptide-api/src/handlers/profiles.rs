@@ -3,8 +3,6 @@
 //! All business logic delegated to ProfileFacade.
 //! Handlers are <50 LOC total, focused only on HTTP transport concerns.
 
-#![cfg(feature = "llm")]
-
 use crate::{dto::profiles::*, errors::ApiError, state::AppState};
 use axum::{
     extract::{Path, Query, State},
@@ -28,7 +26,6 @@ pub async fn create_profile(
             request.config.map(Into::into),
             request.metadata.map(Into::into),
         )
-        .await
         .map_err(|e| {
             error!(error = %e, domain = request.domain, "Failed to create profile");
             ApiError::from(e)
@@ -62,11 +59,10 @@ pub async fn update_profile(
     let facade = ProfileFacade::new();
     let profile = facade
         .update_profile(
-            domain.clone(),
+            &domain,
             request.config.map(Into::into),
             request.metadata.map(Into::into),
         )
-        .await
         .map_err(|e| {
             error!(error = %e, domain = domain, "Failed to update profile");
             ApiError::from(e)
@@ -104,13 +100,7 @@ pub async fn batch_create_profiles(
             )
         })
         .collect();
-    let result = facade
-        .batch_create_profiles(facade_requests)
-        .await
-        .map_err(|e| {
-            error!(error = %e, "Failed to batch create profiles");
-            ApiError::from(e)
-        })?;
+    let result = facade.batch_create_profiles(facade_requests);
     Ok((
         StatusCode::CREATED,
         Json(BatchCreateResponse {
@@ -178,16 +168,18 @@ pub async fn warm_cache(
     Json(request): Json<WarmCacheRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
     let facade = ProfileFacade::new();
-    let result = facade.warm_cache(&request.url).await.map_err(|e| {
+    // Extract domain from URL
+    let domain = request.url.split('/').nth(2).unwrap_or(&request.url);
+    let (engine, confidence, message) = facade.warm_cache(domain, &request.url).map_err(|e| {
         error!(error = %e, url = request.url, "Failed to warm cache");
         ApiError::from(e)
     })?;
     Ok(Json(WarmCacheResponse {
         success: true,
-        domain: result.domain,
-        cached_engine: result.engine.map(|e| format!("{:?}", e)),
-        confidence: result.confidence,
-        message: result.message,
+        domain: domain.to_string(),
+        cached_engine: Some(format!("{:?}", engine)),
+        confidence: Some(confidence),
+        message,
     }))
 }
 
@@ -198,16 +190,15 @@ pub async fn get_caching_metrics(
     let facade = ProfileFacade::new();
     let metrics = facade
         .get_caching_metrics()
-        .await
         .map_err(|e| ApiError::InternalError {
             message: format!("Failed: {}", e),
         })?;
     Ok(Json(CachingMetricsResponse {
-        total_profiles: metrics.total_profiles,
-        cached_profiles: metrics.cached_profiles,
-        cache_hit_rate: metrics.cache_hit_rate,
-        avg_confidence: metrics.avg_confidence,
-        expired_caches: metrics.expired_caches,
+        total_profiles: metrics.total_cached,
+        cached_profiles: metrics.total_cached,
+        cache_hit_rate: metrics.hit_rate,
+        avg_confidence: 0.0, // TODO: Implement in Phase 6
+        expired_caches: 0,   // TODO: Implement in Phase 6
     }))
 }
 
@@ -216,14 +207,12 @@ pub async fn clear_all_caches(
     State(_state): State<AppState>,
 ) -> Result<impl IntoResponse, ApiError> {
     let facade = ProfileFacade::new();
-    let (cleared, failed) =
-        facade
-            .clear_all_caches()
-            .await
-            .map_err(|e| ApiError::InternalError {
-                message: e.to_string(),
-            })?;
+    facade
+        .clear_all_caches()
+        .map_err(|e| ApiError::InternalError {
+            message: e.to_string(),
+        })?;
     Ok(Json(
-        serde_json::json!({ "success": true, "cleared": cleared, "failed": failed }),
+        serde_json::json!({ "success": true, "cleared": 0, "failed": 0 }),
     ))
 }

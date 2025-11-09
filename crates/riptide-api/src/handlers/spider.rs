@@ -68,6 +68,10 @@ pub async fn spider_crawl(
     Query(_query): Query<SpiderCrawlQuery>,
     Json(body): Json<SpiderCrawlBody>,
 ) -> Result<impl IntoResponse, ApiError> {
+    // Acquire resources via ResourceFacade (Phase 5 - Handler Integration)
+    let tenant_id = "spider-crawl"; // TODO: Extract from request context in Phase 6
+    let _resource_slot = acquire_spider_resources(&_state, tenant_id).await?;
+
     // Get spider facade
     let spider_facade = _state
         .spider_facade
@@ -157,4 +161,36 @@ pub async fn spider_control(
         "success": true,
         "message": message
     })))
+}
+
+/// Acquire resources for spider operations via ResourceFacade
+///
+/// Coordinates rate limiting, memory pressure, and pool capacity through
+/// the ResourceFacade layer (Phase 5 integration).
+async fn acquire_spider_resources(
+    state: &AppState,
+    tenant_id: &str,
+) -> Result<crate::adapters::ResourceSlot, ApiError> {
+    use riptide_facade::facades::ResourceResult as FacadeResult;
+
+    // Acquire WASM slot through facade (handles all resource coordination)
+    match state.resource_facade.acquire_wasm_slot(tenant_id).await {
+        Ok(FacadeResult::Success(slot)) => Ok(slot),
+        Ok(FacadeResult::RateLimited { retry_after }) => Err(ApiError::RateLimitExceeded {
+            retry_after: retry_after.as_secs(),
+        }),
+        Ok(FacadeResult::MemoryPressure) => Err(ApiError::InternalError {
+            message: "System under memory pressure".to_string(),
+        }),
+        Ok(FacadeResult::ResourceExhausted) => Err(ApiError::InternalError {
+            message: "Spider resources exhausted".to_string(),
+        }),
+        Ok(FacadeResult::Timeout) => Err(ApiError::TimeoutError {
+            operation: "Resource acquisition".to_string(),
+            message: "Timeout acquiring spider resources".to_string(),
+        }),
+        Err(e) => Err(ApiError::InternalError {
+            message: format!("Resource facade error: {}", e),
+        }),
+    }
 }

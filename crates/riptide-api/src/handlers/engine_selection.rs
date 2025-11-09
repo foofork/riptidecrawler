@@ -50,7 +50,7 @@ pub async fn set_probe_first(
 ) -> ApiResult<Json<serde_json::Value>> {
     state
         .engine_facade
-        .configure_engine(request.enabled)
+        .configure_engine(Some(request.enabled))
         .await?;
     Ok(Json(
         serde_json::json!({ "probe_first_enabled": request.enabled }),

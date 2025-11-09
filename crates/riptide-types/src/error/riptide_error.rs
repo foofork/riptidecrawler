@@ -63,6 +63,10 @@ pub enum RiptideError {
     #[error("Cache operation failed: {0}")]
     CacheError(String),
 
+    /// Connection pool error
+    #[error("Connection pool error: {0}")]
+    Pool(String),
+
     /// Storage error
     #[error("Storage operation failed: {0}")]
     Storage(String),

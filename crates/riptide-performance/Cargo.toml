@@ -59,7 +59,8 @@ tower = { workspace = true }
 tower-http = { workspace = true }
 
 # Caching and storage
-redis = { workspace = true, optional = true }
+riptide-cache = { path = "../riptide-cache", optional = true }
+riptide-types = { path = "../riptide-types", optional = true }
 moka = { version = "0.12", features = ["future"], optional = true }
 
 # Async utilities
@@ -89,7 +90,7 @@ default = ["memory-profiling", "cache-optimization", "resource-limits"]
 memory-profiling = ["tikv-jemalloc-ctl", "pprof", "memory-stats"]  # Re-enabled tikv-jemalloc-ctl for memory profiling
 bottleneck-analysis = ["criterion"]  # flamegraph removed from default
 bottleneck-analysis-full = ["bottleneck-analysis", "flamegraph"]  # Dev-only: includes flamegraph
-cache-optimization = ["moka", "redis"]
+cache-optimization = ["moka", "riptide-cache", "riptide-types"]
 resource-limits = ["governor"]  # tower-limit removed due to security advisory
 
 # Allocator features

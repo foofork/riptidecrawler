@@ -339,6 +339,23 @@ impl ProfileManager {
         ProfileRegistry::list_profiles(Some(filter))
     }
 
+    /// Search profiles by query string (domain or metadata)
+    /// TODO: Implement full-text search across profile fields
+    pub fn search(query: &str) -> Result<Vec<DomainProfile>> {
+        // For now, use filtered list as a simple search
+        ProfileRegistry::list_profiles(Some(query))
+    }
+
+    /// List profiles filtered by tag
+    /// TODO: Implement proper tag-based filtering
+    pub fn list_by_tag(tag: &str) -> Result<Vec<DomainProfile>> {
+        let all_profiles = Self::list_all()?;
+        Ok(all_profiles
+            .into_iter()
+            .filter(|p| p.metadata.tags.contains(&tag.to_string()))
+            .collect())
+    }
+
     /// Validate a profile
     pub fn validate(profile: &DomainProfile) -> Result<()> {
         if profile.domain.is_empty() {

@@ -29,9 +29,8 @@ serde_json = "1.0"
 # Redis for distributed caching
 redis = { workspace = true }
 
-# Redis connection pooling for IdempotencyStore
-deadpool-redis = { version = "0.18", features = ["rt_tokio_1"], optional = true }
-redis-script = { package = "redis", version = "0.27", features = ["script"], optional = true }
+# Redis connection pooling for IdempotencyStore (0.18 is compatible with redis 0.27.6)
+deadpool-redis = { version = "=0.18.0", features = ["rt_tokio_1"], optional = true }
 
 # Cryptography for cache keys
 sha2 = "0.10"
@@ -74,4 +73,4 @@ warming = []
 wasm-pool = ["riptide-pool/wasm-pool"]
 wasm-extractor = ["riptide-extraction/wasm-extractor"]
 # Redis connection pooling for idempotency
-idempotency = ["dep:deadpool-redis", "dep:redis-script"]
+idempotency = ["dep:deadpool-redis"]
