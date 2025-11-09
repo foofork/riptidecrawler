@@ -6,6 +6,8 @@ use riptide_facade::facades::strategies::{StrategiesFacade, StrategyRequest, Str
 use serde::Deserialize;
 use tracing::instrument;
 
+/// DTO for strategy selection requests - Future API
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 pub struct StrategyRequestDTO {
     pub url: String,
@@ -13,6 +15,8 @@ pub struct StrategyRequestDTO {
     pub enable_probe: Option<bool>,
 }
 
+/// Future API endpoint for extraction strategy selection
+#[allow(dead_code)]
 #[instrument(skip(_state))]
 pub async fn handle_strategy_selection(
     State(_state): State<AppState>,

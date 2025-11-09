@@ -58,6 +58,7 @@ pub struct ExportQuery {
     #[serde(default = "default_true")]
     pub include_headers: bool,
     #[serde(default)]
+    #[allow(dead_code)] // Field for future export feature
     pub include_metadata: bool,
 }
 

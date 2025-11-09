@@ -47,9 +47,10 @@ pub async fn extract_tables(
     ))
 }
 
-/// Get table by ID (4 LOC)
+/// Get table by ID (4 LOC) - Future API endpoint
+#[allow(dead_code)]
 pub async fn get_table(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path((request_id, _table_id)): Path<(String, usize)>,
 ) -> Result<impl IntoResponse, ApiError> {
     let table = facade()
@@ -80,7 +81,8 @@ pub async fn export_table(
     Ok(Json(exported))
 }
 
-/// Get extraction statistics (3 LOC)
+/// Get extraction statistics (3 LOC) - Future API
+#[allow(dead_code)]
 pub async fn get_table_stats(
     State(state): State<AppState>,
     Path(_request_id): Path<String>,

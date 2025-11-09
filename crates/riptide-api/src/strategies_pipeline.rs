@@ -79,6 +79,9 @@ impl From<StrategiesPipelineResult> for riptide_types::pipeline::StrategiesPipel
 /// 2. Configurable chunking modes (regex, sentence, topic, fixed, sliding)
 /// 3. Performance tracking and metrics
 /// 4. Strategy selection based on content analysis
+///
+/// For future advanced pipeline orchestration (Phase 5+)
+#[allow(dead_code)]
 pub struct StrategiesPipelineOrchestrator {
     state: AppState,
     options: CrawlOptions,
@@ -87,6 +90,7 @@ pub struct StrategiesPipelineOrchestrator {
 
 impl StrategiesPipelineOrchestrator {
     /// Create a new strategies pipeline orchestrator
+    #[allow(dead_code)]
     pub fn new(
         state: AppState,
         options: CrawlOptions,
@@ -100,6 +104,7 @@ impl StrategiesPipelineOrchestrator {
     }
 
     /// Create with auto-detected strategy based on URL and options
+    #[allow(dead_code)]
     pub fn with_auto_strategy(state: AppState, options: CrawlOptions, url: &str) -> Self {
         let strategy_config = Self::auto_detect_strategy(url, &options);
         Self::new(state, options, Some(strategy_config))

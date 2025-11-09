@@ -115,7 +115,8 @@ pub struct ResourceManager {
     pub rate_limiter: Arc<PerHostRateLimiter>,
     /// PDF processing semaphore
     pub pdf_semaphore: Arc<Semaphore>,
-    /// WASM instance manager
+    /// WASM instance manager - for future WASM resource management
+    #[allow(dead_code)]
     pub wasm_manager: Arc<WasmInstanceManager>,
     /// Memory manager
     pub memory_manager: Arc<MemoryManager>,

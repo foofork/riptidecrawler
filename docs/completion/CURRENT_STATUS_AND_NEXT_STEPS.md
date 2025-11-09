@@ -283,20 +283,28 @@ With parallel swarm execution: **~8-12 hours** total
 
 ## 🚦 READY TO PROCEED
 
-**Current Status:** ✅ **PHASE 5.1 COMPLETE - All 11 Facade Methods Implemented**
+**Current Status:** ✅ **PHASE 5.2 COMPLETE - Metrics Migration (257→0 Warnings)**
 
-**Commit:** `c739d89` - feat(phase5.1): Complete all 11 missing facade methods
+**Commits:**
+- `c739d89` - feat(phase5.1): Complete all 11 missing facade methods
+- `b1e9d63` - feat(phase5.2): Complete metrics migration - 257→0 deprecation warnings
 
 **Test Results:**
 - riptide-facade: 232 tests passed ✓
 - riptide-intelligence: 90 tests passed ✓
-- Total: 322 tests passing ✓
+- riptide-api: 194 tests passed ✓ (2 env failures pre-existing)
+- Total: 516 tests passing ✓
 
-**Next Phase:** Phase 5.2 - Deprecation Warning Resolution (257 warnings)
+**Migration Achievement:**
+- Deprecated warnings: 257 → 0 (100% elimination)
+- Compilation errors: 0 (maintained throughout)
+- Architecture: RipTideMetrics → BusinessMetrics + TransportMetrics + CombinedMetrics
+
+**Next Phase:** Phase 5.3 - Dead Code Warnings (79 warnings)
 
 **User Directive:** "swarm away until we're done"
 
-**Next Command:** Deploy 3-agent swarm for deprecation resolution
+**Next Command:** Resolve 79 dead code warnings
 
 ---
 

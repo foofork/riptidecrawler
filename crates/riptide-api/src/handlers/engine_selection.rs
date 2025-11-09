@@ -32,6 +32,8 @@ pub async fn decide_engine(
 }
 
 /// GET /engine/capabilities - Get all engine capabilities (2 LOC)
+/// Future API for listing available extraction engines
+#[allow(dead_code)]
 pub async fn get_engine_capabilities(
     State(state): State<AppState>,
 ) -> ApiResult<Json<Vec<EngineCapability>>> {

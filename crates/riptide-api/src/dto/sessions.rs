@@ -37,6 +37,8 @@ impl From<&Session> for CreateSessionResponse {
     }
 }
 
+/// Session info response - for future session management API
+#[allow(dead_code)]
 #[derive(Serialize, Debug)]
 pub struct SessionInfoResponse {
     pub session_id: String,

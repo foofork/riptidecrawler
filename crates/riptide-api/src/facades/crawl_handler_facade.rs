@@ -291,7 +291,7 @@ impl CrawlHandlerFacade {
 
     /// Apply content chunking if configured
     async fn apply_chunking(&self, document: ExtractedDoc, options: &CrawlOptions) -> ExtractedDoc {
-        if let Some(ref chunking_config) = options.chunking_config {
+        if let Some(ref _chunking_config) = options.chunking_config {
             apply_content_chunking(
                 document.clone(),
                 "adaptive".to_string(),

@@ -16,8 +16,10 @@ use tracing::info;
 #[derive(Debug, Clone)]
 pub struct CombinedMetrics {
     /// Business domain metrics from facade layer
+    #[allow(dead_code)] // Used by gather_all() for metrics export
     pub business: Arc<BusinessMetrics>,
     /// Transport-level metrics from API layer
+    #[allow(dead_code)] // Used by gather_all() for metrics export
     pub transport: Arc<TransportMetrics>,
     /// Merged Prometheus registry for unified /metrics endpoint
     pub merged_registry: Registry,
@@ -38,13 +40,13 @@ impl CombinedMetrics {
         for family in &business_families {
             // Re-register each metric family in the merged registry
             // Note: This creates a view of the existing metrics, not duplicates
-            info!("Merging business metric family: {}", family.get_name());
+            info!("Merging business metric family: {}", family.name());
         }
 
         // Gather all metrics from transport registry
         let transport_families = transport.registry.gather();
         for family in &transport_families {
-            info!("Merging transport metric family: {}", family.get_name());
+            info!("Merging transport metric family: {}", family.name());
         }
 
         info!(
@@ -68,6 +70,7 @@ impl CombinedMetrics {
     /// Gather all metrics from both registries for export
     ///
     /// This is the primary method for the /metrics endpoint
+    #[allow(dead_code)] // Used by export_text_format for metrics export
     pub fn gather_all(&self) -> Vec<prometheus::proto::MetricFamily> {
         let mut all_metrics = Vec::new();
 
@@ -81,6 +84,7 @@ impl CombinedMetrics {
     }
 
     /// Export all metrics as Prometheus text format
+    #[allow(dead_code)] // For future Prometheus metrics endpoint
     pub fn export_text_format(&self) -> Result<String> {
         use prometheus::{Encoder, TextEncoder};
 
@@ -99,6 +103,7 @@ impl CombinedMetrics {
     /// Update transport metrics from GlobalStreamingMetrics
     ///
     /// Helper method to sync streaming metrics into transport layer
+    #[allow(dead_code)] // For future streaming metrics integration
     pub fn update_streaming_metrics(
         &self,
         streaming_metrics: &crate::streaming::GlobalStreamingMetrics,
@@ -108,33 +113,39 @@ impl CombinedMetrics {
 
     /// Update jemalloc memory statistics in transport metrics
     #[cfg(feature = "jemalloc")]
+    #[allow(dead_code)] // For future jemalloc integration
     pub fn update_jemalloc_stats(&self) {
         self.transport.update_jemalloc_stats();
     }
 
     /// Record HTTP request in transport metrics
+    #[allow(dead_code)] // For future HTTP metrics recording
     pub fn record_http_request(&self, method: &str, path: &str, status: u16, duration: f64) {
         self.transport
             .record_http_request(method, path, status, duration);
     }
 
     /// Record streaming message sent in transport metrics
+    #[allow(dead_code)] // For future streaming metrics
     pub fn record_streaming_message_sent(&self) {
         self.transport.record_streaming_message_sent();
     }
 
     /// Record streaming message dropped in transport metrics
+    #[allow(dead_code)] // For future streaming metrics
     pub fn record_streaming_message_dropped(&self) {
         self.transport.record_streaming_message_dropped();
     }
 
     /// Record gate decision in business metrics
+    #[allow(dead_code)] // For future gate metrics
     pub fn record_gate_decision(&self, decision: &str) {
         self.business.record_gate_decision(decision);
     }
 
     /// Record extraction result in business metrics
     #[allow(clippy::too_many_arguments)]
+    #[allow(dead_code)] // For future extraction metrics recording
     pub fn record_extraction_result(
         &self,
         mode: &str,
@@ -161,12 +172,14 @@ impl CombinedMetrics {
     }
 
     /// Record PDF processing success in business metrics
+    #[allow(dead_code)] // For future PDF metrics recording
     pub fn record_pdf_processing_success(&self, duration_seconds: f64, pages: u32, memory_mb: f64) {
         self.business
             .record_pdf_processing_success(duration_seconds, pages, memory_mb);
     }
 
     /// Get current metrics summary for monitoring
+    #[allow(dead_code)] // For future metrics monitoring API
     pub fn get_summary(&self) -> MetricsSummary {
         MetricsSummary {
             business_metric_count: self.business.registry.gather().len(),
@@ -176,7 +189,8 @@ impl CombinedMetrics {
     }
 }
 
-/// Summary of current metrics state
+/// Summary of current metrics state - for future monitoring API
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct MetricsSummary {
     pub business_metric_count: usize,

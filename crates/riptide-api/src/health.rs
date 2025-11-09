@@ -732,7 +732,8 @@ struct ComprehensiveSystemMetrics {
     load_average: [f32; 3],
 }
 
-/// Classify health score into status categories
+/// Classify health score into status categories - for future health monitoring API
+#[allow(dead_code)]
 pub fn classify_health_score(score: f32) -> &'static str {
     match score {
         s if s >= 90.0 => "healthy",

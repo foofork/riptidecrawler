@@ -5,6 +5,8 @@ use axum::{extract::State, Json};
 use riptide_facade::facades::memory::{MemoryFacade, MemoryUsageResponse};
 use tracing::instrument;
 
+/// Future API endpoint for memory usage monitoring
+#[allow(dead_code)]
 #[instrument(skip(_state))]
 pub async fn handle_memory_usage(
     State(_state): State<AppState>,

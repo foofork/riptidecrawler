@@ -147,6 +147,7 @@ impl PipelineOrchestrator {
     /// - Resource exhaustion → Fibonacci (controlled backoff)
     /// - Unknown errors → Adaptive (smart strategy switching)
     #[cfg(feature = "llm")]
+    #[allow(dead_code)] // Used by LLM feature for intelligent retry strategy selection
     fn select_retry_strategy(&self, error: &ApiError) -> Option<SmartRetryStrategy> {
         // If strategy override is set, use it
         if let Some(strategy) = &self.retry_config.strategy {

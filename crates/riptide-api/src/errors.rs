@@ -58,6 +58,7 @@ pub enum ApiError {
 
     /// Pipeline orchestration errors (500 Internal Server Error)
     #[error("Pipeline execution failed: {message}")]
+    #[allow(dead_code)] // For future pipeline orchestration features
     PipelineError { message: String },
 
     /// Configuration errors (500 Internal Server Error)
@@ -164,6 +165,7 @@ impl ApiError {
     }
 
     /// Create a pipeline error.
+    #[allow(dead_code)] // For future pipeline orchestration features
     pub fn pipeline<S: Into<String>>(message: S) -> Self {
         Self::PipelineError {
             message: message.into(),

@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tracing::instrument;
 
+/// DTO for phase execution requests - Future API
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 pub struct PhaseExecutionRequestDTO {
     pub phase_name: String,
@@ -16,6 +18,8 @@ pub struct PhaseExecutionRequestDTO {
     pub config: Option<PhaseConfigDTO>,
 }
 
+/// DTO for phase configuration - Future API
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 pub struct PhaseConfigDTO {
     pub timeout_secs: Option<u64>,
@@ -23,6 +27,8 @@ pub struct PhaseConfigDTO {
     pub enable_metrics: Option<bool>,
 }
 
+/// Future API endpoint for pipeline phase execution
+#[allow(dead_code)]
 #[instrument(skip(_state))]
 pub async fn handle_phase_execution(
     State(_state): State<AppState>,

@@ -12,10 +12,10 @@ pub mod sessions;
 pub mod tables;
 pub mod workers;
 
-// Re-export commonly used types
-pub use engine_selection::*;
-pub use pdf::*;
-pub use profiles::*;
-pub use sessions::*;
-pub use tables::*;
-pub use workers::*;
+// Re-export commonly used types (commented out unused re-exports)
+// pub use engine_selection::*;
+// pub use pdf::*;
+// pub use profiles::*;
+// pub use sessions::*;
+// pub use tables::*;
+// pub use workers::*;

@@ -22,9 +22,12 @@ pub mod error;
 // Re-export commonly used types
 pub use buffer::BufferManager;
 pub use config::StreamConfig;
-pub use error::{StreamingError, StreamingResult};
+pub use error::StreamingError;
+// StreamingResult is unused, commented out
+// pub use error::StreamingResult;
 
-/// Streaming protocol types
+/// Streaming protocol types - for future Phase 4.3 streaming implementation
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StreamingProtocol {
     /// NDJSON (Newline Delimited JSON) streaming
@@ -37,6 +40,7 @@ pub enum StreamingProtocol {
 
 impl StreamingProtocol {
     /// Get the content type for this protocol
+    #[allow(dead_code)]
     pub fn content_type(&self) -> &'static str {
         match self {
             StreamingProtocol::Ndjson => "application/x-ndjson",
@@ -46,11 +50,13 @@ impl StreamingProtocol {
     }
 
     /// Check if protocol supports bidirectional communication
+    #[allow(dead_code)]
     pub fn is_bidirectional(&self) -> bool {
         matches!(self, StreamingProtocol::WebSocket)
     }
 
     /// Get default buffer size for this protocol
+    #[allow(dead_code)]
     pub fn default_buffer_size(&self) -> usize {
         match self {
             StreamingProtocol::Ndjson => 256,
@@ -60,6 +66,7 @@ impl StreamingProtocol {
     }
 
     /// Get recommended keep-alive interval
+    #[allow(dead_code)]
     pub fn keep_alive_interval(&self) -> std::time::Duration {
         match self {
             StreamingProtocol::Ndjson => std::time::Duration::from_secs(60),
@@ -103,6 +110,7 @@ pub enum StreamingHealth {
     /// Critical issues affecting operation
     Critical,
     /// System is down or unavailable
+    #[allow(dead_code)] // For future health monitoring
     Down,
 }
 
@@ -113,6 +121,7 @@ impl StreamingHealth {
     }
 
     /// Get numeric score (0-100)
+    #[allow(dead_code)] // For future health scoring
     pub fn score(&self) -> u8 {
         match self {
             StreamingHealth::Healthy => 100,
@@ -135,6 +144,7 @@ pub struct GlobalStreamingMetrics {
     /// Total messages dropped due to backpressure
     pub total_messages_dropped: usize,
     /// Average connection duration in milliseconds
+    #[allow(dead_code)] // For future streaming analytics
     pub average_connection_duration_ms: f64,
     /// Current system health status
     pub health_status: StreamingHealth,
@@ -169,6 +179,7 @@ impl GlobalStreamingMetrics {
     }
 
     /// Calculate overall system efficiency (0.0 to 1.0)
+    #[allow(dead_code)] // For future streaming efficiency monitoring
     pub fn efficiency(&self) -> f64 {
         if self.total_messages_sent == 0 {
             return 1.0;
@@ -186,6 +197,7 @@ impl GlobalStreamingMetrics {
     }
 
     /// Get memory usage in MB
+    #[allow(dead_code)] // For future memory monitoring
     pub fn memory_usage_mb(&self) -> f64 {
         self.memory_usage_bytes as f64 / (1024.0 * 1024.0)
     }
@@ -213,6 +225,7 @@ impl StreamingModule {
     }
 
     /// Initialize with lifecycle manager and metrics
+    #[allow(dead_code)] // For future Phase 6 lifecycle integration
     pub fn with_lifecycle_manager(
         _lifecycle: Option<std::sync::Arc<()>>, // Placeholder type
         _metrics: std::sync::Arc<crate::metrics_transport::TransportMetrics>,
@@ -222,11 +235,13 @@ impl StreamingModule {
     }
 
     /// Get the configuration
+    #[allow(dead_code)] // For future streaming configuration access
     pub fn config(&self) -> &StreamConfig {
         &self.config
     }
 
     /// Get the buffer manager
+    #[allow(dead_code)] // For future buffer management
     pub fn buffer_manager(&self) -> &std::sync::Arc<BufferManager> {
         &self.buffer_manager
     }
@@ -237,6 +252,7 @@ impl StreamingModule {
     }
 
     /// Update global metrics
+    #[allow(dead_code)] // For future streaming metrics updates
     pub async fn update_metrics<F>(&self, update_fn: F)
     where
         F: FnOnce(&mut GlobalStreamingMetrics),
@@ -297,7 +313,8 @@ impl Default for StreamingModule {
     }
 }
 
-/// Get protocol-specific optimal configuration
+/// Get protocol-specific optimal configuration - for future protocol tuning
+#[allow(dead_code)]
 pub fn get_protocol_config(
     protocol: StreamingProtocol,
     base_config: &StreamConfig,

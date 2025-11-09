@@ -2,6 +2,9 @@
 //!
 //! Extracted from handlers/workers.rs (Phase 3 Sprint 3.1)
 //! Contains all 11 DTOs + conversion traits
+//!
+//! NOTE: These DTOs are for planned worker job APIs (Phase 5+)
+//! Not yet connected to handlers but required for future implementation
 
 use chrono::{DateTime, Utc};
 use riptide_workers::{Job, JobPriority, JobStatus, JobType, ScheduledJob};
@@ -9,6 +12,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
+/// Job submission request - for future worker API
+#[allow(dead_code)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct SubmitJobRequest {
     pub job_type: JobTypeRequest,
@@ -20,6 +25,7 @@ pub struct SubmitJobRequest {
 }
 
 impl SubmitJobRequest {
+    #[allow(dead_code)]
     pub fn into_job(self) -> Result<Job, String> {
         let mut job = if let Some(scheduled_at) = self.scheduled_at {
             Job::scheduled(JobType::from(self.job_type), scheduled_at)
@@ -117,6 +123,7 @@ impl From<RetryConfigRequest> for riptide_workers::RetryConfig {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Serialize, Debug)]
 pub struct SubmitJobResponse {
     pub job_id: Uuid,
@@ -126,6 +133,7 @@ pub struct SubmitJobResponse {
 }
 
 impl SubmitJobResponse {
+    #[allow(dead_code)]
     pub fn new(job_id: Uuid) -> Self {
         Self {
             job_id,
@@ -136,6 +144,7 @@ impl SubmitJobResponse {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Serialize, Debug)]
 pub struct JobStatusResponse {
     pub job_id: Uuid,
@@ -168,6 +177,7 @@ impl From<&Job> for JobStatusResponse {
     }
 }
 
+#[allow(dead_code)]
 fn calculate_processing_time(job: &Job) -> Option<u64> {
     if let (Some(s), Some(c)) = (job.started_at, job.completed_at) {
         Some((c - s).num_milliseconds() as u64)
@@ -177,6 +187,7 @@ fn calculate_processing_time(job: &Job) -> Option<u64> {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Serialize, Debug)]
 pub struct JobResultResponse {
     pub job_id: Uuid,
@@ -188,6 +199,7 @@ pub struct JobResultResponse {
     pub completed_at: DateTime<Utc>,
 }
 
+#[allow(dead_code)]
 #[derive(Serialize, Debug)]
 pub struct QueueStatsResponse {
     pub pending: usize,
@@ -199,6 +211,7 @@ pub struct QueueStatsResponse {
     pub total: usize,
 }
 
+#[allow(dead_code)]
 #[derive(Serialize, Debug)]
 pub struct WorkerPoolStatsResponse {
     pub total_workers: usize,
@@ -208,6 +221,7 @@ pub struct WorkerPoolStatsResponse {
     pub is_running: bool,
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct CreateScheduledJobRequest {
     pub name: String,
@@ -219,6 +233,7 @@ pub struct CreateScheduledJobRequest {
     pub metadata: Option<HashMap<String, serde_json::Value>>,
 }
 
+#[allow(dead_code)]
 #[derive(Serialize, Debug)]
 pub struct ScheduledJobResponse {
     pub id: Uuid,
@@ -248,6 +263,7 @@ impl From<&ScheduledJob> for ScheduledJobResponse {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct JobListQuery {
     pub status: Option<String>,
@@ -257,6 +273,7 @@ pub struct JobListQuery {
     pub search: Option<String>,
 }
 
+#[allow(dead_code)]
 #[derive(Serialize, Debug)]
 pub struct JobListResponse {
     pub jobs: Vec<JobListItem>,
@@ -265,6 +282,7 @@ pub struct JobListResponse {
     pub offset: usize,
 }
 
+#[allow(dead_code)]
 #[derive(Serialize, Debug)]
 pub struct JobListItem {
     pub job_id: Uuid,
@@ -279,6 +297,7 @@ pub struct JobListItem {
 }
 
 impl JobListItem {
+    #[allow(dead_code)]
     pub fn from_job(job: &Job) -> Self {
         Self {
             job_id: job.id,
@@ -294,6 +313,7 @@ impl JobListItem {
     }
 }
 
+#[allow(dead_code)]
 pub fn format_job_type(job_type: &JobType) -> String {
     match job_type {
         JobType::BatchCrawl { .. } => "batch_crawl".to_string(),

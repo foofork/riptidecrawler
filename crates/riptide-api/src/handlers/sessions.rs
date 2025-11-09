@@ -11,7 +11,8 @@ use axum::{
     Json,
 };
 
-/// Error handler helper
+/// Error handler helper - for future error handling patterns
+#[allow(dead_code)]
 fn handle_error(
     result: Result<impl Into<ApiError>, impl std::fmt::Display>,
     state: &AppState,
@@ -30,6 +31,8 @@ pub async fn create_session(State(state): State<AppState>) -> Result<impl IntoRe
     Ok(Json(CreateSessionResponse::from(&session)))
 }
 
+/// Future API endpoint for getting session details
+#[allow(dead_code)]
 pub async fn get_session(
     State(state): State<AppState>,
     Path(session_id): Path<String>,
@@ -139,6 +142,8 @@ pub async fn get_cookie(
     Ok(Json(CookieResponse::from(cookie)))
 }
 
+/// Future API endpoint for listing session cookies
+#[allow(dead_code)]
 pub async fn list_cookies(
     State(state): State<AppState>,
     Path(session_id): Path<String>,

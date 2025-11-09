@@ -37,48 +37,68 @@ pub struct TransportMetrics {
     /// Active HTTP connections gauge
     pub active_connections: Gauge,
     /// Active streaming connections (WebSocket/SSE)
+    #[allow(dead_code)] // For future streaming feature
     pub streaming_active_connections: Gauge,
     /// Total streaming connections created
+    #[allow(dead_code)] // For future streaming feature
     pub streaming_total_connections: Gauge,
 
     // ===== Streaming Protocol Metrics =====
     /// Messages sent via streaming
+    #[allow(dead_code)] // For future streaming feature
     pub streaming_messages_sent: Counter,
     /// Messages dropped (backpressure/errors)
+    #[allow(dead_code)] // For future streaming feature
     pub streaming_messages_dropped: Counter,
     /// Streaming error rate
+    #[allow(dead_code)] // For future streaming feature
     pub streaming_error_rate: Gauge,
     /// Streaming memory usage
+    #[allow(dead_code)] // For future streaming feature
     pub streaming_memory_usage_bytes: Gauge,
     /// Connection duration
+    #[allow(dead_code)] // For future streaming feature
     pub streaming_connection_duration: Histogram,
     /// Bytes transferred
+    #[allow(dead_code)] // For future streaming feature
     pub streaming_bytes_total: Counter,
     /// Streaming operation duration
+    #[allow(dead_code)] // For future streaming feature
     pub streaming_duration_seconds: HistogramVec,
     /// Streaming errors by type
+    #[allow(dead_code)] // For future streaming feature
     pub streaming_errors_total: IntCounterVec,
     /// Streaming throughput
+    #[allow(dead_code)] // For future streaming feature
     pub streaming_throughput_bytes_per_sec: Gauge,
     /// Streaming latency by operation
+    #[allow(dead_code)] // For future streaming feature
     pub streaming_latency_seconds: HistogramVec,
 
     // ===== System Resource Metrics (Jemalloc) =====
     /// Total allocated bytes via jemalloc
+    #[allow(dead_code)] // For future jemalloc integration
     pub jemalloc_allocated_bytes: Gauge,
     /// Active bytes in pages
+    #[allow(dead_code)] // For future jemalloc integration
     pub jemalloc_active_bytes: Gauge,
     /// Resident physical memory
+    #[allow(dead_code)] // For future jemalloc integration
     pub jemalloc_resident_bytes: Gauge,
     /// Metadata overhead
+    #[allow(dead_code)] // For future jemalloc integration
     pub jemalloc_metadata_bytes: Gauge,
     /// Total mapped bytes
+    #[allow(dead_code)] // For future jemalloc integration
     pub jemalloc_mapped_bytes: Gauge,
     /// Retained for future allocations
+    #[allow(dead_code)] // For future jemalloc integration
     pub jemalloc_retained_bytes: Gauge,
     /// Fragmentation ratio (active/allocated)
+    #[allow(dead_code)] // For future jemalloc integration
     pub jemalloc_fragmentation_ratio: Gauge,
     /// Metadata overhead ratio
+    #[allow(dead_code)] // For future jemalloc integration
     pub jemalloc_metadata_ratio: Gauge,
 }
 
@@ -384,11 +404,13 @@ impl TransportMetrics {
     }
 
     /// Update active connections
+    #[allow(dead_code)] // For future connection tracking
     pub fn update_active_connections(&self, count: i64) {
         self.active_connections.set(count as f64);
     }
 
     /// Update streaming metrics from GlobalStreamingMetrics
+    #[allow(dead_code)] // For future streaming metrics integration
     pub fn update_streaming_metrics(
         &self,
         streaming_metrics: &crate::streaming::GlobalStreamingMetrics,
@@ -403,6 +425,7 @@ impl TransportMetrics {
     }
 
     /// Record streaming message sent
+    #[allow(dead_code)] // For future streaming feature
     pub fn record_streaming_message_sent(&self) {
         self.streaming_messages_sent.inc();
     }
@@ -413,16 +436,19 @@ impl TransportMetrics {
     }
 
     /// Record streaming connection duration
+    #[allow(dead_code)] // For future streaming metrics
     pub fn record_streaming_connection_duration(&self, duration_seconds: f64) {
         self.streaming_connection_duration.observe(duration_seconds);
     }
 
     /// Record streaming bytes transferred
+    #[allow(dead_code)] // For future streaming metrics
     pub fn record_streaming_bytes(&self, bytes: usize) {
         self.streaming_bytes_total.inc_by(bytes as f64);
     }
 
     /// Record streaming operation duration with status
+    #[allow(dead_code)] // For future streaming metrics
     pub fn record_streaming_duration(&self, duration_seconds: f64, success: bool) {
         let status = if success { "success" } else { "failure" };
         self.streaming_duration_seconds
@@ -431,6 +457,7 @@ impl TransportMetrics {
     }
 
     /// Record streaming error by type
+    #[allow(dead_code)] // For future streaming metrics
     pub fn record_streaming_error_by_type(&self, error_type: &str) {
         self.streaming_errors_total
             .with_label_values(&[error_type])
@@ -438,11 +465,13 @@ impl TransportMetrics {
     }
 
     /// Update streaming throughput
+    #[allow(dead_code)] // For future streaming metrics
     pub fn update_streaming_throughput(&self, bytes_per_sec: f64) {
         self.streaming_throughput_bytes_per_sec.set(bytes_per_sec);
     }
 
     /// Record streaming operation latency
+    #[allow(dead_code)] // For future streaming metrics
     pub fn record_streaming_latency(&self, operation: &str, duration_seconds: f64) {
         self.streaming_latency_seconds
             .with_label_values(&[operation])
@@ -473,6 +502,8 @@ impl TransportMetrics {
 }
 
 /// Phase timing tracker for structured logging and metrics
+/// For future phase-based monitoring
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct PhaseTimer {
     start_time: Instant,
@@ -481,6 +512,7 @@ pub struct PhaseTimer {
 
 impl PhaseTimer {
     /// Start timing a phase
+    #[allow(dead_code)]
     pub fn start(phase_name: String) -> Self {
         info!(phase = %phase_name, "Phase started");
         Self {
@@ -490,6 +522,7 @@ impl PhaseTimer {
     }
 
     /// End timing and log results
+    #[allow(dead_code)]
     pub fn end(self) {
         let duration = self.start_time.elapsed();
         info!(
@@ -502,6 +535,8 @@ impl PhaseTimer {
 }
 
 /// Create Prometheus metric layer for Axum
+/// Deprecated: Use BusinessMetrics + TransportMetrics + CombinedMetrics instead
+#[allow(dead_code)]
 pub fn create_metrics_layer() -> anyhow::Result<(PrometheusMetricLayer<'static>, PrometheusHandle)>
 {
     let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair();

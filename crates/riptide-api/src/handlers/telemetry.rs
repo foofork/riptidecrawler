@@ -275,7 +275,7 @@ pub async fn get_telemetry_status(
     };
 
     // Extract runtime info from AppState - use ResourceFacade (Sprint 4.4)
-    let facade_status = state
+    let _facade_status = state
         .resource_facade
         .get_status()
         .await

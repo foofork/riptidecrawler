@@ -10,6 +10,8 @@ use axum::{extract::State, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
+/// DTO for stream start requests - Phase 4.3 API
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 pub struct StreamStartRequestDTO {
     pub session_id: String,
@@ -17,12 +19,16 @@ pub struct StreamStartRequestDTO {
     pub buffer_size: Option<usize>,
 }
 
+/// Response for stream start - Phase 4.3 API
+#[allow(dead_code)]
 #[derive(Debug, Serialize)]
 pub struct StreamStartResponse {
     pub stream_id: String,
     pub status: String,
 }
 
+/// Response for stream status - Phase 4.3 API
+#[allow(dead_code)]
 #[derive(Debug, Serialize)]
 pub struct StreamStatusResponse {
     pub stream_id: String,
@@ -30,6 +36,8 @@ pub struct StreamStatusResponse {
     pub chunks_processed: usize,
 }
 
+/// Phase 4.3 API endpoint - start streaming session
+#[allow(dead_code)]
 #[instrument(skip(_state))]
 pub async fn handle_stream_start(
     State(_state): State<AppState>,
@@ -43,6 +51,8 @@ pub async fn handle_stream_start(
     }))
 }
 
+/// Phase 4.3 API endpoint - get streaming session status
+#[allow(dead_code)]
 #[instrument(skip(_state))]
 pub async fn handle_stream_status(
     State(_state): State<AppState>,

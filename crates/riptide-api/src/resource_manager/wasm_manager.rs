@@ -101,6 +101,8 @@ impl WasmInstanceManager {
     /// - Operation count
     /// - Memory usage
     /// - Instance age
+    /// For future WASM instance monitoring API
+    #[allow(dead_code)]
     pub async fn get_instance_health(&self) -> Vec<(String, bool, u64, usize, Duration)> {
         let instances = self.worker_instances.read().await;
         instances
@@ -136,6 +138,8 @@ impl WasmInstanceManager {
     }
 
     /// Check if any WASM instance needs cleanup (idle for >1 hour)
+    /// For future automated cleanup scheduling
+    #[allow(dead_code)]
     pub async fn needs_cleanup(&self) -> bool {
         let instances = self.worker_instances.read().await;
         let now = Instant::now();

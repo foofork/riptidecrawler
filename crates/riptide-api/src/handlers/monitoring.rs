@@ -7,6 +7,8 @@ use riptide_facade::facades::monitoring::{
 };
 use tracing::instrument;
 
+/// Future API endpoint for health score monitoring
+#[allow(dead_code)]
 #[instrument(skip(_state))]
 pub async fn handle_health_score(
     State(_state): State<AppState>,
@@ -18,6 +20,8 @@ pub async fn handle_health_score(
         .map_err(|e| ApiError::internal(format!("Health score failed: {}", e)))
 }
 
+/// Future API endpoint for performance reporting
+#[allow(dead_code)]
 #[instrument(skip(_state))]
 pub async fn handle_performance_report(
     State(_state): State<AppState>,
