@@ -91,6 +91,13 @@ pub enum RiptideError {
     #[error("Permission denied: {0}")]
     PermissionDenied(String),
 
+    /// Rate limit exceeded
+    #[error("Rate limit exceeded for tenant: {tenant_id}")]
+    RateLimitExceeded {
+        /// Tenant identifier
+        tenant_id: String,
+    },
+
     /// Generic error with custom message
     #[error("{0}")]
     Custom(String),
