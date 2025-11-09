@@ -2,7 +2,7 @@
 //!
 //! Tests all AbstractionError variants and error conversion paths
 
-use riptide_browser_abstraction::{AbstractionError, AbstractionResult};
+use riptide_browser::abstraction::{AbstractionError, AbstractionResult};
 
 #[test]
 fn test_page_creation_error() {

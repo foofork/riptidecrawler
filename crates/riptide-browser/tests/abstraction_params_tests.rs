@@ -2,7 +2,7 @@
 //!
 //! Tests boundary conditions, validation, and edge cases for all parameter types
 
-use riptide_browser_abstraction::{
+use riptide_browser::abstraction::{
     NavigateParams, PdfParams, ScreenshotFormat, ScreenshotParams, WaitUntil,
 };
 

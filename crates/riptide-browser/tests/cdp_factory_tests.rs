@@ -2,7 +2,7 @@
 //!
 //! Tests for browser engine creation and factory error handling
 
-use riptide_browser_abstraction::{create_engine, EngineType};
+use riptide_browser::abstraction::{create_engine, EngineType};
 
 #[tokio::test]
 async fn test_create_chromiumoxide_engine_returns_error() {

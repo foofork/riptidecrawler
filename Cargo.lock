@@ -6769,7 +6769,6 @@ dependencies = [
  "proptest",
  "psutil",
  "rand 0.8.5",
- "redis 0.26.1",
  "regex",
  "reqwest 0.12.24",
  "riptide-browser",
@@ -6843,23 +6842,6 @@ dependencies = [
  "tokio",
  "tracing",
  "uuid",
-]
-
-[[package]]
-name = "riptide-browser-abstraction"
-version = "0.9.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "riptide-types",
- "serde",
- "serde_json",
- "spider_chrome",
- "spider_chromiumoxide_cdp",
- "thiserror 1.0.69",
- "tokio",
- "tokio-test",
- "tracing",
 ]
 
 [[package]]
@@ -7033,6 +7015,7 @@ dependencies = [
  "chrono",
  "futures",
  "futures-util",
+ "prometheus",
  "reqwest 0.12.24",
  "riptide-browser",
  "riptide-cache",
@@ -7560,7 +7543,6 @@ dependencies = [
  "governor",
  "mockito",
  "nonzero_ext",
- "redis 0.26.1",
  "reqwest 0.12.24",
  "riptide-types",
  "serde",

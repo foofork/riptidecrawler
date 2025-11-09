@@ -13,7 +13,7 @@
 //! Note: These tests use mock/test browser instances where possible.
 
 use anyhow::Result;
-use riptide_browser_abstraction::{
+use riptide_browser::abstraction::{
     EngineType, NavigateParams, PdfParams, ScreenshotParams, WaitUntil,
 };
 
@@ -311,7 +311,7 @@ async fn test_pdf_binary_data() -> Result<()> {
 /// Test 29: Screenshot with various formats
 #[tokio::test]
 async fn test_screenshot_formats() -> Result<()> {
-    use riptide_browser_abstraction::ScreenshotFormat;
+    use riptide_browser::abstraction::ScreenshotFormat;
 
     let _png_params = ScreenshotParams {
         format: ScreenshotFormat::Png,

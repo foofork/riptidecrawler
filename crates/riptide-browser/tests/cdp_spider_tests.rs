@@ -13,7 +13,7 @@
 //! - Parameter conversion (ScreenshotParams → CDP, PdfParams → CDP)
 
 use anyhow::Result;
-use riptide_browser_abstraction::{
+use riptide_browser::abstraction::{
     EngineType, NavigateParams, PdfParams, ScreenshotFormat, ScreenshotParams, WaitUntil,
 };
 
@@ -537,7 +537,7 @@ async fn test_spider_version_string_format() -> Result<()> {
 #[tokio::test]
 async fn test_spider_error_type_mapping() -> Result<()> {
     // Test that spider errors map to AbstractionError
-    use riptide_browser_abstraction::AbstractionError;
+    use riptide_browser::abstraction::AbstractionError;
 
     // Verify error types exist
     let nav_error = AbstractionError::Navigation("timeout".to_string());

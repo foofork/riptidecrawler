@@ -19,8 +19,8 @@
 
 use anyhow::Result;
 
-// Import from riptide-browser-abstraction
-use riptide_browser_abstraction::{
+// Import from riptide-browser::abstraction
+use riptide_browser::abstraction::{
     EngineType, NavigateParams, PdfParams, ScreenshotFormat, ScreenshotParams, WaitUntil,
 };
 

@@ -2,7 +2,7 @@
 //!
 //! Tests for trait implementations, Send+Sync bounds, and trait object behavior
 
-use riptide_browser_abstraction::{EngineType, NavigateParams, PdfParams, ScreenshotParams};
+use riptide_browser::abstraction::{EngineType, NavigateParams, PdfParams, ScreenshotParams};
 use std::fmt::Debug;
 
 // Test that EngineType implements required traits
@@ -185,7 +185,7 @@ fn test_params_struct_update_syntax() {
 
 #[test]
 fn test_debug_output_quality() {
-    use riptide_browser_abstraction::ScreenshotFormat;
+    use riptide_browser::abstraction::ScreenshotFormat;
 
     // Debug output should be useful
     let params = ScreenshotParams {
