@@ -20,7 +20,7 @@ pub fn pdf_routes() -> Router<AppState> {
         // Synchronous PDF processing endpoint (JSON body)
         .route("/process", post(pdf::process_pdf))
         // Multipart PDF file upload endpoint
-        .route("/upload", post(pdf::upload_pdf))
+        .route("/upload", post(pdf::process_pdf_upload))
         // Streaming PDF processing with NDJSON progress updates
         .route("/process-stream", post(pdf::process_pdf_stream))
         // Health check for PDF processing capabilities

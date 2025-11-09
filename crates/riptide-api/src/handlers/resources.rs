@@ -79,6 +79,14 @@ pub struct PerformanceStatus {
 pub async fn get_resource_status(
     State(state): State<AppState>,
 ) -> Result<Json<ResourceStatusResponse>, StatusCode> {
+    // Use ResourceFacade for unified resource status (Sprint 4.4)
+    let facade_status = state
+        .resource_facade
+        .get_status()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // Still need ResourceManager for some legacy status fields
     let resource_status = state.resource_manager.get_resource_status().await;
 
     #[cfg(feature = "browser")]
@@ -133,7 +141,7 @@ pub async fn get_resource_status(
 
             MemoryStatus {
                 current_usage_mb: resource_status.memory_usage_mb,
-                pressure_detected: resource_status.memory_pressure,
+                pressure_detected: facade_status.memory_pressure, // Use facade status (Sprint 4.4)
                 jemalloc: jemalloc_stats,
             }
         },

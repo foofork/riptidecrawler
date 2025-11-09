@@ -17,6 +17,7 @@ use crate::models::{
 use crate::pipeline::PipelineOrchestrator;
 use crate::pipeline_enhanced::EnhancedPipelineOrchestrator;
 use crate::state::AppState;
+use riptide_facade::facades::chunking::ChunkParameters;
 use riptide_types::config::CrawlOptions;
 use riptide_types::ExtractedDoc;
 use tracing::{debug, info};

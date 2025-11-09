@@ -8,7 +8,7 @@ use axum::{routing::post, Router};
 /// Create content chunking routes
 #[cfg(feature = "extraction")]
 pub fn chunking_routes() -> Router<AppState> {
-    Router::new().route("/chunk", post(chunking::chunk_content))
+    Router::new().route("/chunk", post(chunking::handle_chunking))
 }
 
 /// Create stub chunking routes when feature is disabled

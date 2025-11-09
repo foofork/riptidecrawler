@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use cron::Schedule;
 use dashmap::DashMap;
-use riptide_utils::redis::{RedisConfig, RedisPool};
+use riptide_cache::{RedisConfig, RedisPool};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::sync::atomic::{AtomicBool, Ordering};

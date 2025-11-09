@@ -2,7 +2,7 @@ use crate::job::{Job, JobResult, JobStatus};
 use anyhow::{Context, Result};
 use chrono::Utc;
 use redis::{aio::MultiplexedConnection, AsyncCommands};
-use riptide_utils::redis::{RedisConfig, RedisPool};
+use riptide_cache::{RedisConfig, RedisPool};
 use serde_json;
 use std::collections::HashMap;
 use tokio::sync::RwLock;

@@ -1,3 +1,4 @@
+pub mod adapters; // Sprint 4.3: Transport adapters for streaming
 pub mod composition; // Sprint 1.3: Dependency Injection composition root
 pub mod config;
 pub mod dto;
@@ -8,6 +9,8 @@ pub mod health;
 #[cfg(all(feature = "jemalloc", not(target_env = "msvc")))]
 pub mod jemalloc_stats;
 pub mod metrics;
+pub mod metrics_integration; // Sprint 4.5: Merged metrics for /metrics endpoint
+pub mod metrics_transport; // Sprint 4.5: Transport-level metrics (HTTP, WebSocket, SSE)
 pub mod middleware;
 pub mod models;
 pub mod pipeline;

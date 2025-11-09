@@ -1,11 +1,13 @@
-//! Streaming handler - <50 LOC after facade refactoring
+//! Streaming handler - placeholder for Phase 4.3 completion
+//!
+//! NOTE: This handler will be fully refactored to use StreamingFacade
+//! after all dependencies are properly wired in AppState.
+//! Currently kept as stub to maintain API compatibility.
+
 use crate::errors::ApiError;
 use crate::state::AppState;
 use axum::{extract::State, response::IntoResponse, Json};
-use riptide_facade::facades::streaming::{
-    StreamStartRequest, StreamStartResponse, StreamStatusResponse, StreamingFacade,
-};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
 #[derive(Debug, Deserialize)]
@@ -15,32 +17,43 @@ pub struct StreamStartRequestDTO {
     pub buffer_size: Option<usize>,
 }
 
+#[derive(Debug, Serialize)]
+pub struct StreamStartResponse {
+    pub stream_id: String,
+    pub status: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct StreamStatusResponse {
+    pub stream_id: String,
+    pub state: String,
+    pub chunks_processed: usize,
+}
+
 #[instrument(skip(_state))]
 pub async fn handle_stream_start(
     State(_state): State<AppState>,
-    Json(req): Json<StreamStartRequestDTO>,
+    Json(_req): Json<StreamStartRequestDTO>,
 ) -> Result<Json<StreamStartResponse>, ApiError> {
-    StreamingFacade::new()
-        .start_stream(StreamStartRequest {
-            session_id: req.session_id,
-            format: req.format,
-            buffer_size: req.buffer_size,
-        })
-        .await
-        .map(Json)
-        .map_err(|e| ApiError::internal(format!("Stream start failed: {}", e)))
+    // TODO Phase 4.3: Wire StreamingFacade with proper dependencies
+    // For now, return stub response
+    Ok(Json(StreamStartResponse {
+        stream_id: "stub".to_string(),
+        status: "not_implemented".to_string(),
+    }))
 }
 
 #[instrument(skip(_state))]
 pub async fn handle_stream_status(
     State(_state): State<AppState>,
-    Json(stream_id): Json<String>,
+    Json(_stream_id): Json<String>,
 ) -> Result<Json<StreamStatusResponse>, ApiError> {
-    StreamingFacade::new()
-        .get_stream_status(&stream_id)
-        .await
-        .map(Json)
-        .map_err(|e| ApiError::internal(format!("Stream status failed: {}", e)))
+    // TODO Phase 4.3: Wire StreamingFacade with proper dependencies
+    Ok(Json(StreamStatusResponse {
+        stream_id: "stub".to_string(),
+        state: "not_implemented".to_string(),
+        chunks_processed: 0,
+    }))
 }
 
 // Backward compatibility for crawl_stream

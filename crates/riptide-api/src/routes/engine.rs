@@ -19,5 +19,5 @@ pub fn engine_routes() -> Router<AppState> {
         .route("/analyze", post(engine_selection::analyze_engine))
         .route("/decide", post(engine_selection::decide_engine))
         .route("/stats", get(engine_selection::get_engine_stats))
-        .route("/probe-first", put(engine_selection::toggle_probe_first))
+        .route("/probe-first", put(engine_selection::set_probe_first))
 }

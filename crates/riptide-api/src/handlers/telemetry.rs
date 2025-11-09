@@ -274,7 +274,12 @@ pub async fn get_telemetry_status(
         ("none".to_string(), false)
     };
 
-    // Extract runtime info from AppState
+    // Extract runtime info from AppState - use ResourceFacade (Sprint 4.4)
+    let facade_status = state
+        .resource_facade
+        .get_status()
+        .await
+        .map_err(|e| ApiError::internal(&format!("Failed to get resource status: {}", e)))?;
     let resource_status = state.resource_manager.get_resource_status().await;
     let streaming_metrics = state.streaming.metrics().await;
     let circuit_breaker_state = {

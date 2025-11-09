@@ -1,39 +1,48 @@
 # 🚨 RIPTIDE DEV CHECKLIST - PASTE AT SESSION START
 
-## Before ANYTHING:
-```bash
-# Check disk (MUST have >15GB free, avoid full workspace builds until the end of a phase and ensure maximum space is available before running full build.)
-df -h / | head -2
+## **Every Build**
 
-# Clean if needed
+```bash
+# Ensure >15GB free; clean if low before full workspace builds
+df -h / | head -2
 [ $(df / | awk 'END{print $4}') -lt 5000000 ] && cargo clean
 ```
 
-## Every Build:
-```bash
-# Use swarm (4x faster)
-ruv-swarm build --parallel 4
+**Zero-tolerance for errors or warnings — every commit must:**
 
-# Quality gates (MUST pass - ZERO warnings)
-RUSTFLAGS="-D warnings" cargo build --workspace
-cargo clippy --all -- -D warnings
-cargo check --workspace
+```bash
+# 1. All tests pass (NO #[ignore], NO skipped)
+cargo test -p [affected-crate]
+
+# 2. Clippy clean (ZERO warnings)
+cargo clippy -p [affected-crate] -- -D warnings
+
+# 3. Cargo check OK
+cargo check -p [affected-crate]
+
+# 4. Full workspace build at phase end ONLY (run `cargo clean` first for space + deterministic rebuild)
 ```
 
-## Golden Rules:
-1. **WRAP** the 1,596 lines in `pipeline.rs` - DON'T rebuild
-2. **CHECK** if code exists before creating: `rg "function_name"`
-3. **TEST** after changes: `cargo test -p [crate-changed]`
-4. **FOLLOW** Week 0-2.5 first (utils → errors → config)
+**Commit Rules**
 
-## If Build Fails:
-```bash
-cargo clean && df -h /  # Check space
-cargo build -p riptide-types  # Test minimal
-cargo build --workspace -j 2  # Slow rebuild
-```
+- ❌ No failing tests, warnings, compile errors
+- ❌ No `#[ignore]` tests — all tests must run and pass  
+- ❌ No dead code — remove it or guard behind a documented #[cfg(...)] or #[cfg(test)]
+* ✅ Complete each phase before starting the next; update status after each
 
-**Remember:** REFACTORING not REWRITING. Check disk. Use swarm. Run clippy.
+---
+
+## **Architecture Rules**
+
+* **Structure:** Hexagonal boundaries; layered flow (API → App/Facade → Domain → Infra); modular crates, single responsibility, dependency inversion, pure domains.
+* **Reliability:** Idempotent, retry-safe, observable; typed errors; backpressure, timeouts, circuit breakers.
+* **Performance:** Zero-cost abstractions, minimal allocation/cloning, deterministic thread-safe behavior, no global state.
+* **Testing:** Unit (domain), contract (ports), integration (adapters), plus fuzz/property tests for critical logic.
+* **Configuration:** Typed configs, feature flags, reproducible builds, scripted migrations/rollbacks.
+* **Security:** Least privilege, externalized secrets, validated inputs, in-app authorization, auditable multi-tenancy.
+* **Docs:** Each crate declares role, public APIs, examples; architecture diagrams co-versioned with code.
+
+---
 
 # Claude Code Configuration - SPARC Development Environment
 
