@@ -40,6 +40,9 @@ pub mod pipeline_phases;
 pub mod strategies;
 pub mod streaming;
 
+// Sprint 4.4: Resource management facade
+pub mod resource;
+
 // Re-export metrics for facade use
 pub use crate::metrics::BusinessMetrics;
 pub use browser_metrics::MetricsBrowserFacade;
@@ -111,9 +114,11 @@ pub use pipeline_phases::{
 };
 pub use strategies::{AlternativeStrategy, StrategiesFacade, StrategyRequest, StrategyResponse};
 pub use streaming::{
-    AuthorizationContext as StreamingAuthzContext, BusinessMetrics as StreamingBusinessMetrics,
-    CacheStorage as StreamingCacheStorage, ChunkMetadata, DomainEvent as StreamingDomainEvent,
-    EventBus as StreamingEventBus, Resource as StreamingResource, StreamChunk, StreamConfig,
-    StreamFormat, StreamInfo, StreamProgress, StreamState, StreamStats, StreamSummary,
-    StreamingFacade, TransformSpec,
+    AuthorizationContext as StreamingAuthzContext, CacheStorage as StreamingCacheStorage,
+    ChunkMetadata, DomainEvent as StreamingDomainEvent, EventBus as StreamingEventBus,
+    Resource as StreamingResource, StreamChunk, StreamConfig, StreamFormat, StreamInfo,
+    StreamProgress, StreamState, StreamStats, StreamSummary, StreamingFacade, TransformSpec,
 };
+
+// Sprint 4.4 exports
+pub use resource::{ResourceConfig, ResourceFacade, ResourceResult, ResourceStatus};

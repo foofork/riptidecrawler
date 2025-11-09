@@ -10,6 +10,7 @@
 //! Phase 3 patterns: Authorization, Idempotency, Events, Metrics
 
 use crate::error::RiptideResult;
+use crate::metrics::BusinessMetrics;
 use crate::RiptideError;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -191,19 +192,8 @@ pub struct Resource {
     pub action: String,
 }
 
-/// Business metrics port (from Phase 3 patterns)
-#[async_trait]
-pub trait BusinessMetrics: Send + Sync {
-    async fn record_stream_created(&self, tenant_id: &str, format: &str);
-    async fn record_stream_started(&self, stream_id: &str, tenant_id: &str);
-    async fn record_stream_paused(&self, stream_id: &str);
-    async fn record_stream_resumed(&self, stream_id: &str);
-    async fn record_stream_stopped(&self, stream_id: &str, chunks: usize, bytes: u64);
-    async fn record_chunk_processed(&self, stream_id: &str, size_bytes: usize, duration_ms: u64);
-    async fn record_chunk_error(&self, stream_id: &str, error_type: &str);
-    async fn record_transform_applied(&self, stream_id: &str, transform: &str);
-    async fn record_cache_hit(&self, stream_id: &str, hit: bool);
-}
+// NOTE: BusinessMetrics trait removed - now using concrete BusinessMetrics struct from metrics::business module
+// The concrete implementation provides all business metrics in a centralized way
 
 // ============================================================================
 // Internal State Management
@@ -227,7 +217,7 @@ pub struct StreamingFacade {
     cache: Arc<dyn CacheStorage>,
     event_bus: Arc<dyn EventBus>,
     authz_policies: Vec<Box<dyn AuthorizationPolicy>>,
-    metrics: Arc<dyn BusinessMetrics>,
+    metrics: Arc<BusinessMetrics>,
     active_streams: Arc<RwLock<HashMap<String, ActiveStream>>>,
 }
 
@@ -237,7 +227,7 @@ impl StreamingFacade {
         cache: Arc<dyn CacheStorage>,
         event_bus: Arc<dyn EventBus>,
         authz_policies: Vec<Box<dyn AuthorizationPolicy>>,
-        metrics: Arc<dyn BusinessMetrics>,
+        metrics: Arc<BusinessMetrics>,
     ) -> Self {
         Self {
             cache,
@@ -319,8 +309,7 @@ impl StreamingFacade {
 
         // Record metrics
         self.metrics
-            .record_stream_created(&config.tenant_id, &format!("{:?}", config.format))
-            .await;
+            .record_stream_created(&config.tenant_id, &format!("{:?}", config.format));
 
         info!(stream_id = %stream_id, tenant_id = %config.tenant_id, "Stream created");
 
@@ -390,8 +379,7 @@ impl StreamingFacade {
 
         // Record metrics
         self.metrics
-            .record_stream_started(stream_id, &ctx.tenant_id)
-            .await;
+            .record_stream_started(stream_id, &ctx.tenant_id);
 
         info!(stream_id = %stream_id, "Stream started");
 
@@ -454,7 +442,7 @@ impl StreamingFacade {
         self.event_bus.publish(event).await?;
 
         // Record metrics
-        self.metrics.record_stream_paused(stream_id).await;
+        self.metrics.record_stream_paused(stream_id);
 
         info!(stream_id = %stream_id, "Stream paused");
 
@@ -516,7 +504,7 @@ impl StreamingFacade {
         self.event_bus.publish(event).await?;
 
         // Record metrics
-        self.metrics.record_stream_resumed(stream_id).await;
+        self.metrics.record_stream_resumed(stream_id);
 
         info!(stream_id = %stream_id, "Stream resumed");
 
@@ -592,8 +580,7 @@ impl StreamingFacade {
 
         // Record metrics
         self.metrics
-            .record_stream_stopped(stream_id, summary.total_chunks, summary.total_bytes)
-            .await;
+            .record_stream_stopped(stream_id, summary.total_chunks, summary.total_bytes);
 
         info!(stream_id = %stream_id, total_chunks = summary.total_chunks, "Stream stopped");
 
@@ -630,7 +617,7 @@ impl StreamingFacade {
         let cache_key = format!("chunk:{}:{}", stream_id, chunk.chunk_id);
         if let Ok(Some(cached_data)) = self.cache.get(&cache_key).await {
             debug!(stream_id = %stream_id, chunk_id = %chunk.chunk_id, "Cache hit");
-            self.metrics.record_cache_hit(stream_id, true).await;
+            self.metrics.record_cache_hit(true);
 
             let cached_chunk: StreamChunk = serde_json::from_slice(&cached_data).map_err(|e| {
                 RiptideError::Other(anyhow::anyhow!("Deserialization error: {}", e))
@@ -639,7 +626,7 @@ impl StreamingFacade {
             return Ok(cached_chunk);
         }
 
-        self.metrics.record_cache_hit(stream_id, false).await;
+        self.metrics.record_cache_hit(false);
 
         // Validate chunk data
         self.validate_chunk(&chunk)?;
@@ -658,8 +645,7 @@ impl StreamingFacade {
             for transform in &stream.config.transforms {
                 processed_chunk = self.apply_transform(processed_chunk, transform).await?;
                 self.metrics
-                    .record_transform_applied(stream_id, &transform.name)
-                    .await;
+                    .record_transform_applied(stream_id, &transform.name);
             }
         }
         drop(streams);
@@ -680,9 +666,11 @@ impl StreamingFacade {
 
         // Record metrics
         let duration_ms = start_time.elapsed().as_millis() as u64;
-        self.metrics
-            .record_chunk_processed(stream_id, processed_chunk.metadata.size_bytes, duration_ms)
-            .await;
+        self.metrics.record_chunk_processed(
+            stream_id,
+            processed_chunk.metadata.size_bytes,
+            duration_ms,
+        );
 
         debug!(stream_id = %stream_id, chunk_id = %processed_chunk.chunk_id, duration_ms, "Chunk processed");
 
@@ -1069,32 +1057,13 @@ mod tests {
         }
     }
 
-    struct MockMetrics;
-    #[async_trait]
-    impl BusinessMetrics for MockMetrics {
-        async fn record_stream_created(&self, _tenant_id: &str, _format: &str) {}
-        async fn record_stream_started(&self, _stream_id: &str, _tenant_id: &str) {}
-        async fn record_stream_paused(&self, _stream_id: &str) {}
-        async fn record_stream_resumed(&self, _stream_id: &str) {}
-        async fn record_stream_stopped(&self, _stream_id: &str, _chunks: usize, _bytes: u64) {}
-        async fn record_chunk_processed(
-            &self,
-            _stream_id: &str,
-            _size_bytes: usize,
-            _duration_ms: u64,
-        ) {
-        }
-        async fn record_chunk_error(&self, _stream_id: &str, _error_type: &str) {}
-        async fn record_transform_applied(&self, _stream_id: &str, _transform: &str) {}
-        async fn record_cache_hit(&self, _stream_id: &str, _hit: bool) {}
-    }
-
+    // Use real BusinessMetrics for testing
     fn create_test_facade() -> StreamingFacade {
         StreamingFacade::new(
             Arc::new(MockCache),
             Arc::new(MockEventBus),
             vec![Box::new(MockAuthzPolicy)],
-            Arc::new(MockMetrics),
+            Arc::new(crate::metrics::BusinessMetrics::default()),
         )
     }
 

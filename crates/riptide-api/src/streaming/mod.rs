@@ -1,101 +1,31 @@
-//! Streaming module for real-time data delivery.
+//! Streaming infrastructure module.
 //!
-//! This module provides a comprehensive streaming infrastructure supporting multiple
-//! protocols (NDJSON, Server-Sent Events, WebSocket) with features including:
-//!
-//! - Dynamic buffer management with backpressure handling
-//! - Configurable connection limits and timeouts
-//! - Comprehensive error handling and recovery
-//! - Performance monitoring and metrics
-//! - Protocol-specific optimizations
+//! This module provides core streaming infrastructure components:
+//! - **buffer**: Dynamic buffer management with backpressure handling
+//! - **config**: Configuration for streaming protocols
+//! - **error**: Error types and recovery strategies
 //!
 //! # Architecture
 //!
-//! The streaming module is organized into several key components:
+//! Business logic has been moved to:
+//! - `crates/riptide-facade/src/facades/streaming.rs` (StreamingFacade)
+//! - `crates/riptide-api/src/adapters/sse_transport.rs` (SSE transport)
+//! - `crates/riptide-api/src/adapters/websocket_transport.rs` (WebSocket transport)
 //!
-//! - **error**: Error types and recovery strategies
-//! - **config**: Configuration management for all streaming protocols
-//! - **buffer**: Dynamic buffer management with adaptive sizing
-//! - **processor**: Common processing logic for URL handling
-//! - **pipeline**: High-level orchestration and coordination
-//! - **ndjson**: NDJSON streaming implementation
-//! - **sse**: Server-Sent Events implementation
-//! - **websocket**: WebSocket bidirectional communication
-//!
-//! # Usage Examples
-//!
-//! ## NDJSON Streaming
-//! ```rust,no_run
-//! use axum::{extract::State, Json};
-//! use crate::streaming::ndjson::crawl_stream;
-//! use crate::models::CrawlBody;
-//! use crate::state::AppState;
-//!
-//! pub async fn handle_ndjson_stream(
-//!     State(app): State<AppState>,
-//!     Json(body): Json<CrawlBody>,
-//! ) -> impl IntoResponse {
-//!     crawl_stream(State(app), Json(body)).await
-//! }
-//! ```
-//!
-//! ## WebSocket Streaming
-//! ```rust,no_run
-//! use axum::extract::{WebSocketUpgrade, State};
-//! use crate::streaming::websocket::crawl_websocket;
-//! use crate::state::AppState;
-//!
-//! pub async fn handle_websocket(
-//!     ws: WebSocketUpgrade,
-//!     State(app): State<AppState>,
-//! ) -> impl IntoResponse {
-//!     crawl_websocket(ws, State(app)).await
-//! }
-//! ```
-//!
-//! ## Server-Sent Events
-//! ```rust,no_run
-//! use axum::{extract::State, Json};
-//! use crate::streaming::sse::crawl_sse;
-//! use crate::models::CrawlBody;
-//! use crate::state::AppState;
-//!
-//! pub async fn handle_sse_stream(
-//!     State(app): State<AppState>,
-//!     Json(body): Json<CrawlBody>,
-//! ) -> impl IntoResponse {
-//!     crawl_sse(State(app), Json(body)).await
-//! }
-//! ```
+//! This module now contains only core infrastructure that is protocol-agnostic.
 
-// Re-export core modules
+// Core infrastructure modules
 pub mod buffer;
 pub mod config;
 pub mod error;
-pub mod lifecycle;
-pub mod metrics;
-pub mod ndjson;
 
-// Re-export NDJSON handlers for convenience
-pub mod pipeline;
-pub mod processor;
-pub mod response_helpers;
-pub mod sse;
-pub mod websocket;
-
-// Re-export commonly used types for convenience
+// Re-export commonly used types
 pub use buffer::BufferManager;
 pub use config::StreamConfig;
-pub use error::StreamingError;
-pub use lifecycle::StreamLifecycleManager;
-pub use pipeline::StreamingPipeline;
-
-// Note: Public API functions are now exposed through handlers::streaming
-// The ndjson module contains internal implementation details
+pub use error::{StreamingError, StreamingResult};
 
 /// Streaming protocol types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[allow(dead_code)] // Public API - streaming protocol enum
 pub enum StreamingProtocol {
     /// NDJSON (Newline Delimited JSON) streaming
     Ndjson,
@@ -107,36 +37,32 @@ pub enum StreamingProtocol {
 
 impl StreamingProtocol {
     /// Get the content type for this protocol
-    #[allow(dead_code)] // Public API - gets content type for protocol
     pub fn content_type(&self) -> &'static str {
         match self {
             StreamingProtocol::Ndjson => "application/x-ndjson",
             StreamingProtocol::Sse => "text/event-stream",
-            StreamingProtocol::WebSocket => "application/json", // For WebSocket messages
+            StreamingProtocol::WebSocket => "application/json",
         }
     }
 
     /// Check if protocol supports bidirectional communication
-    #[allow(dead_code)] // Public API - checks if protocol is bidirectional
     pub fn is_bidirectional(&self) -> bool {
         matches!(self, StreamingProtocol::WebSocket)
     }
 
     /// Get default buffer size for this protocol
-    #[allow(dead_code)] // Public API - gets default buffer size
     pub fn default_buffer_size(&self) -> usize {
         match self {
             StreamingProtocol::Ndjson => 256,
             StreamingProtocol::Sse => 128,
-            StreamingProtocol::WebSocket => 64, // Smaller for real-time
+            StreamingProtocol::WebSocket => 64,
         }
     }
 
     /// Get recommended keep-alive interval
-    #[allow(dead_code)] // Public API - gets keep-alive interval
     pub fn keep_alive_interval(&self) -> std::time::Duration {
         match self {
-            StreamingProtocol::Ndjson => std::time::Duration::from_secs(60), // Less frequent
+            StreamingProtocol::Ndjson => std::time::Duration::from_secs(60),
             StreamingProtocol::Sse => std::time::Duration::from_secs(30),
             StreamingProtocol::WebSocket => std::time::Duration::from_secs(30),
         }
@@ -177,7 +103,6 @@ pub enum StreamingHealth {
     /// Critical issues affecting operation
     Critical,
     /// System is down or unavailable
-    #[allow(dead_code)] // Public API - system down health status
     Down,
 }
 
@@ -188,7 +113,6 @@ impl StreamingHealth {
     }
 
     /// Get numeric score (0-100)
-    #[allow(dead_code)] // Public API - gets health score
     pub fn score(&self) -> u8 {
         match self {
             StreamingHealth::Healthy => 100,
@@ -211,7 +135,6 @@ pub struct GlobalStreamingMetrics {
     /// Total messages dropped due to backpressure
     pub total_messages_dropped: usize,
     /// Average connection duration in milliseconds
-    #[allow(dead_code)] // Public API - average connection duration metric
     pub average_connection_duration_ms: f64,
     /// Current system health status
     pub health_status: StreamingHealth,
@@ -241,15 +164,14 @@ impl GlobalStreamingMetrics {
         } else if self.error_rate > 0.05 || message_drop_ratio > 0.1 || connection_ratio < 0.5 {
             StreamingHealth::Degraded
         } else {
-            StreamingHealth::Healthy // No traffic is okay, or general healthy state
+            StreamingHealth::Healthy
         };
     }
 
     /// Calculate overall system efficiency (0.0 to 1.0)
-    #[allow(dead_code)] // Public API - calculates system efficiency
     pub fn efficiency(&self) -> f64 {
         if self.total_messages_sent == 0 {
-            return 1.0; // No messages is perfectly efficient
+            return 1.0;
         }
 
         let delivery_ratio = if self.total_messages_sent > 0 {
@@ -260,12 +182,10 @@ impl GlobalStreamingMetrics {
         };
 
         let error_factor = 1.0 - self.error_rate;
-
         (delivery_ratio + error_factor) / 2.0
     }
 
     /// Get memory usage in MB
-    #[allow(dead_code)] // Public API - gets memory usage in MB
     pub fn memory_usage_mb(&self) -> f64 {
         self.memory_usage_bytes as f64 / (1024.0 * 1024.0)
     }
@@ -276,8 +196,6 @@ pub struct StreamingModule {
     config: StreamConfig,
     buffer_manager: std::sync::Arc<BufferManager>,
     metrics: std::sync::Arc<tokio::sync::RwLock<GlobalStreamingMetrics>>,
-    #[allow(dead_code)] // Public API - lifecycle manager for stream lifecycle
-    lifecycle_manager: Option<std::sync::Arc<StreamLifecycleManager>>,
 }
 
 impl StreamingModule {
@@ -291,44 +209,17 @@ impl StreamingModule {
             metrics: std::sync::Arc::new(tokio::sync::RwLock::new(
                 GlobalStreamingMetrics::default(),
             )),
-            lifecycle_manager: None, // Will be initialized with metrics when available
-        }
-    }
-
-    /// Initialize with lifecycle manager
-    pub fn with_lifecycle_manager(
-        config: Option<StreamConfig>,
-        metrics: std::sync::Arc<crate::metrics::RipTideMetrics>,
-    ) -> Self {
-        let config = config.unwrap_or_else(StreamConfig::from_env);
-        let lifecycle_manager = std::sync::Arc::new(StreamLifecycleManager::new(metrics));
-
-        Self {
-            config,
-            buffer_manager: std::sync::Arc::new(BufferManager::new()),
-            metrics: std::sync::Arc::new(tokio::sync::RwLock::new(
-                GlobalStreamingMetrics::default(),
-            )),
-            lifecycle_manager: Some(lifecycle_manager),
         }
     }
 
     /// Get the configuration
-    #[allow(dead_code)] // Public API - gets stream configuration
     pub fn config(&self) -> &StreamConfig {
         &self.config
     }
 
     /// Get the buffer manager
-    #[allow(dead_code)] // Public API - gets buffer manager
     pub fn buffer_manager(&self) -> &std::sync::Arc<BufferManager> {
         &self.buffer_manager
-    }
-
-    /// Get the lifecycle manager
-    #[allow(dead_code)] // Public API - gets lifecycle manager
-    pub fn lifecycle_manager(&self) -> Option<&std::sync::Arc<StreamLifecycleManager>> {
-        self.lifecycle_manager.as_ref()
     }
 
     /// Get global metrics
@@ -337,7 +228,6 @@ impl StreamingModule {
     }
 
     /// Update global metrics
-    #[allow(dead_code)] // Public API - updates global metrics
     pub async fn update_metrics<F>(&self, update_fn: F)
     where
         F: FnOnce(&mut GlobalStreamingMetrics),
@@ -381,7 +271,7 @@ impl StreamingModule {
 
                 metrics_guard.memory_usage_bytes = buffer_stats
                     .values()
-                    .map(|stats| stats.current_size * 1024) // Estimate memory usage
+                    .map(|stats| stats.current_size * 1024)
                     .sum();
 
                 metrics_guard.update_health_status();
@@ -398,23 +288,7 @@ impl Default for StreamingModule {
     }
 }
 
-/// Convenience function to create a streaming pipeline
-#[allow(dead_code)] // Public API - creates streaming pipeline
-pub fn create_pipeline(
-    app: crate::state::AppState,
-    request_id: Option<String>,
-) -> StreamingPipeline {
-    StreamingPipeline::new(app, request_id)
-}
-
-/// Convenience function to validate streaming configuration
-#[allow(dead_code)] // Public API - validates streaming configuration
-pub fn validate_config(config: &StreamConfig) -> Result<(), String> {
-    config.validate()
-}
-
 /// Get protocol-specific optimal configuration
-#[allow(dead_code)] // Public API - gets protocol-specific configuration
 pub fn get_protocol_config(
     protocol: StreamingProtocol,
     base_config: &StreamConfig,
@@ -428,7 +302,6 @@ pub fn get_protocol_config(
     match protocol {
         StreamingProtocol::Ndjson => {
             config.general.default_timeout = std::time::Duration::from_secs(600);
-            // Longer for batch ops
         }
         StreamingProtocol::Sse => {
             config.sse.keep_alive_interval = protocol.keep_alive_interval();
@@ -499,10 +372,6 @@ mod tests {
             ..Default::default()
         };
 
-        // Efficiency = (delivery_ratio + error_factor) / 2.0
-        // delivery_ratio = (100 - 5) / 100 = 0.95
-        // error_factor = 1.0 - 0.02 = 0.98
-        // efficiency = (0.95 + 0.98) / 2.0 = 0.965
         assert!(
             (metrics.efficiency() - 0.965).abs() < 0.01,
             "Expected ~0.965, got {}",
