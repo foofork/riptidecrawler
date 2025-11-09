@@ -19,6 +19,7 @@ url = { workspace = true }
 tokio = { workspace = true, features = ["time"] }
 once_cell = { workspace = true }
 tracing = { workspace = true }
+riptide-reliability = { path = "../riptide-reliability" }
 
 [dev-dependencies]
 tokio-test = "0.4"

@@ -111,5 +111,9 @@ pub use pipeline_phases::{
 };
 pub use strategies::{AlternativeStrategy, StrategiesFacade, StrategyRequest, StrategyResponse};
 pub use streaming::{
-    StreamStartRequest, StreamStartResponse, StreamStatusResponse, StreamingFacade,
+    AuthorizationContext as StreamingAuthzContext, BusinessMetrics as StreamingBusinessMetrics,
+    CacheStorage as StreamingCacheStorage, ChunkMetadata, DomainEvent as StreamingDomainEvent,
+    EventBus as StreamingEventBus, Resource as StreamingResource, StreamChunk, StreamConfig,
+    StreamFormat, StreamInfo, StreamProgress, StreamState, StreamStats, StreamSummary,
+    StreamingFacade, TransformSpec,
 };

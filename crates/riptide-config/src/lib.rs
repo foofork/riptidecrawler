@@ -30,6 +30,7 @@ mod api;
 mod builder;
 mod env;
 mod spider;
+mod streaming;
 mod validation;
 
 // Re-export main types
@@ -46,6 +47,11 @@ pub use builder::{
 pub use env::{load_from_env, EnvConfigLoader, EnvError};
 
 pub use spider::{PerformanceConfig, SpiderConfig, SpiderPresets, UrlProcessingConfig};
+
+pub use streaming::{
+    BufferConfig, GeneralConfig, HealthCheckConfig, NdjsonConfig, RateLimitAction,
+    RateLimitConfig as StreamingRateLimitConfig, SseConfig, StreamConfig, WebSocketConfig,
+};
 
 pub use validation::{
     CommonValidator, ContentTypeValidator, ParameterValidator, SizeValidator, UrlValidator,

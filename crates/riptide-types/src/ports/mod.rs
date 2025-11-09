@@ -66,6 +66,12 @@ pub mod health;
 pub mod http;
 pub mod metrics;
 
+// Sprint 4.7 ports
+pub mod pool;
+
+// Sprint 4.3 ports
+pub mod streaming;
+
 // Re-export all ports for convenience
 pub use cache::{CacheStats, CacheStorage};
 pub use events::{DomainEvent, EventBus, EventHandler, SubscriptionId};
@@ -81,5 +87,12 @@ pub use infrastructure::{
 };
 pub use memory_cache::InMemoryCache;
 pub use metrics::{BusinessMetrics, MetricsCollector, MetricsRegistry};
+pub use pool::{Pool, PoolError, PoolHealth, PoolStats, PooledResource};
 pub use repository::{Repository, RepositoryFilter, Transaction, TransactionManager};
 pub use session::{Session, SessionFilter, SessionStorage};
+pub use streaming::{
+    DeepSearchMetadata, DeepSearchResultData, ProcessedResult, StreamCompletionSummary,
+    StreamConfig, StreamErrorData, StreamEvent, StreamLifecycle, StreamMetadata, StreamMetrics,
+    StreamProcessor, StreamProgress, StreamResult, StreamResultData, StreamState, StreamSummary,
+    StreamingTransport,
+};

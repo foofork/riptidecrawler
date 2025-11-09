@@ -18,7 +18,7 @@ use tracing::{debug, info, warn};
 
 // Use browser abstraction layer
 #[cfg(feature = "headless")]
-use riptide_browser_abstraction::{NavigateParams, PageHandle};
+use crate::abstraction::{NavigateParams, PageHandle};
 
 /// Fallback metrics for monitoring spider-chrome adoption
 #[derive(Debug, Clone, Default)]

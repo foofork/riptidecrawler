@@ -82,10 +82,10 @@ pub use types::{
 pub use ports::{
     BrowserDriver, BrowserSession, CacheStorage, Clock, DeterministicEntropy, DomainEvent, Entropy,
     EventBus, EventHandler, FakeClock, IdempotencyStore, IdempotencyToken, InMemoryCache,
-    PdfMetadata, PdfProcessor, Repository, RepositoryFilter, ScriptResult, SearchDocument,
-    SearchEngine, SearchQuery as PortSearchQuery, SearchResult as PortSearchResult, Session,
-    SessionFilter, SessionStorage, SubscriptionId, SystemClock, SystemEntropy, Transaction,
-    TransactionManager,
+    PdfMetadata, PdfProcessor, Pool, PoolError, PoolHealth, PoolStats, PooledResource, Repository,
+    RepositoryFilter, ScriptResult, SearchDocument, SearchEngine, SearchQuery as PortSearchQuery,
+    SearchResult as PortSearchResult, Session, SessionFilter, SessionStorage, SubscriptionId,
+    SystemClock, SystemEntropy, Transaction, TransactionManager,
 };
 
 // Re-export third-party types for convenience

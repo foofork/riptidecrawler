@@ -503,8 +503,8 @@ impl Spider {
             // Note: This is simplified - you'd want proper integration
         }
 
-        // Get session client if needed
-        let client = if self.config.session.enable_session_persistence {
+        // Get session client if needed (unused for now - ReliableHttpClient creates its own)
+        let _client = if self.config.session.enable_session_persistence {
             self.session_manager.get_session_client(&host).await?
         } else {
             None
@@ -515,8 +515,8 @@ impl Spider {
             // Use integrated fetch engine
             self.fetch_with_engine(fetch_engine, &request).await
         } else {
-            // Use basic fetch
-            self.basic_fetch(&request, client).await
+            // Use basic fetch (ReliableHttpClient is created internally)
+            self.basic_fetch(&request, None).await
         };
 
         let (success, content_size, error) = match fetch_result {
@@ -559,26 +559,23 @@ impl Spider {
         Ok(result)
     }
 
-    /// Basic fetch implementation
+    /// Basic fetch implementation using ReliableHttpClient
     async fn basic_fetch(
         &self,
         request: &CrawlRequest,
-        client: Option<reqwest::Client>,
+        _client: Option<()>, // Unused - kept for API compatibility
     ) -> Result<(String, usize)> {
-        let http_client = client.unwrap_or_else(|| {
-            reqwest::Client::builder()
-                .user_agent("RipTide Spider/1.0")
-                .timeout(self.config.performance.request_timeout)
-                .build()
-                .unwrap_or_else(|e| {
-                    tracing::warn!("Failed to build HTTP client, using default: {}", e);
-                    reqwest::Client::new()
-                })
-        });
+        use riptide_reliability::{CircuitBreakerPreset, ReliableHttpClient};
+        use std::sync::Arc;
+
+        // Create client with WebScraping preset
+        let http_client = Arc::new(
+            ReliableHttpClient::with_preset(CircuitBreakerPreset::WebScraping)
+                .context("Failed to create reliable HTTP client")?,
+        );
 
         let response = http_client
             .get(request.url.as_str())
-            .send()
             .await
             .context("Failed to send HTTP request")?;
 

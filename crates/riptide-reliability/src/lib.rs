@@ -176,7 +176,9 @@ pub use engine_selection::{
     ContentAnalysis, Engine, EngineCacheable, EngineSelectionFlags,
 };
 pub use gate::{decide, score, should_use_headless, Decision, GateFeatures};
-pub use http_client::{FetchOptions, HttpClientService, HttpConfig};
+pub use http_client::{
+    CircuitBreakerPreset, FetchOptions, HttpClientService, HttpConfig, ReliableHttpClient,
+};
 #[cfg(feature = "reliability-patterns")]
 pub use reliability::{
     ExtractionMode, ReliabilityConfig, ReliabilityMetrics, ReliabilityMetricsRecorder,

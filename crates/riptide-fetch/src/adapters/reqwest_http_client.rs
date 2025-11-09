@@ -2,6 +2,10 @@
 //!
 //! This module provides a production-ready HTTP client adapter using reqwest.
 //! It includes connection pooling, timeout handling, and retry logic.
+//!
+//! Note: This adapter does NOT use ReliableHttpClient to avoid circular dependencies
+//! (riptide-reliability depends on riptide-fetch). For reliability features, use
+//! HttpClientService from riptide-reliability directly in higher-level modules.
 
 use async_trait::async_trait;
 use riptide_types::error::{Result, RiptideError};

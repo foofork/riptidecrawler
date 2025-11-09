@@ -6830,8 +6830,8 @@ name = "riptide-browser"
 version = "0.9.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "futures",
- "riptide-browser-abstraction",
  "riptide-stealth",
  "serde",
  "serde_json",
@@ -6839,6 +6839,7 @@ dependencies = [
  "spider_chrome",
  "spider_chromiumoxide_cdp",
  "tempfile",
+ "thiserror 2.0.17",
  "tokio",
  "tracing",
  "uuid",
@@ -7375,6 +7376,7 @@ dependencies = [
  "regex",
  "reqwest 0.12.24",
  "riptide-events",
+ "riptide-reliability",
  "serde",
  "serde_json",
  "tokio",
@@ -7427,6 +7429,7 @@ dependencies = [
  "reqwest 0.12.24",
  "riptide-config",
  "riptide-fetch",
+ "riptide-reliability",
  "riptide-types",
  "riptide-utils",
  "robotstxt",

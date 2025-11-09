@@ -1,18 +1,15 @@
 //! RipTide Browser - Unified Browser Automation Core
 //!
-//! This crate provides the core browser automation infrastructure for RipTide:
-//! - Browser pool management with resource tracking
-//! - CDP connection pooling for multiplexing
-//! - Headless browser launcher with stealth capabilities
-//! - Unified browser abstraction layer
+//! **Sprint 4.6: Consolidated Browser Crate** (3 crates → 1)
 //!
-//! ## Architecture
-//!
-//! **riptide-browser** now contains the REAL implementations (migrated from riptide-engine):
-//! - `pool`: Browser instance pooling and lifecycle management
-//! - `cdp`: CDP connection pooling with batching and multiplexing
-//! - `launcher`: High-level API for browser launching with stealth
-//! - `models`: Shared types and abstractions
+//! This crate provides the complete browser automation infrastructure:
+//! - `abstraction/`: Pure trait definitions (NO concrete CDP types)
+//! - `cdp/`: CDP implementations (chromiumoxide, spider-chrome) + connection pooling
+//! - `pool/`: Browser instance pooling and lifecycle management
+//! - `launcher/`: High-level API for browser launching with stealth
+//! - `http/`: HTTP API for headless browser operations
+//! - `models/`: Shared types and request/response models
+//! - `hybrid/`: Fallback and hybrid engine management
 //!
 //! ## Usage
 //!
@@ -35,24 +32,29 @@
 //! ```
 
 // ========================================
-// Core Modules (REAL IMPLEMENTATIONS)
+// Core Modules - Sprint 4.6 Consolidation
 // ========================================
 
-pub mod cdp;
-pub mod hybrid;
-pub mod launcher;
-pub mod models;
-pub mod pool;
+pub mod abstraction; // Trait-only abstractions (NO concrete types)
+pub mod cdp; // CDP implementations + connection pool
+pub mod http; // HTTP API (from riptide-headless)
+pub mod hybrid; // Hybrid engine management
+pub mod launcher; // Headless launcher
+pub mod models; // Shared types
+pub mod pool; // Browser pool management
 
 // ========================================
-// Public API - Re-export key types
+// Public API - Sprint 4.6 Re-exports
 // ========================================
 
-// Pool management
-pub use pool::{
-    BrowserCheckout, BrowserHealth, BrowserPool, BrowserPoolConfig, BrowserPoolRef, BrowserStats,
-    PoolEvent, PoolStats, PooledBrowser,
+// Abstraction layer (traits only)
+pub use abstraction::{
+    AbstractionError, AbstractionResult, BrowserEngine, EngineType, NavigateParams, PageHandle,
+    PdfParams, ScreenshotFormat, ScreenshotParams, WaitUntil,
 };
+
+// CDP implementations
+pub use cdp::{ChromiumoxideEngine, ChromiumoxidePage, SpiderChromeEngine, SpiderChromePage};
 
 // CDP connection pooling
 pub use cdp::{
@@ -60,11 +62,19 @@ pub use cdp::{
     ConnectionHealth, ConnectionPriority, ConnectionStats, PerformanceMetrics, PooledConnection,
 };
 
+// Browser pool management
+pub use pool::{
+    BrowserCheckout, BrowserHealth, BrowserPool, BrowserPoolConfig, BrowserPoolRef, BrowserStats,
+    PoolEvent, PoolStats, PooledBrowser,
+};
+
 // Launcher API
 pub use launcher::{HeadlessLauncher, LaunchSession, LauncherConfig, LauncherStats};
 
 // Hybrid fallback
 pub use hybrid::{BrowserResponse, EngineKind, FallbackMetrics, HybridBrowserFallback};
+
+// HTTP API (models re-exported, implementation remains in riptide-headless for now)
 
 // Models
 pub use models::{
@@ -78,12 +88,3 @@ pub use models::{
 // Re-export spider_chrome types for consumers
 pub use chromiumoxide::{Browser, BrowserConfig, Page};
 pub use chromiumoxide_cdp::cdp::browser_protocol::target::SessionId;
-
-// Re-export browser abstraction for consumers
-pub use riptide_browser_abstraction::{BrowserEngine, ChromiumoxideEngine, ChromiumoxidePage};
-
-// ========================================
-// Integration with riptide-headless
-// ========================================
-// Note: riptide-headless depends on riptide-browser, not the other way around
-// Dynamic rendering capabilities are provided by riptide-headless

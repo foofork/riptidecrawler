@@ -5,29 +5,30 @@
 //! - Retry logic with exponential backoff
 //! - Connection pooling and timeout management
 //! - Robots.txt compliance (optional)
+//! - Preset configurations for common use cases
 //!
 //! # Architecture
 //!
 //! `HttpClientService` is the single source of truth for HTTP operations,
 //! replacing scattered HTTP client logic in facades and other modules.
 //!
+//! `ReliableHttpClient` provides a simplified, Arc-wrapped interface with preset
+//! configurations for different workloads.
+//!
 //! # Example
 //!
 //! ```rust,no_run
-//! use riptide_reliability::{HttpClientService, HttpConfig, FetchOptions};
+//! use riptide_reliability::{HttpClientService, HttpConfig, FetchOptions, ReliableHttpClient, CircuitBreakerPreset};
+//! use std::sync::Arc;
 //!
 //! # async fn example() -> anyhow::Result<()> {
+//! // Use HttpClientService directly
 //! let service = HttpClientService::new(HttpConfig::default())?;
-//!
-//! // Simple GET request with automatic retry and circuit breaker
 //! let response = service.get("https://example.com", FetchOptions::default()).await?;
 //!
-//! // POST with custom options
-//! let body = serde_json::json!({"key": "value"});
-//! let options = FetchOptions::default()
-//!     .with_timeout(std::time::Duration::from_secs(30))
-//!     .with_max_retries(5);
-//! let response = service.post("https://api.example.com", body.to_string().into_bytes(), options).await?;
+//! // Or use ReliableHttpClient with preset
+//! let client = Arc::new(ReliableHttpClient::with_preset(CircuitBreakerPreset::BrowserRendering)?);
+//! let response = client.get("https://example.com").await?;
 //! # Ok(())
 //! # }
 //! ```
@@ -41,6 +42,97 @@ use tracing::{debug, error, info, warn};
 
 use riptide_utils::circuit_breaker::{self as circuit, CircuitBreaker, Config as CircuitConfig};
 use riptide_utils::retry::RetryPolicy;
+
+/// Circuit breaker presets for different use cases
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CircuitBreakerPreset {
+    /// Browser rendering workload (high latency tolerance, moderate retries)
+    BrowserRendering,
+    /// PDF processing workload (long operations, few retries)
+    PdfProcessing,
+    /// Search indexing workload (moderate timeouts, aggressive retries)
+    SearchIndexing,
+    /// External API calls (moderate timeouts, moderate retries)
+    ExternalApi,
+    /// Internal service calls (low timeouts, aggressive retries)
+    InternalService,
+    /// Web scraping workload (moderate timeouts, high retries)
+    WebScraping,
+}
+
+impl CircuitBreakerPreset {
+    /// Convert preset to HttpConfig
+    pub fn to_config(self) -> HttpConfig {
+        match self {
+            Self::BrowserRendering => HttpConfig {
+                timeout_ms: 60_000,         // 60s for browser operations
+                connect_timeout_ms: 15_000, // 15s connect timeout
+                pool_idle_timeout_secs: 120,
+                pool_max_idle_per_host: 5,
+                user_agent: format!("riptide-browser/{}", env!("CARGO_PKG_VERSION")),
+                circuit_failure_threshold: 10, // More tolerant of failures
+                circuit_cooldown_ms: 60_000,   // 1 min cooldown
+                max_retries: 2,                // Fewer retries (expensive)
+                initial_backoff_ms: 500,
+            },
+            Self::PdfProcessing => HttpConfig {
+                timeout_ms: 120_000,        // 2 min for PDF downloads
+                connect_timeout_ms: 20_000, // 20s connect timeout
+                pool_idle_timeout_secs: 180,
+                pool_max_idle_per_host: 3,
+                user_agent: format!("riptide-pdf/{}", env!("CARGO_PKG_VERSION")),
+                circuit_failure_threshold: 5,
+                circuit_cooldown_ms: 120_000, // 2 min cooldown
+                max_retries: 1,               // Minimal retries (very expensive)
+                initial_backoff_ms: 1000,
+            },
+            Self::SearchIndexing => HttpConfig {
+                timeout_ms: 30_000,         // 30s for search operations
+                connect_timeout_ms: 10_000, // 10s connect timeout
+                pool_idle_timeout_secs: 90,
+                pool_max_idle_per_host: 10,
+                user_agent: format!("riptide-search/{}", env!("CARGO_PKG_VERSION")),
+                circuit_failure_threshold: 5,
+                circuit_cooldown_ms: 30_000, // 30s cooldown
+                max_retries: 5,              // Aggressive retries
+                initial_backoff_ms: 200,
+            },
+            Self::ExternalApi => HttpConfig {
+                timeout_ms: 30_000,
+                connect_timeout_ms: 10_000,
+                pool_idle_timeout_secs: 90,
+                pool_max_idle_per_host: 10,
+                user_agent: format!("riptide-eventmesh/{}", env!("CARGO_PKG_VERSION")),
+                circuit_failure_threshold: 5,
+                circuit_cooldown_ms: 30_000,
+                max_retries: 3,
+                initial_backoff_ms: 100,
+            },
+            Self::InternalService => HttpConfig {
+                timeout_ms: 10_000,        // 10s for internal calls
+                connect_timeout_ms: 3_000, // 3s connect timeout
+                pool_idle_timeout_secs: 60,
+                pool_max_idle_per_host: 20,
+                user_agent: format!("riptide-internal/{}", env!("CARGO_PKG_VERSION")),
+                circuit_failure_threshold: 3, // Less tolerant
+                circuit_cooldown_ms: 15_000,  // 15s cooldown
+                max_retries: 5,               // Aggressive retries
+                initial_backoff_ms: 50,
+            },
+            Self::WebScraping => HttpConfig {
+                timeout_ms: 45_000,         // 45s for scraping
+                connect_timeout_ms: 12_000, // 12s connect timeout
+                pool_idle_timeout_secs: 120,
+                pool_max_idle_per_host: 15,
+                user_agent: format!("riptide-spider/{}", env!("CARGO_PKG_VERSION")),
+                circuit_failure_threshold: 7,
+                circuit_cooldown_ms: 45_000, // 45s cooldown
+                max_retries: 4,
+                initial_backoff_ms: 250,
+            },
+        }
+    }
+}
 
 /// HTTP client configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -426,5 +518,174 @@ mod tests {
 
         let result = HttpClientService::new(config);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_circuit_breaker_presets() {
+        // Test all presets can be converted to config
+        for preset in [
+            CircuitBreakerPreset::BrowserRendering,
+            CircuitBreakerPreset::PdfProcessing,
+            CircuitBreakerPreset::SearchIndexing,
+            CircuitBreakerPreset::ExternalApi,
+            CircuitBreakerPreset::InternalService,
+            CircuitBreakerPreset::WebScraping,
+        ] {
+            let config = preset.to_config();
+            assert!(config.timeout_ms > 0);
+            assert!(config.max_retries > 0);
+        }
+    }
+
+    #[test]
+    fn test_reliable_http_client_creation() {
+        let result = ReliableHttpClient::with_preset(CircuitBreakerPreset::ExternalApi);
+        assert!(result.is_ok());
+    }
+}
+
+/// Simplified HTTP client with Arc wrapper for easy sharing
+///
+/// This is the recommended client for most use cases. It wraps HttpClientService
+/// and provides a simpler API with preset configurations.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use riptide_reliability::{ReliableHttpClient, CircuitBreakerPreset};
+/// use std::sync::Arc;
+///
+/// # async fn example() -> anyhow::Result<()> {
+/// // Create with preset
+/// let client = Arc::new(ReliableHttpClient::with_preset(CircuitBreakerPreset::WebScraping)?);
+///
+/// // Simple GET
+/// let response = client.get("https://example.com").await?;
+/// let text = response.text().await?;
+///
+/// // POST with body
+/// let body = b"data".to_vec();
+/// let response = client.post("https://api.example.com", body).await?;
+/// # Ok(())
+/// # }
+/// ```
+pub struct ReliableHttpClient {
+    service: HttpClientService,
+    preset: CircuitBreakerPreset,
+}
+
+impl ReliableHttpClient {
+    /// Create a new client with a preset configuration
+    ///
+    /// # Arguments
+    ///
+    /// * `preset` - The circuit breaker preset to use
+    ///
+    /// # Errors
+    ///
+    /// Returns error if client creation fails
+    pub fn with_preset(preset: CircuitBreakerPreset) -> Result<Self> {
+        let config = preset.to_config();
+        let service = HttpClientService::new(config)?;
+        info!("Created ReliableHttpClient with preset: {:?}", preset);
+        Ok(Self { service, preset })
+    }
+
+    /// Create a new client with custom configuration
+    pub fn with_config(config: HttpConfig) -> Result<Self> {
+        let service = HttpClientService::new(config)?;
+        Ok(Self {
+            service,
+            preset: CircuitBreakerPreset::ExternalApi, // Default preset for tracking
+        })
+    }
+
+    /// Get the preset used by this client
+    pub fn preset(&self) -> CircuitBreakerPreset {
+        self.preset
+    }
+
+    /// Perform HTTP GET request
+    ///
+    /// # Arguments
+    ///
+    /// * `url` - Target URL
+    ///
+    /// # Returns
+    ///
+    /// The HTTP response if successful
+    ///
+    /// # Errors
+    ///
+    /// Returns error if request fails or circuit breaker is open
+    pub async fn get(&self, url: &str) -> Result<ReqwestResponse> {
+        self.service.get(url, FetchOptions::default()).await
+    }
+
+    /// Perform HTTP GET request with custom options
+    pub async fn get_with_options(
+        &self,
+        url: &str,
+        options: FetchOptions,
+    ) -> Result<ReqwestResponse> {
+        self.service.get(url, options).await
+    }
+
+    /// Perform HTTP POST request
+    ///
+    /// # Arguments
+    ///
+    /// * `url` - Target URL
+    /// * `body` - Request body
+    ///
+    /// # Returns
+    ///
+    /// The HTTP response if successful
+    ///
+    /// # Errors
+    ///
+    /// Returns error if request fails or circuit breaker is open
+    pub async fn post(&self, url: &str, body: Vec<u8>) -> Result<ReqwestResponse> {
+        self.service.post(url, body, FetchOptions::default()).await
+    }
+
+    /// Perform HTTP POST request with custom options
+    pub async fn post_with_options(
+        &self,
+        url: &str,
+        body: Vec<u8>,
+        options: FetchOptions,
+    ) -> Result<ReqwestResponse> {
+        self.service.post(url, body, options).await
+    }
+
+    /// Perform HTTP PUT request
+    pub async fn put(&self, url: &str, body: Vec<u8>) -> Result<ReqwestResponse> {
+        self.service.put(url, body, FetchOptions::default()).await
+    }
+
+    /// Perform HTTP DELETE request
+    pub async fn delete(&self, url: &str) -> Result<ReqwestResponse> {
+        self.service.delete(url, FetchOptions::default()).await
+    }
+
+    /// Get circuit breaker state
+    pub fn circuit_state(&self) -> circuit::State {
+        self.service.circuit_state()
+    }
+
+    /// Get configuration
+    pub fn config(&self) -> &HttpConfig {
+        self.service.config()
+    }
+
+    /// Reset circuit breaker
+    pub fn reset_circuit_breaker(&self) {
+        self.service.reset_circuit_breaker();
+    }
+
+    /// Get reference to underlying service (for advanced usage)
+    pub fn service(&self) -> &HttpClientService {
+        &self.service
     }
 }

@@ -8,8 +8,9 @@
 
 use super::{SearchBackend, SearchHit, SearchProvider};
 use anyhow::{Context, Result};
+use riptide_reliability::{CircuitBreakerPreset, FetchOptions, ReliableHttpClient};
 use serde_json::Value;
-use std::time::Duration;
+use std::sync::Arc;
 
 /// Serper.dev search provider implementation.
 ///
@@ -19,13 +20,13 @@ use std::time::Duration;
 /// ## Features
 /// - Google search results with ranking
 /// - Configurable timeout and result limits
-/// - Proper error handling and retry logic
+/// - Proper error handling and retry logic via ReliableHttpClient
 /// - Rate limiting awareness
+/// - Circuit breaker protection for fault tolerance
 #[derive(Clone)]
 pub struct SerperProvider {
     api_key: String,
-    client: reqwest::Client,
-    // timeout is configured in the reqwest::Client, no need to store separately
+    client: Arc<ReliableHttpClient>,
 }
 
 impl SerperProvider {
@@ -33,16 +34,16 @@ impl SerperProvider {
     ///
     /// # Parameters
     /// - `api_key`: Valid Serper.dev API key
-    /// - `timeout_seconds`: Request timeout in seconds
+    /// - `timeout_seconds`: Request timeout in seconds (used to adjust preset)
     ///
     /// # Errors
     /// - Returns an error if HTTP client creation fails
-    pub fn new(api_key: String, timeout_seconds: u64) -> Result<Self> {
-        let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(timeout_seconds))
-            .user_agent("RipTide/1.0")
-            .build()
-            .context("Failed to create HTTP client")?;
+    pub fn new(api_key: String, _timeout_seconds: u64) -> Result<Self> {
+        // Use SearchIndexing preset which has appropriate retry and timeout settings
+        let client = Arc::new(
+            ReliableHttpClient::with_preset(CircuitBreakerPreset::SearchIndexing)
+                .context("Failed to create reliable HTTP client")?,
+        );
 
         Ok(Self { api_key, client })
     }
@@ -70,13 +71,16 @@ impl SearchProvider for SerperProvider {
             "hl": locale
         });
 
+        let body =
+            serde_json::to_vec(&search_request).context("Failed to serialize search request")?;
+
+        let options = FetchOptions::default()
+            .add_header("X-API-KEY".to_string(), self.api_key.clone())
+            .add_header("Content-Type".to_string(), "application/json".to_string());
+
         let response = self
             .client
-            .post("https://google.serper.dev/search")
-            .header("X-API-KEY", &self.api_key)
-            .header("Content-Type", "application/json")
-            .json(&search_request)
-            .send()
+            .post_with_options("https://google.serper.dev/search", body, options)
             .await
             .context("Failed to send search request to Serper API")?;
 
@@ -102,11 +106,12 @@ impl SearchProvider for SerperProvider {
 
     async fn health_check(&self) -> Result<()> {
         // Perform a minimal search to verify API key and connectivity
+        let options =
+            FetchOptions::default().add_header("X-API-KEY".to_string(), self.api_key.clone());
+
         let test_response = self
             .client
-            .get("https://google.serper.dev/news")
-            .header("X-API-KEY", &self.api_key)
-            .send()
+            .get_with_options("https://google.serper.dev/news", options)
             .await
             .context("Health check failed: Unable to connect to Serper API")?;
 
