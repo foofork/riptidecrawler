@@ -1504,7 +1504,7 @@ impl AppState {
 
     /// Get prometheus registry for metrics endpoint
     pub fn metrics_registry(&self) -> &prometheus::Registry {
-        &self.combined_metrics.registry()
+        self.combined_metrics.registry()
     }
 
     /// Update streaming metrics (delegates to business metrics)

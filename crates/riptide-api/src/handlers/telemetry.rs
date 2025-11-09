@@ -279,7 +279,7 @@ pub async fn get_telemetry_status(
         .resource_facade
         .get_status()
         .await
-        .map_err(|e| ApiError::internal(&format!("Failed to get resource status: {}", e)))?;
+        .map_err(|e| ApiError::internal(format!("Failed to get resource status: {}", e)))?;
     let resource_status = state.resource_manager.get_resource_status().await;
     let streaming_metrics = state.streaming.metrics().await;
     let circuit_breaker_state = {

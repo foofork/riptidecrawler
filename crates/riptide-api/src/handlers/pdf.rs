@@ -119,14 +119,14 @@ pub async fn process_pdf_upload(
     while let Some(field) = multipart
         .next_field()
         .await
-        .map_err(|e| ApiError::validation(&format!("Invalid multipart data: {}", e)))?
+        .map_err(|e| ApiError::validation(format!("Invalid multipart data: {}", e)))?
     {
         match field.name() {
             Some("pdf") => {
                 let bytes = field
                     .bytes()
                     .await
-                    .map_err(|e| ApiError::validation(&format!("Failed to read PDF: {}", e)))?;
+                    .map_err(|e| ApiError::validation(format!("Failed to read PDF: {}", e)))?;
                 pdf_data = Some(base64::Engine::encode(
                     &base64::engine::general_purpose::STANDARD,
                     &bytes,
@@ -137,7 +137,7 @@ pub async fn process_pdf_upload(
                     field
                         .text()
                         .await
-                        .map_err(|e| ApiError::validation(&format!("Invalid filename: {}", e)))?,
+                        .map_err(|e| ApiError::validation(format!("Invalid filename: {}", e)))?,
                 )
             }
             _ => {}
@@ -170,7 +170,7 @@ async fn acquire_pdf_resources(
                 Ok(ResourceResult::Success(guard)) => Ok(guard),
                 Ok(ResourceResult::RateLimited { retry_after }) => {
                     state.transport_metrics.record_http_error();
-                    Err(ApiError::rate_limited(&format!(
+                    Err(ApiError::rate_limited(format!(
                         "Rate limit exceeded, retry after {:?}",
                         retry_after
                     )))
@@ -192,11 +192,11 @@ async fn acquire_pdf_resources(
                 }
                 Ok(ResourceResult::Error(e)) => {
                     state.transport_metrics.record_http_error();
-                    Err(ApiError::internal(&format!("Resource error: {}", e)))
+                    Err(ApiError::internal(format!("Resource error: {}", e)))
                 }
                 Err(e) => {
                     state.transport_metrics.record_http_error();
-                    Err(ApiError::internal(&format!(
+                    Err(ApiError::internal(format!(
                         "Resource acquisition failed: {}",
                         e
                     )))
@@ -205,7 +205,7 @@ async fn acquire_pdf_resources(
         }
         Ok(FacadeResult::RateLimited { retry_after }) => {
             state.transport_metrics.record_http_error();
-            Err(ApiError::rate_limited(&format!(
+            Err(ApiError::rate_limited(format!(
                 "Rate limit exceeded, retry after {:?}",
                 retry_after
             )))
@@ -227,7 +227,7 @@ async fn acquire_pdf_resources(
         }
         Err(e) => {
             state.transport_metrics.record_http_error();
-            Err(ApiError::internal(&format!("Resource facade error: {}", e)))
+            Err(ApiError::internal(format!("Resource facade error: {}", e)))
         }
     }
 }

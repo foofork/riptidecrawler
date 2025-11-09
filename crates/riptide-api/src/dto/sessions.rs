@@ -82,7 +82,7 @@ impl From<Cookie> for CookieResponse {
             value: cookie.value,
             domain: cookie.domain,
             path: cookie.path,
-            expires: cookie.expires.map(|exp| format_timestamp(exp)),
+            expires: cookie.expires.map(format_timestamp),
             secure: cookie.secure,
             http_only: cookie.http_only,
         }
