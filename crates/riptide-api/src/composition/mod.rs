@@ -454,7 +454,7 @@ mod tests {
     #[test]
     #[cfg(not(feature = "postgres"))]
     fn test_builder_pattern() {
-        let custom_clock = Arc::new(FakeClock::at_epoch()) as Arc<dyn Clock>;
+        let custom_clock = Arc::new(riptide_types::FakeClock::at_epoch()) as Arc<dyn Clock>;
 
         let ctx = ApplicationContext::builder()
             .with_clock(custom_clock)

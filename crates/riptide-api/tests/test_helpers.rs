@@ -82,6 +82,7 @@ pub async fn create_test_app() -> Router {
 pub fn create_test_router(state: AppState) -> Router {
     use riptide_api::routes;
 
+    #[allow(unused_mut)] // Conditionally mutable when search feature is enabled
     let mut app = Router::new()
         // Health endpoint - standardized on /healthz
         .route("/healthz", get(handlers::health))
