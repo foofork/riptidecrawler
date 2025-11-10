@@ -1,8 +1,6 @@
 //! Comprehensive tests for parallel document extraction
 
-use riptide_extraction::parallel::{
-    DocumentTask, ExtractionMetrics, ParallelConfig, ParallelExtractor,
-};
+use riptide_extraction::parallel::{DocumentTask, ParallelConfig, ParallelExtractor};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
@@ -58,8 +56,8 @@ async fn test_basic_parallel_extraction() {
 async fn test_concurrency_limit_enforcement() {
     let config = ParallelConfig::default().with_max_concurrent(2);
 
-    let processing_count = Arc::new(Mutex::new(0));
-    let max_concurrent = Arc::new(Mutex::new(0));
+    let _processing_count = Arc::new(Mutex::new(0));
+    let _max_concurrent = Arc::new(Mutex::new(0));
 
     let extractor = ParallelExtractor::new(config);
 

@@ -9,7 +9,6 @@
 use riptide_extraction::enhanced_link_extraction::{
     EnhancedLinkExtractor, LinkExtractionConfig, LinkType,
 };
-use serde_json;
 
 fn main() -> anyhow::Result<()> {
     // Sample HTML with various link types
