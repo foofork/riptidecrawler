@@ -21,8 +21,8 @@ async fn test_facade_wraps_both_orchestrators() {
     let facade = CrawlFacade::new(state);
 
     // Verify that both orchestrators are wrapped (not rebuilt)
-    let pipeline_ref = facade.pipeline_orchestrator();
-    let strategies_ref = facade.strategies_orchestrator();
+    let pipeline_ref = facade.pipeline_executor();
+    let strategies_ref = facade.strategies_executor();
 
     assert!(
         Arc::strong_count(pipeline_ref) >= 1,
@@ -121,8 +121,8 @@ async fn test_facade_with_custom_options() {
     let facade = CrawlFacade::with_options(state, options);
 
     // Verify facade was created with custom options
-    assert!(Arc::strong_count(facade.pipeline_orchestrator()) >= 1);
-    assert!(Arc::strong_count(facade.strategies_orchestrator()) >= 1);
+    assert!(Arc::strong_count(facade.pipeline_executor()) >= 1);
+    assert!(Arc::strong_count(facade.strategies_executor()) >= 1);
 }
 
 #[tokio::test]
@@ -134,8 +134,8 @@ async fn test_facade_with_strategy_config() {
     let facade = CrawlFacade::with_strategy_config(state, options, strategy_config);
 
     // Verify facade was created with strategy config
-    assert!(Arc::strong_count(facade.pipeline_orchestrator()) >= 1);
-    assert!(Arc::strong_count(facade.strategies_orchestrator()) >= 1);
+    assert!(Arc::strong_count(facade.pipeline_executor()) >= 1);
+    assert!(Arc::strong_count(facade.strategies_executor()) >= 1);
 }
 
 #[tokio::test]
@@ -151,8 +151,8 @@ async fn test_orchestrator_access() {
     let facade = CrawlFacade::new(state);
 
     // Test that we can access underlying orchestrators for advanced use cases
-    let _pipeline = facade.pipeline_orchestrator();
-    let _strategies = facade.strategies_orchestrator();
+    let _pipeline = facade.pipeline_executor();
+    let _strategies = facade.strategies_executor();
 
     // This allows users to bypass the facade for advanced operations
     // while still benefiting from the simplified interface for common tasks
@@ -164,8 +164,8 @@ async fn test_facade_clone_safety() {
     let facade = CrawlFacade::new(state);
 
     // Get references before cloning facade
-    let pipeline1 = facade.pipeline_orchestrator();
-    let strategies1 = facade.strategies_orchestrator();
+    let pipeline1 = facade.pipeline_executor();
+    let strategies1 = facade.strategies_executor();
 
     let initial_pipeline_count = Arc::strong_count(pipeline1);
     let initial_strategies_count = Arc::strong_count(strategies1);
@@ -189,8 +189,8 @@ async fn test_production_code_not_rebuilt() {
     // We verify this by checking that the orchestrators are Arc-wrapped
     // (shared ownership) rather than fully owned by the facade
 
-    let pipeline_arc = facade.pipeline_orchestrator();
-    let strategies_arc = facade.strategies_orchestrator();
+    let pipeline_arc = facade.pipeline_executor();
+    let strategies_arc = facade.strategies_executor();
 
     // If these were rebuilt, they would be unique instances
     // Arc-wrapping proves we're referencing existing code

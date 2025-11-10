@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 
 use riptide_monitoring::PerformanceMetrics;
-use riptide_reliability::circuit_breaker::{
+use riptide_reliability::circuit_breaker_pool::{
     record_extraction_result, CircuitBreakerState, ExtractionResult,
 };
 use riptide_utils::circuit_breaker::{CircuitBreaker, Clock, Config as CircuitConfig, State};

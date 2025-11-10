@@ -454,10 +454,11 @@ mod tests {
 
     #[test]
     fn test_retry_config_validation() {
-        let mut config = RetryConfig::default();
-
         // Invalid max_attempts
-        config.max_attempts = 0;
+        let mut config = RetryConfig {
+            max_attempts: 0,
+            ..Default::default()
+        };
         assert!(config.validate().is_err());
         config.max_attempts = 5;
 
@@ -659,7 +660,7 @@ mod tests {
         // Jitter range: 0-100ms (25% of 400)
         // Expected range: 400-500ms
         for &delay in &delays {
-            assert!(delay >= 400 && delay <= 500);
+            assert!((400..=500).contains(&delay));
         }
 
         // Ensure we got some variance (not all the same)

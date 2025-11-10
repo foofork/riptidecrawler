@@ -355,6 +355,7 @@ async fn test_rate_limit_adaptive_delay() {
 #[tokio::test]
 async fn test_circuit_breaker_integration() {
     use riptide_intelligence::mock_provider::MockLlmProvider;
+    use riptide_intelligence::{CircuitBreaker, CircuitBreakerConfig};
     use std::sync::Arc;
 
     let mock_provider = Arc::new(MockLlmProvider::new().fail_after(0));

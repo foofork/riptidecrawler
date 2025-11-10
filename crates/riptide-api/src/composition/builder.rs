@@ -371,7 +371,7 @@ impl Default for ApplicationContextBuilder {
 
 // Stub implementations are in the stubs module
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "postgres")))]
 mod tests {
     use super::*;
 

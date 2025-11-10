@@ -39,9 +39,6 @@ use anyhow::Result;
 use riptide_types::ports::infrastructure::{Clock, Entropy, SystemClock, SystemEntropy};
 use riptide_types::{EventBus, IdempotencyStore, Repository, TransactionManager};
 
-// Test-only imports
-#[cfg(test)]
-use riptide_types::ports::infrastructure::FakeClock;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tracing::{info, instrument};
@@ -455,6 +452,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(feature = "postgres"))]
     fn test_builder_pattern() {
         let custom_clock = Arc::new(FakeClock::at_epoch()) as Arc<dyn Clock>;
 

@@ -1,34 +1,12 @@
-//! Factory function tests
+//! Engine type tests
 //!
-//! Tests for browser engine creation and factory error handling
+//! Tests for EngineType enum properties and serialization
 
-use riptide_browser::abstraction::{create_engine, EngineType};
+use riptide_browser::abstraction::EngineType;
 
-#[tokio::test]
-async fn test_create_chromiumoxide_engine_returns_error() {
-    // Factory requires actual Browser instance, should return error
-    let result = create_engine(EngineType::Chromiumoxide).await;
-
-    assert!(result.is_err());
-    if let Err(err) = result {
-        assert!(err
-            .to_string()
-            .contains("Factory function requires Browser instance parameter"));
-    }
-}
-
-#[tokio::test]
-async fn test_create_spider_chrome_engine_returns_error() {
-    // Factory requires actual Browser instance, should return error
-    let result = create_engine(EngineType::SpiderChrome).await;
-
-    assert!(result.is_err());
-    if let Err(err) = result {
-        assert!(err
-            .to_string()
-            .contains("Factory function requires Browser instance parameter"));
-    }
-}
+// Note: Factory function tests removed as create_engine no longer exists
+// in the abstraction API. Engine creation now happens through concrete
+// implementations in the cdp module.
 
 #[test]
 fn test_engine_type_chromiumoxide() {

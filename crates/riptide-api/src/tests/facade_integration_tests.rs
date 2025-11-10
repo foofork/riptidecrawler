@@ -14,12 +14,16 @@
 
 use crate::config::RiptideApiConfig;
 #[cfg(feature = "browser")]
-use crate::handlers::browser::{BrowserAction, CreateSessionRequest};
+use crate::handlers::browser::CreateSessionRequest;
 use crate::health::HealthChecker;
 use crate::state::{AppConfig, AppState};
 use anyhow::Result;
 use axum::{extract::State, Json};
+#[cfg(feature = "browser")]
+use http::StatusCode;
 use http_body_util::BodyExt;
+#[cfg(feature = "browser")]
+use riptide_facade::BrowserAction;
 use riptide_types::ExtractOptions;
 #[cfg(feature = "extraction")]
 use riptide_types::ExtractRequest;

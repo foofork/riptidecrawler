@@ -6,10 +6,11 @@
 //! - Native pool vs WASM pool performance
 //! - Concurrent extraction throughput
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use std::time::Duration;
 
 // Sample HTML for benchmarking
+#[allow(dead_code)]
 const SAMPLE_HTML: &str = r#"
 <!DOCTYPE html>
 <html>
@@ -246,7 +247,7 @@ fn bench_memory_usage(c: &mut Criterion) {
         let rt = tokio::runtime::Runtime::new().unwrap();
 
         // Generate large HTML
-        let large_html = {
+        let _large_html = {
             let mut html = LARGE_HTML.to_string();
             for i in 0..1000 {
                 html.push_str(&format!("<p>Paragraph {} with content.</p>\n", i));

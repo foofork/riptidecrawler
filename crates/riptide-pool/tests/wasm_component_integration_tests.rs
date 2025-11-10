@@ -250,7 +250,7 @@ async fn test_pool_factory_creation() {
 // ============================================================================
 
 #[test]
-fn test_wasm_component_availability() {
+fn test_wasm_component_availability() -> Result<(), Box<dyn std::error::Error>> {
     let exists = wasm_component_exists();
 
     if exists {

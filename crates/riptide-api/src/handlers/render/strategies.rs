@@ -276,7 +276,6 @@ async fn process_adaptive(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use riptide_headless::dynamic::ScrollMode;
     use std::time::Duration;
 
     #[tokio::test]
