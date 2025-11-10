@@ -4,9 +4,6 @@
 //! failover scenarios, and metrics collection for native HTML extraction.
 
 use anyhow::Result;
-use std::sync::Arc;
-use std::time::Duration;
-use tokio::time::sleep;
 
 // Note: These tests are written for TDD - the NativeExtractorPool implementation
 // should be created to satisfy these test requirements.
@@ -16,9 +13,13 @@ use tokio::time::sleep;
 struct NativePoolConfig {
     max_pool_size: usize,
     initial_pool_size: usize,
+    #[allow(dead_code)]
     health_check_interval_ms: u64,
+    #[allow(dead_code)]
     idle_timeout_ms: u64,
+    #[allow(dead_code)]
     max_instance_reuse: u64,
+    #[allow(dead_code)]
     memory_limit_bytes: Option<usize>,
 }
 
@@ -61,8 +62,10 @@ async fn test_native_pool_creation() -> Result<()> {
 #[tokio::test]
 async fn test_pool_warmup_creates_initial_instances() -> Result<()> {
     // Given: A pool configuration with initial_pool_size = 3
-    let mut config = NativePoolConfig::default();
-    config.initial_pool_size = 3;
+    let _config = NativePoolConfig {
+        initial_pool_size: 3,
+        ..Default::default()
+    };
 
     // When: Pool is created
     // let pool = NativeExtractorPool::new(config).await?;
@@ -77,7 +80,7 @@ async fn test_pool_warmup_creates_initial_instances() -> Result<()> {
 #[tokio::test]
 async fn test_pool_acquire_and_release() -> Result<()> {
     // Given: A pool with available instances
-    let config = NativePoolConfig::default();
+    let _config = NativePoolConfig::default();
     // let pool = NativeExtractorPool::new(config).await?;
 
     // When: Acquiring an instance
@@ -100,7 +103,7 @@ async fn test_pool_acquire_and_release() -> Result<()> {
 #[tokio::test]
 async fn test_pool_shutdown_gracefully() -> Result<()> {
     // Given: A pool with active instances
-    let config = NativePoolConfig::default();
+    let _config = NativePoolConfig::default();
     // let pool = NativeExtractorPool::new(config).await?;
 
     // When: Shutting down the pool
@@ -117,7 +120,7 @@ async fn test_pool_shutdown_gracefully() -> Result<()> {
 #[tokio::test]
 async fn test_pool_rejects_operations_after_shutdown() -> Result<()> {
     // Given: A shutdown pool
-    let config = NativePoolConfig::default();
+    let _config = NativePoolConfig::default();
     // let pool = NativeExtractorPool::new(config).await?;
     // pool.shutdown().await?;
 
@@ -138,7 +141,7 @@ async fn test_pool_rejects_operations_after_shutdown() -> Result<()> {
 #[tokio::test]
 async fn test_health_check_detects_unhealthy_instances() -> Result<()> {
     // Given: A pool with instances
-    let config = NativePoolConfig::default();
+    let _config = NativePoolConfig::default();
     // let pool = NativeExtractorPool::new(config).await?;
 
     // When: An instance becomes unhealthy (e.g., high failure rate)
@@ -164,8 +167,10 @@ async fn test_health_check_detects_unhealthy_instances() -> Result<()> {
 #[tokio::test]
 async fn test_periodic_health_checks() -> Result<()> {
     // Given: A pool with health check interval of 100ms
-    let mut config = NativePoolConfig::default();
-    config.health_check_interval_ms = 100;
+    let _config = NativePoolConfig {
+        health_check_interval_ms: 100,
+        ..Default::default()
+    };
     // let pool = NativeExtractorPool::new(config).await?;
 
     // When: Waiting for multiple health check cycles
@@ -181,9 +186,11 @@ async fn test_periodic_health_checks() -> Result<()> {
 #[tokio::test]
 async fn test_idle_timeout_removes_instances() -> Result<()> {
     // Given: A pool with idle timeout of 200ms
-    let mut config = NativePoolConfig::default();
-    config.idle_timeout_ms = 200;
-    config.initial_pool_size = 3;
+    let _config = NativePoolConfig {
+        idle_timeout_ms: 200,
+        initial_pool_size: 3,
+        ..Default::default()
+    };
     // let pool = NativeExtractorPool::new(config).await?;
 
     // When: Instances remain idle for longer than timeout
@@ -199,8 +206,10 @@ async fn test_idle_timeout_removes_instances() -> Result<()> {
 #[tokio::test]
 async fn test_instance_reuse_limit() -> Result<()> {
     // Given: A pool with max_instance_reuse = 5
-    let mut config = NativePoolConfig::default();
-    config.max_instance_reuse = 5;
+    let _config = NativePoolConfig {
+        max_instance_reuse: 5,
+        ..Default::default()
+    };
     // let pool = NativeExtractorPool::new(config).await?;
 
     // When: Using an instance 5 times
@@ -224,9 +233,11 @@ async fn test_instance_reuse_limit() -> Result<()> {
 #[tokio::test]
 async fn test_pool_respects_max_size() -> Result<()> {
     // Given: A pool with max_size = 3
-    let mut config = NativePoolConfig::default();
-    config.max_pool_size = 3;
-    config.initial_pool_size = 1;
+    let _config = NativePoolConfig {
+        max_pool_size: 3,
+        initial_pool_size: 1,
+        ..Default::default()
+    };
     // let pool = NativeExtractorPool::new(config).await?;
 
     // When: Acquiring more instances than max_size
@@ -243,9 +254,11 @@ async fn test_pool_respects_max_size() -> Result<()> {
 #[tokio::test]
 async fn test_memory_limit_enforcement() -> Result<()> {
     // Given: A pool with strict memory limit
-    let mut config = NativePoolConfig::default();
-    config.memory_limit_bytes = Some(50 * 1024 * 1024); // 50MB
-                                                        // let pool = NativeExtractorPool::new(config).await?;
+    let _config = NativePoolConfig {
+        memory_limit_bytes: Some(50 * 1024 * 1024), // 50MB
+        ..Default::default()
+    };
+    // let pool = NativeExtractorPool::new(config).await?;
 
     // When: Instance exceeds memory limit
     // let instance = pool.acquire().await?;
@@ -260,8 +273,10 @@ async fn test_memory_limit_enforcement() -> Result<()> {
 #[tokio::test]
 async fn test_pool_exhaustion_timeout() -> Result<()> {
     // Given: A pool with max_size = 2
-    let mut config = NativePoolConfig::default();
-    config.max_pool_size = 2;
+    let _config = NativePoolConfig {
+        max_pool_size: 2,
+        ..Default::default()
+    };
     // let pool = Arc::new(NativeExtractorPool::new(config).await?);
 
     // When: Acquiring all instances and trying to get one more with timeout
@@ -287,7 +302,7 @@ async fn test_pool_exhaustion_timeout() -> Result<()> {
 #[tokio::test]
 async fn test_metrics_track_extractions() -> Result<()> {
     // Given: A pool performing extractions
-    let config = NativePoolConfig::default();
+    let _config = NativePoolConfig::default();
     // let pool = NativeExtractorPool::new(config).await?;
 
     // When: Performing multiple extractions
@@ -309,7 +324,7 @@ async fn test_metrics_track_extractions() -> Result<()> {
 #[tokio::test]
 async fn test_metrics_track_pool_utilization() -> Result<()> {
     // Given: A pool with active instances
-    let config = NativePoolConfig::default();
+    let _config = NativePoolConfig::default();
     // let pool = NativeExtractorPool::new(config).await?;
 
     // When: Acquiring instances
@@ -328,7 +343,7 @@ async fn test_metrics_track_pool_utilization() -> Result<()> {
 #[tokio::test]
 async fn test_metrics_track_instance_lifecycle() -> Result<()> {
     // Given: A pool tracking instance lifecycle events
-    let config = NativePoolConfig::default();
+    let _config = NativePoolConfig::default();
     // let pool = NativeExtractorPool::new(config).await?;
 
     // When: Creating and destroying instances
@@ -350,9 +365,11 @@ async fn test_metrics_track_instance_lifecycle() -> Result<()> {
 #[tokio::test]
 async fn test_concurrent_acquisition() -> Result<()> {
     // Given: A pool with max_size = 10
-    let mut config = NativePoolConfig::default();
-    config.max_pool_size = 10;
-    config.initial_pool_size = 5;
+    let _config = NativePoolConfig {
+        max_pool_size: 10,
+        initial_pool_size: 5,
+        ..Default::default()
+    };
     // let pool = Arc::new(NativeExtractorPool::new(config).await?);
 
     // When: 20 concurrent tasks request instances
@@ -381,7 +398,7 @@ async fn test_concurrent_acquisition() -> Result<()> {
 #[tokio::test]
 async fn test_thread_safety() -> Result<()> {
     // Given: A shared pool across multiple threads
-    let config = NativePoolConfig::default();
+    let _config = NativePoolConfig::default();
     // let pool = Arc::new(NativeExtractorPool::new(config).await?);
 
     // When: Multiple threads perform operations concurrently
@@ -415,7 +432,7 @@ async fn test_thread_safety() -> Result<()> {
 #[tokio::test]
 async fn test_extraction_error_recovery() -> Result<()> {
     // Given: A pool with instances
-    let config = NativePoolConfig::default();
+    let _config = NativePoolConfig::default();
     // let pool = NativeExtractorPool::new(config).await?;
 
     // When: An extraction fails
@@ -433,7 +450,7 @@ async fn test_extraction_error_recovery() -> Result<()> {
 #[tokio::test]
 async fn test_multiple_failures_mark_unhealthy() -> Result<()> {
     // Given: A pool with failure threshold = 5
-    let config = NativePoolConfig::default();
+    let _config = NativePoolConfig::default();
     // let pool = NativeExtractorPool::new(config).await?;
 
     // When: An instance fails multiple times
@@ -451,8 +468,10 @@ async fn test_multiple_failures_mark_unhealthy() -> Result<()> {
 #[tokio::test]
 async fn test_pool_recovers_from_all_unhealthy_instances() -> Result<()> {
     // Given: A pool where all instances become unhealthy
-    let mut config = NativePoolConfig::default();
-    config.initial_pool_size = 2;
+    let _config = NativePoolConfig {
+        initial_pool_size: 2,
+        ..Default::default()
+    };
     // let pool = NativeExtractorPool::new(config).await?;
 
     // When: All instances fail repeatedly
@@ -472,17 +491,18 @@ async fn test_pool_recovers_from_all_unhealthy_instances() -> Result<()> {
 #[test]
 fn test_config_validation_rejects_invalid_values() {
     // Given: Invalid configurations
-    let mut config = NativePoolConfig::default();
+    let mut _config = NativePoolConfig {
+        max_pool_size: 0,
+        initial_pool_size: 10,
+        ..Default::default()
+    };
 
     // When: max_pool_size = 0
-    config.max_pool_size = 0;
     // let result = NativePoolConfig::validate(&config);
     // Then: Should fail validation
     // assert!(result.is_err());
 
     // When: initial_pool_size > max_pool_size
-    config.max_pool_size = 5;
-    config.initial_pool_size = 10;
     // let result = NativePoolConfig::validate(&config);
     // Then: Should fail validation
     // assert!(result.is_err());
@@ -513,7 +533,7 @@ fn test_config_from_env_variables() {
 #[tokio::test]
 async fn test_instance_reuse_performance() -> Result<()> {
     // Given: A pool with instance reuse enabled
-    let config = NativePoolConfig::default();
+    let _config = NativePoolConfig::default();
     // let pool = NativeExtractorPool::new(config).await?;
 
     // When: Performing 100 extractions
@@ -536,8 +556,10 @@ async fn test_instance_reuse_performance() -> Result<()> {
 #[tokio::test]
 async fn test_parallel_extraction_performance() -> Result<()> {
     // Given: A pool with sufficient capacity
-    let mut config = NativePoolConfig::default();
-    config.max_pool_size = 10;
+    let _config = NativePoolConfig {
+        max_pool_size: 10,
+        ..Default::default()
+    };
     // let pool = Arc::new(NativeExtractorPool::new(config).await?);
 
     // When: Running 50 parallel extractions
@@ -569,7 +591,7 @@ async fn test_parallel_extraction_performance() -> Result<()> {
 #[tokio::test]
 async fn test_realistic_extraction_workflow() -> Result<()> {
     // Given: A pool configured for production use
-    let config = NativePoolConfig::default();
+    let _config = NativePoolConfig::default();
     // let pool = NativeExtractorPool::new(config).await?;
 
     // When: Performing typical extraction workflow
@@ -601,7 +623,7 @@ async fn test_realistic_extraction_workflow() -> Result<()> {
 #[tokio::test]
 async fn test_stress_test_sustained_load() -> Result<()> {
     // Given: A pool under sustained load
-    let config = NativePoolConfig::default();
+    let _config = NativePoolConfig::default();
     // let pool = Arc::new(NativeExtractorPool::new(config).await?);
 
     // When: Running continuous extractions for 5 seconds
