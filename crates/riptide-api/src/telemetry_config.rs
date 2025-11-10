@@ -63,10 +63,11 @@ pub struct TelemetryConfig {
 }
 
 /// Type of telemetry exporter to use
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum ExporterType {
     /// OpenTelemetry Protocol (OTLP) - recommended
+    #[default]
     Otlp,
     /// Jaeger native protocol
     Jaeger,
@@ -74,12 +75,6 @@ pub enum ExporterType {
     Zipkin,
     /// No exporter (telemetry disabled)
     None,
-}
-
-impl Default for ExporterType {
-    fn default() -> Self {
-        Self::Otlp
-    }
 }
 
 impl FromStr for ExporterType {
