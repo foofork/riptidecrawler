@@ -180,6 +180,24 @@ pub struct SpiderResultUrls {
     pub discovered_urls: Vec<String>,
 }
 
+/// Pages result for spider crawl operations with full page details
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SpiderResultPages {
+    /// Total pages crawled
+    pub pages_crawled: u64,
+    /// Total pages failed
+    pub pages_failed: u64,
+    /// Crawl duration in seconds
+    pub duration_seconds: f64,
+    /// Reason for stopping
+    pub stop_reason: String,
+    /// Domains crawled
+    pub domains: Vec<String>,
+    /// All crawled pages with full details
+    #[serde(default)]
+    pub pages: Vec<CrawledPage>,
+}
+
 /// A single crawled page with all available information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CrawledPage {

@@ -66,8 +66,8 @@ pub use extracted::{
 };
 pub use http_types::{
     ContentMetadata, CrawledPage, ExtractOptions, ExtractRequest, ExtractResponse,
-    ParserMetadataHttp, ResultMode, SearchQuery, SearchResponse, SearchResult, SpiderResultStats,
-    SpiderResultUrls,
+    ParserMetadataHttp, ResultMode, SearchQuery, SearchResponse, SearchResult, SpiderResultPages,
+    SpiderResultStats, SpiderResultUrls,
 };
 pub use pipeline::{
     CombinedPipelineExecutor, GateDecisionStats, PipelineExecutor, PipelineResult,

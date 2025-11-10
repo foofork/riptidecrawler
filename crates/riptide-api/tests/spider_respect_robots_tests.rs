@@ -24,7 +24,7 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use riptide_api::dto::SpiderResultPages;
+use riptide_types::SpiderResultPages;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tower::ServiceExt;

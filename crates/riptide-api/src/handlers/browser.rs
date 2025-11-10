@@ -75,3 +75,28 @@ pub async fn close_browser_session(
 ) -> Result<StatusCode, ApiError> {
     Ok(StatusCode::NO_CONTENT)
 }
+
+#[derive(Debug, Deserialize)]
+pub struct BrowserActionRequest {
+    pub session_id: String,
+    pub action: String,
+    pub params: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BrowserActionResponse {
+    pub success: bool,
+    pub result: Option<serde_json::Value>,
+}
+
+pub async fn execute_browser_action(
+    State(_state): State<AppState>,
+    Json(_request): Json<BrowserActionRequest>,
+) -> Result<Json<BrowserActionResponse>, ApiError> {
+    // browser_facade was removed due to circular dependency
+    // TODO: Restore browser action execution when facade is re-integrated
+    Err(ApiError::invalid_request(
+        "Browser facade temporarily unavailable due to refactoring. \
+        Browser actions will be restored in a future update.",
+    ))
+}

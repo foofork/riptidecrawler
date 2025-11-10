@@ -10,10 +10,10 @@ use axum::{
     http::{Request, StatusCode},
 };
 use riptide_api::{
-    dto::{CrawledPage, ResultMode, SpiderResultPages},
     handlers::spider::SpiderCrawlQuery,
     models::SpiderCrawlBody,
 };
+use riptide_types::{CrawledPage, ResultMode, SpiderResultPages};
 use serde_json::json;
 use tower::ServiceExt;
 

@@ -82,7 +82,7 @@ pub async fn create_test_app() -> Router {
 pub fn create_test_router(state: AppState) -> Router {
     use riptide_api::routes;
 
-    let app = Router::new()
+    let mut app = Router::new()
         // Health endpoint - standardized on /healthz
         .route("/healthz", get(handlers::health))
         // Metrics - both root and v1 paths

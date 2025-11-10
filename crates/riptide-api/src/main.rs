@@ -149,7 +149,8 @@ async fn main() -> anyhow::Result<()> {
                 );
 
                 // Update metrics with initial stats
-                metrics.update_jemalloc_stats();
+                // Note: metrics are now managed by AppState and updated automatically
+                // _metrics.update_jemalloc_stats();
             } else {
                 tracing::warn!("jemalloc allocator enabled but stats collection failed - ensure jemalloc feature is enabled");
             }
@@ -219,12 +220,17 @@ async fn main() -> anyhow::Result<()> {
 
     // DeepSearch (feature-gated)
     #[cfg(feature = "search")]
+    let app = app.route("/deepsearch", post(handlers::handle_deep_search));
+
+    // DeepSearch streaming endpoint (always available as stub if search is disabled)
     let app = app
-        .route("/deepsearch", post(handlers::deepsearch))
-        .route("/deepsearch/stream", post(handlers::deepsearch_stream))
+        .route(
+            "/deepsearch/stream",
+            post(handlers::stubs::deepsearch_stream_stub),
+        )
         .route(
             "/api/v1/deepsearch/stream",
-            post(handlers::deepsearch_stream),
+            post(handlers::stubs::deepsearch_stream_stub),
         ); // v1 alias
 
     let app = app
