@@ -253,7 +253,6 @@ mod test_setup {
     use axum::Router;
     use riptide_api::{
         health::HealthChecker,
-        metrics::RipTideMetrics,
         routes,
         state::{AppConfig, AppState},
     };
@@ -261,10 +260,9 @@ mod test_setup {
 
     pub async fn create_test_app() -> Router {
         let config = AppConfig::default();
-        let metrics = Arc::new(RipTideMetrics::new().expect("Failed to create metrics"));
         let health_checker = Arc::new(HealthChecker::new());
 
-        let app_state = AppState::new(config, metrics, health_checker)
+        let app_state = AppState::new(config, health_checker)
             .await
             .expect("Failed to create app state");
 

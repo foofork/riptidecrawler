@@ -283,7 +283,7 @@ pub struct JobListResponse {
 }
 
 #[allow(dead_code)]
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, Clone)]
 pub struct JobListItem {
     pub job_id: Uuid,
     pub job_type: String,

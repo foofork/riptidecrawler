@@ -39,6 +39,8 @@ async fn process_render(
 ) -> Result<impl IntoResponse, ApiError> {
     let session_id = body
         .session_id
+        .as_ref()
+        .map(|s| s.to_string())
         .or_else(|| Some(session_ctx.session_id().to_string()));
     if body.url.is_empty() {
         return Err(ApiError::validation("URL cannot be empty"));

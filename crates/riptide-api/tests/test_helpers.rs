@@ -6,7 +6,7 @@ use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use axum::routing::{get, post};
 use axum::Router;
-use riptide_api::{handlers, health::HealthChecker, metrics::RipTideMetrics, state::AppState};
+use riptide_api::{handlers, health::HealthChecker, state::AppState};
 use serde_json::json;
 use std::sync::Arc;
 use tower::ServiceExt;
@@ -33,15 +33,12 @@ pub async fn create_test_state() -> AppState {
         config.wasm_path = wasm_path;
     }
 
-    // Initialize test metrics
-    let metrics = Arc::new(RipTideMetrics::new().expect("Failed to create test metrics"));
-
     // Initialize test health checker
     let health_checker = Arc::new(HealthChecker::new());
 
     // Create test app state
     // Note: This may fail if dependencies are not available
-    AppState::new(config, metrics, health_checker)
+    AppState::new(config, health_checker)
         .await
         .expect("Failed to create test AppState - check dependencies")
 }
@@ -66,15 +63,12 @@ pub async fn create_test_app() -> Router {
         config.wasm_path = wasm_path;
     }
 
-    // Initialize test metrics
-    let metrics = Arc::new(RipTideMetrics::new().expect("Failed to create test metrics"));
-
     // Initialize test health checker
     let health_checker = Arc::new(HealthChecker::new());
 
     // Create test app state
     // Note: This may fail if dependencies are not available
-    match AppState::new(config, metrics, health_checker).await {
+    match AppState::new(config, health_checker).await {
         Ok(app_state) => create_test_router(app_state),
         Err(e) => {
             eprintln!("Warning: Failed to create full test app state: {}", e);
@@ -87,9 +81,6 @@ pub async fn create_test_app() -> Router {
 /// Create router with all routes configured
 pub fn create_test_router(state: AppState) -> Router {
     use riptide_api::routes;
-    use riptide_api::streaming::ndjson::handlers::{crawl_stream, deepsearch_stream};
-    use riptide_api::streaming::sse::crawl_sse;
-    use riptide_api::streaming::websocket::crawl_websocket;
 
     let app = Router::new()
         // Health endpoint - standardized on /healthz
@@ -109,11 +100,6 @@ pub fn create_test_router(state: AppState) -> Router {
     }
 
     app
-        // Streaming endpoints (test-enabled)
-        .route("/crawl/stream", post(crawl_stream))
-        .route("/deepsearch/stream", post(deepsearch_stream))
-        .route("/crawl/sse", post(crawl_sse))
-        .route("/crawl/ws", get(crawl_websocket))
         // Table extraction routes
         .nest("/api/v1/tables", routes::tables::table_routes())
         // LLM provider management routes

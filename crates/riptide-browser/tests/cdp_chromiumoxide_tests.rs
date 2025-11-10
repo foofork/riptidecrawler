@@ -17,7 +17,7 @@
 
 use anyhow::Result;
 use riptide_browser::abstraction::{
-    EngineType, NavigateParams, PdfParams, ScreenshotFormat, ScreenshotParams, WaitUntil,
+    EngineType, NavigateParams, ScreenshotFormat, ScreenshotParams, WaitUntil,
 };
 
 // ============================================================================

@@ -21,9 +21,17 @@ pub struct SessionResponse {
 }
 
 pub async fn create_browser_session(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Json(_request): Json<CreateSessionRequest>,
 ) -> Result<Json<SessionResponse>, ApiError> {
+    // browser_facade was removed due to circular dependency
+    // TODO: Restore browser session creation when facade is re-integrated
+    Err(ApiError::invalid_request(
+        "Browser facade temporarily unavailable due to refactoring. \
+        Browser session creation will be restored in a future update.",
+    ))
+
+    /* Original implementation - disabled until browser_facade is restored
     let facade = &state.browser_facade;
     let session = facade.launch().await.map_err(ApiError::from)?;
     let pool_stats = facade.pool_status().await.map_err(ApiError::from)?;
@@ -38,17 +46,27 @@ pub async fn create_browser_session(
         created_at: created_at.to_rfc3339(),
         expires_at: expires_at.to_rfc3339(),
     }))
+    */
 }
 
 pub async fn get_browser_pool_status(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
+    // browser_facade was removed due to circular dependency
+    // TODO: Restore pool status retrieval when facade is re-integrated
+    Err(ApiError::invalid_request(
+        "Browser facade temporarily unavailable due to refactoring. \
+        Pool status will be restored in a future update.",
+    ))
+
+    /* Original implementation - disabled until browser_facade is restored
     let stats = state
         .browser_facade
         .pool_status()
         .await
         .map_err(ApiError::from)?;
     Ok(Json(stats))
+    */
 }
 
 pub async fn close_browser_session(

@@ -23,7 +23,12 @@ pub async fn search(State(state): State<AppState>, Query(params): Query<SearchQu
     };
 
     match facade
-        .search_validated(&params.q, params.limit, &params.country, &params.language)
+        .search_validated(
+            &params.q,
+            params.limit as usize,
+            &params.country,
+            &params.language,
+        )
         .await
     {
         Ok(hits) => build_response(params.q, hits, start).into_response(),

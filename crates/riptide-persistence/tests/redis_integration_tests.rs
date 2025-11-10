@@ -17,7 +17,6 @@
 use anyhow::Result;
 use std::collections::HashMap;
 use std::time::Duration;
-use testcontainers::clients::Cli;
 use tokio::time::sleep;
 
 // Import from riptide-persistence
@@ -28,7 +27,6 @@ use riptide_persistence::{
 
 // Import test helpers
 mod helpers;
-use helpers::RedisTestContainer;
 
 // Helper function to create test config
 fn test_cache_config() -> CacheConfig {

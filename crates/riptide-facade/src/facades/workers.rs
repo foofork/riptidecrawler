@@ -3,11 +3,9 @@
 //! Provides a high-level interface for managing background jobs, scheduled tasks,
 //! and worker pool operations with authorization, idempotency, and metrics.
 
-#![cfg(feature = "workers")]
-
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
-use riptide_workers::{Job, JobPriority, JobStatus, JobType, RetryConfig, ScheduledJob};
+use riptide_workers::{Job, JobPriority, JobType, RetryConfig, ScheduledJob};
 use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 use std::sync::Arc;

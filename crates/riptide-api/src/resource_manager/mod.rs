@@ -86,6 +86,9 @@ use std::{
 
 // External dependencies
 use tokio::{sync::Semaphore, time::timeout};
+#[cfg(feature = "browser")]
+use tracing::{debug, error, info, warn};
+#[cfg(not(feature = "browser"))]
 use tracing::{info, warn};
 use url::Url;
 

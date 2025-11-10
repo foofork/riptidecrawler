@@ -306,6 +306,7 @@ impl Default for SearchProviderConfig {
 
 // Manual Default implementation for RiptideApiConfig when wasm-extractor feature is enabled
 #[cfg(feature = "wasm-extractor")]
+#[allow(clippy::derivable_impls)]
 impl Default for RiptideApiConfig {
     fn default() -> Self {
         Self {

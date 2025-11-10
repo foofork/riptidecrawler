@@ -15,6 +15,7 @@ use {
 #[cfg(feature = "wasm-extractor")]
 pub struct WasmExtractorAdapter {
     extractor: Arc<riptide_extraction::UnifiedExtractor>,
+    #[allow(deprecated)]
     metrics: Option<Arc<crate::metrics::RipTideMetrics>>,
 }
 
@@ -59,18 +60,24 @@ impl WasmExtractorTrait for WasmExtractorAdapter {
             .map_err(|e| anyhow::anyhow!("Extraction failed: {}", e))?;
 
         // Record WASM cold start time if metrics available
-        if let Some(ref metrics) = self.metrics {
-            let cold_start_ms = start.elapsed().as_millis() as f64;
-            metrics.update_wasm_cold_start_time(cold_start_ms);
+        if let Some(ref _metrics) = self.metrics {
+            let _cold_start_ms = start.elapsed().as_millis() as f64;
+            // TODO: Migrate to BusinessMetrics + TransportMetrics
+            // These deprecated methods need to be replaced with the new metrics architecture:
+            // - update_wasm_cold_start_time -> Use BusinessMetrics::record_extraction_latency
+            // - update_wasm_memory_metrics -> Use TransportMetrics for memory tracking
+            // metrics.update_wasm_cold_start_time(cold_start_ms);
 
             // Note: Memory metrics would require WASM runtime introspection
             // For now, we estimate based on input/output size
-            let estimated_pages = (html.len() + extracted_content.content.len()) / 65536; // 64KB per page
-            metrics.update_wasm_memory_metrics(
-                estimated_pages,
-                0, // No grow failures tracked yet
-                estimated_pages,
-            );
+            let _estimated_pages = (html.len() + extracted_content.content.len()) / 65536;
+            // 64KB per page
+            // TODO: Migrate to BusinessMetrics + TransportMetrics
+            // metrics.update_wasm_memory_metrics(
+            //     estimated_pages,
+            //     0, // No grow failures tracked yet
+            //     estimated_pages,
+            // );
         }
 
         // Convert ExtractedContent to ExtractedDoc

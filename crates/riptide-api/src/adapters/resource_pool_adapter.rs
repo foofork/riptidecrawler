@@ -113,6 +113,7 @@ mod tests {
 
         // Test health
         let health = pool.health().await;
-        assert!(health.total >= 0);
+        // health.total is usize which is always >= 0, just verify it exists
+        let _ = health.total;
     }
 }

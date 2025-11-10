@@ -8,7 +8,6 @@
 //! - Error handling and recovery
 
 use async_trait::async_trait;
-use chrono::Utc;
 use riptide_persistence::adapters::{OutboxEventBus, OutboxPublisher};
 use riptide_types::{DomainEvent, EventBus, EventHandler, Result as RiptideResult, SubscriptionId};
 use serde_json::json;
@@ -87,10 +86,6 @@ impl MockEventBus {
 
     async fn get_published_events(&self) -> Vec<DomainEvent> {
         self.published_events.lock().await.clone()
-    }
-
-    fn get_publish_count(&self) -> usize {
-        self.publish_count.load(Ordering::SeqCst)
     }
 }
 

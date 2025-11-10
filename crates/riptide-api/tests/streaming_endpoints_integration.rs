@@ -26,11 +26,9 @@ mod test_helpers;
 /// Test helper to create test AppState
 async fn create_test_app_state() -> AppState {
     let config = AppConfig::default();
-    let metrics =
-        Arc::new(riptide_api::metrics::RipTideMetrics::new().expect("Failed to create metrics"));
     let health_checker = Arc::new(riptide_api::health::HealthChecker::new());
 
-    AppState::new(config, metrics, health_checker)
+    AppState::new(config, health_checker)
         .await
         .expect("Failed to create AppState")
 }

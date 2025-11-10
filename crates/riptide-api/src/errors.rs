@@ -422,5 +422,44 @@ impl From<riptide_facade::RiptideError> for ApiError {
     }
 }
 
+/// Convert ResourceManagerError to ApiError
+impl From<crate::resource_manager::errors::ResourceManagerError> for ApiError {
+    fn from(err: crate::resource_manager::errors::ResourceManagerError) -> Self {
+        use crate::resource_manager::errors::ResourceManagerError;
+        match err {
+            ResourceManagerError::BrowserPool(msg) => ApiError::InternalError {
+                message: format!("Browser pool error: {}", msg),
+            },
+            ResourceManagerError::RateLimit { retry_after } => ApiError::RateLimitExceeded {
+                retry_after: retry_after.as_secs(),
+            },
+            ResourceManagerError::MemoryPressure => {
+                ApiError::service_unavailable("System under memory pressure, please retry later")
+            }
+            ResourceManagerError::Wasm(msg) => ApiError::InternalError {
+                message: format!("WASM error: {}", msg),
+            },
+            ResourceManagerError::Timeout {
+                operation,
+                duration,
+            } => ApiError::TimeoutError {
+                operation,
+                message: format!("Timed out after {:?}", duration),
+            },
+            ResourceManagerError::ResourceExhausted { resource_type } => {
+                ApiError::service_unavailable(format!("Resource exhausted: {}", resource_type))
+            }
+            ResourceManagerError::Configuration(msg) => ApiError::ConfigError { message: msg },
+            ResourceManagerError::InvalidUrl(msg) => ApiError::InvalidUrl {
+                url: "".to_string(),
+                message: msg,
+            },
+            ResourceManagerError::Internal(err) => ApiError::InternalError {
+                message: err.to_string(),
+            },
+        }
+    }
+}
+
 /// Result type alias for API operations.
 pub type ApiResult<T> = Result<T, ApiError>;

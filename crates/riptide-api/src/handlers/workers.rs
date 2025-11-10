@@ -17,13 +17,16 @@ pub async fn submit_job(
     Json(request): Json<SubmitJobRequest>,
 ) -> Result<Json<SubmitJobResponse>, StatusCode> {
     let job = request.into_job().map_err(|_| StatusCode::BAD_REQUEST)?;
+    let job_type = format_job_type(&job.job_type);
     let job_id = state
         .worker_service
         .submit_job(job)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     // Phase D: Worker metrics now tracked via business_metrics
-    state.business_metrics.record_worker_job_submitted();
+    state
+        .business_metrics
+        .record_worker_job_submitted(&job_type);
     Ok(Json(SubmitJobResponse::new(job_id)))
 }
 
@@ -92,11 +95,12 @@ pub async fn get_worker_stats(
         .get_worker_stats()
         .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
     // Phase D: Worker stats now tracked via business_metrics
+    // record_worker_pool_stats takes: active, idle, queue_depth
+    // We map: total_workers=active+idle, healthy_workers=active, queue_depth=0 (not tracked here)
+    let active = s.healthy_workers;
+    let idle = s.total_workers.saturating_sub(s.healthy_workers);
     state.business_metrics.record_worker_pool_stats(
-        s.total_workers,
-        s.healthy_workers,
-        s.total_jobs_processed as usize,
-        s.total_jobs_failed as usize,
+        active, idle, 0, // queue_depth not available in WorkerPoolStats
     );
     Ok(Json(WorkerPoolStatsResponse {
         total_workers: s.total_workers,
@@ -180,11 +184,12 @@ pub async fn get_worker_metrics(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let m = state.worker_service.get_metrics().await;
     // Phase D: Worker metrics tracked via business_metrics (detailed breakdown)
+    // record_worker_metrics takes: worker_id, jobs_completed, avg_duration_ms
+    // We use "aggregate" as worker_id since we're tracking all workers
     state.business_metrics.record_worker_metrics(
-        m.jobs_submitted as usize,
-        m.jobs_completed as usize,
-        m.jobs_failed as usize,
-        m.avg_processing_time_ms,
+        "aggregate",
+        m.jobs_completed,
+        m.avg_processing_time_ms as f64,
     );
     Ok(Json(
         serde_json::json!({ "jobs_submitted": m.jobs_submitted, "jobs_completed": m.jobs_completed, "jobs_failed": m.jobs_failed, "jobs_retried": m.jobs_retried, "jobs_dead_letter": m.jobs_dead_letter, "avg_processing_time_ms": m.avg_processing_time_ms, "p95_processing_time_ms": m.p95_processing_time_ms, "p99_processing_time_ms": m.p99_processing_time_ms, "success_rate": m.success_rate, "job_type_stats": m.job_type_stats, "queue_sizes": m.queue_sizes, "total_workers": m.total_workers, "healthy_workers": m.healthy_workers, "uptime_seconds": m.uptime_seconds, "timestamp": m.timestamp }),

@@ -220,12 +220,12 @@ mod tests {
         let combined = CombinedMetrics::new(business, transport)?;
 
         // Verify both registries are present
-        assert!(combined.business.registry.gather().len() > 0);
-        assert!(combined.transport.registry.gather().len() > 0);
+        assert!(!combined.business.registry.gather().is_empty());
+        assert!(!combined.transport.registry.gather().is_empty());
 
         // Verify gathering works
         let all_metrics = combined.gather_all();
-        assert!(all_metrics.len() > 0);
+        assert!(!all_metrics.is_empty());
 
         Ok(())
     }

@@ -17,17 +17,15 @@ use std::sync::Arc;
 use tower::ServiceExt;
 
 use riptide_api::health::HealthChecker;
-use riptide_api::metrics::RipTideMetrics;
 use riptide_api::state::{AppConfig, AppState};
 
 /// Create a test AppState for endpoint testing
 async fn create_test_state() -> Arc<AppState> {
     let config = AppConfig::default();
-    let metrics = Arc::new(RipTideMetrics::new().expect("Failed to create metrics"));
     let health_checker = Arc::new(HealthChecker::new());
 
     Arc::new(
-        AppState::new(config, metrics, health_checker)
+        AppState::new(config, health_checker)
             .await
             .expect("Failed to create AppState"),
     )

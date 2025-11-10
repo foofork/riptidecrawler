@@ -16,7 +16,6 @@ use crate::config::RiptideApiConfig;
 #[cfg(feature = "browser")]
 use crate::handlers::browser::{BrowserAction, CreateSessionRequest};
 use crate::health::HealthChecker;
-use crate::metrics::RipTideMetrics;
 use crate::state::{AppConfig, AppState};
 use anyhow::Result;
 use axum::{extract::State, Json};
@@ -186,7 +185,8 @@ async fn test_browser_session_creation() {
     let response = result.unwrap();
 
     assert!(!response.session_id.is_empty());
-    assert!(response.pool_stats.total_capacity > 0);
+    // pool_stats is serde_json::Value, access fields via indexing
+    assert!(response.pool_stats["total_capacity"].as_u64().unwrap_or(0) > 0);
 }
 
 #[tokio::test]
@@ -217,9 +217,12 @@ async fn test_browser_pool_status() {
     assert!(result.is_ok());
     let status = result.unwrap();
 
-    assert_eq!(status.stats.total_capacity, 2);
+    // status is Json<Value>, access inner value via .0
+    assert_eq!(status.0["stats"]["total_capacity"].as_u64().unwrap_or(0), 2);
     // Verify launcher_stats exists (total_requests is always >= 0 for unsigned type)
-    let _ = status.launcher_stats.total_requests;
+    let _ = status.0["launcher_stats"]["total_requests"]
+        .as_u64()
+        .unwrap_or(0);
 }
 
 #[tokio::test]
@@ -454,7 +457,7 @@ async fn test_browser_session_auto_cleanup() {
     let initial_stats = crate::handlers::browser::get_browser_pool_status(State(state.clone()))
         .await
         .unwrap();
-    let initial_in_use = initial_stats.stats.in_use;
+    let initial_in_use = initial_stats.0["pool_utilization"].as_f64().unwrap_or(0.0);
 
     // Create and drop session
     {
@@ -478,10 +481,10 @@ async fn test_browser_session_auto_cleanup() {
     let final_stats = crate::handlers::browser::get_browser_pool_status(State(state))
         .await
         .unwrap();
-    let final_in_use = final_stats.stats.in_use;
+    let final_in_use = final_stats.0["pool_utilization"].as_f64().unwrap_or(0.0);
 
-    // In-use count should be back to initial (or close)
-    assert!(final_in_use <= initial_in_use + 1);
+    // Pool utilization should be back to initial (or close)
+    assert!(final_in_use <= initial_in_use + 0.1);
 }
 
 // ============================================================================

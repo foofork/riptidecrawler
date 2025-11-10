@@ -1635,7 +1635,7 @@ mod tests {
     #[tokio::test]
     async fn test_execute_complex_script_timeout() {
         let timeout_ms = Some(5000u64);
-        assert_eq!(timeout_ms.unwrap_or(5000), 5000);
+        assert_eq!(timeout_ms.unwrap(), 5000);
     }
 
     // Phase 3 Sprint 3.1: Test handle_popup

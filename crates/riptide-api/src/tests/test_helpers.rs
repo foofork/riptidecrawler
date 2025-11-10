@@ -5,7 +5,6 @@
 
 use crate::config::RiptideApiConfig;
 use crate::health::HealthChecker;
-use crate::metrics::RipTideMetrics;
 use crate::state::{AppConfig, AppState};
 use anyhow::Result;
 use std::sync::Arc;
@@ -14,7 +13,6 @@ use std::sync::Arc;
 pub struct AppStateBuilder {
     config: Option<AppConfig>,
     api_config: Option<RiptideApiConfig>,
-    metrics: Option<Arc<RipTideMetrics>>,
     health_checker: Option<Arc<HealthChecker>>,
 }
 
@@ -24,7 +22,6 @@ impl AppStateBuilder {
         Self {
             config: None,
             api_config: None,
-            metrics: None,
             health_checker: None,
         }
     }
@@ -40,13 +37,6 @@ impl AppStateBuilder {
     #[allow(dead_code)]
     pub fn with_api_config(mut self, api_config: RiptideApiConfig) -> Self {
         self.api_config = Some(api_config);
-        self
-    }
-
-    /// Set custom metrics
-    #[allow(dead_code)]
-    pub fn with_metrics(mut self, metrics: Arc<RipTideMetrics>) -> Self {
-        self.metrics = Some(metrics);
         self
     }
 

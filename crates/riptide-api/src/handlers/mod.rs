@@ -51,7 +51,7 @@ pub mod workers; // Phase 10.4: Domain profile management API
 #[cfg(feature = "spider")]
 pub use crawl::crawl;
 #[cfg(feature = "search")]
-pub use deepsearch::deepsearch;
+pub use deepsearch::handle_deep_search;
 #[cfg(feature = "extraction")]
 pub use extract::extract;
 pub use health::{health, health_detailed, init_startup_time, START_TIME};
@@ -62,6 +62,7 @@ pub use render::render;
 pub use search::search;
 #[cfg(feature = "spider")]
 pub use streaming::crawl_stream;
-#[cfg(feature = "search")]
-pub use streaming::deepsearch_stream;
+// Note: deepsearch_stream not yet implemented in Phase 4.3
+// #[cfg(feature = "search")]
+// pub use streaming::deepsearch_stream;
 pub use utils::{metrics, not_found};

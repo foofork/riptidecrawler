@@ -11,4 +11,3 @@ pub mod redis_helpers;
 
 #[cfg(feature = "postgres")]
 pub use postgres_helpers::*;
-pub use redis_helpers::*;

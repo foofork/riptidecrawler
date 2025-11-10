@@ -8,7 +8,7 @@
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{Pool, Postgres};
 use std::time::Duration;
-use testcontainers::{clients::Cli, Container, RunnableImage};
+use testcontainers::{clients::Cli, Container};
 use testcontainers_modules::postgres::Postgres as PostgresImage;
 
 /// PostgreSQL test container wrapper
@@ -76,6 +76,7 @@ impl<'a> PostgresTestContainer<'a> {
     }
 
     /// Initialize database schema for state persistence tests
+    #[allow(dead_code)]
     pub async fn init_state_schema(&self) -> Result<(), anyhow::Error> {
         sqlx::query(
             r#"
@@ -98,6 +99,7 @@ impl<'a> PostgresTestContainer<'a> {
     }
 
     /// Clean up all test data
+    #[allow(dead_code)]
     pub async fn cleanup(&self) -> Result<(), anyhow::Error> {
         sqlx::query("TRUNCATE TABLE sessions CASCADE")
             .execute(&self.pool)
@@ -111,11 +113,13 @@ impl<'a> PostgresTestContainer<'a> {
     }
 
     /// Get connection pool
+    #[allow(dead_code)]
     pub fn get_pool(&self) -> &Pool<Postgres> {
         &self.pool
     }
 
     /// Get connection string
+    #[allow(dead_code)]
     pub fn get_connection_string(&self) -> &str {
         &self.connection_string
     }

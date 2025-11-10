@@ -251,7 +251,7 @@ mod tests {
         metrics.record_counter("test_counter", 5, &[("label", "value")]);
 
         // Verify the metric was recorded (would need prometheus text export to verify value)
-        assert!(metrics.registry.gather().len() > 0);
+        assert!(!metrics.registry.gather().is_empty());
     }
 
     #[test]
@@ -259,7 +259,7 @@ mod tests {
         let metrics = PrometheusMetrics::new().unwrap();
         metrics.record_histogram("test_histogram", 0.5, &[("label", "value")]);
 
-        assert!(metrics.registry.gather().len() > 0);
+        assert!(!metrics.registry.gather().is_empty());
     }
 
     #[test]
@@ -267,7 +267,7 @@ mod tests {
         let metrics = PrometheusMetrics::new().unwrap();
         metrics.record_gauge("test_gauge", 42.0, &[("label", "value")]);
 
-        assert!(metrics.registry.gather().len() > 0);
+        assert!(!metrics.registry.gather().is_empty());
     }
 
     #[test]
@@ -294,6 +294,6 @@ mod tests {
             metrics.record_counter("test_multi", i, &[("iteration", &i.to_string())]);
         }
 
-        assert!(metrics.registry.gather().len() > 0);
+        assert!(!metrics.registry.gather().is_empty());
     }
 }

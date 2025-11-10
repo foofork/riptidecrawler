@@ -504,6 +504,7 @@ impl OutboxPublisherBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use async_trait::async_trait;
 
     #[test]
     fn test_outbox_row_to_domain_event() {

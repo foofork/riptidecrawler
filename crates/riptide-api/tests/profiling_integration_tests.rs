@@ -8,7 +8,6 @@
 //! - API endpoint responses
 
 use riptide_api::health::HealthChecker;
-use riptide_api::metrics::RipTideMetrics;
 use riptide_api::state::{AppConfig, AppState};
 use std::sync::Arc;
 use tokio::time::{sleep, Duration};
@@ -17,10 +16,9 @@ use tokio::time::{sleep, Duration};
 async fn test_profiling_memory_endpoint() {
     // Initialize test state
     let config = AppConfig::default();
-    let metrics = Arc::new(RipTideMetrics::new().unwrap());
     let health_checker = Arc::new(HealthChecker::new());
 
-    let state = AppState::new(config, metrics, health_checker)
+    let state = AppState::new(config, health_checker)
         .await
         .expect("Failed to initialize AppState");
 
@@ -46,10 +44,9 @@ async fn test_profiling_memory_endpoint() {
 #[tokio::test]
 async fn test_profiling_cache_stats() {
     let config = AppConfig::default();
-    let metrics = Arc::new(RipTideMetrics::new().unwrap());
     let health_checker = Arc::new(HealthChecker::new());
 
-    let state = AppState::new(config, metrics, health_checker)
+    let state = AppState::new(config, health_checker)
         .await
         .expect("Failed to initialize AppState");
 
@@ -72,10 +69,9 @@ async fn test_profiling_cache_stats() {
 #[tokio::test]
 async fn test_profiling_leak_detection_simple() {
     let config = AppConfig::default();
-    let metrics = Arc::new(RipTideMetrics::new().unwrap());
     let health_checker = Arc::new(HealthChecker::new());
 
-    let state = AppState::new(config, metrics, health_checker)
+    let state = AppState::new(config, health_checker)
         .await
         .expect("Failed to initialize AppState");
 
@@ -103,12 +99,11 @@ async fn test_profiling_leak_detection_simple() {
 async fn test_profiling_performance_overhead() {
     // Measure overhead of profiling system
     let config = AppConfig::default();
-    let metrics = Arc::new(RipTideMetrics::new().unwrap());
     let health_checker = Arc::new(HealthChecker::new());
 
     // Measure time to initialize with profiling
     let start = std::time::Instant::now();
-    let state = AppState::new(config, metrics, health_checker)
+    let state = AppState::new(config, health_checker)
         .await
         .expect("Failed to initialize AppState");
     let init_duration = start.elapsed();
@@ -137,10 +132,9 @@ async fn test_profiling_performance_overhead() {
 async fn test_profiling_target_compliance() {
     // Test that performance targets are being tracked
     let config = AppConfig::default();
-    let metrics = Arc::new(RipTideMetrics::new().unwrap());
     let health_checker = Arc::new(HealthChecker::new());
 
-    let state = AppState::new(config, metrics, health_checker)
+    let state = AppState::new(config, health_checker)
         .await
         .expect("Failed to initialize AppState");
 
@@ -181,10 +175,9 @@ async fn test_jemalloc_allocator_active() {
 #[tokio::test]
 async fn test_profiling_resource_limits() {
     let config = AppConfig::default();
-    let metrics = Arc::new(RipTideMetrics::new().unwrap());
     let health_checker = Arc::new(HealthChecker::new());
 
-    let state = AppState::new(config, metrics, health_checker)
+    let state = AppState::new(config, health_checker)
         .await
         .expect("Failed to initialize AppState");
 
@@ -202,10 +195,9 @@ async fn test_profiling_resource_limits() {
 #[tokio::test]
 async fn test_profiling_cache_optimization() {
     let config = AppConfig::default();
-    let metrics = Arc::new(RipTideMetrics::new().unwrap());
     let health_checker = Arc::new(HealthChecker::new());
 
-    let state = AppState::new(config, metrics, health_checker)
+    let state = AppState::new(config, health_checker)
         .await
         .expect("Failed to initialize AppState");
 
@@ -231,11 +223,10 @@ async fn test_profiling_cache_optimization() {
 async fn test_profiling_concurrent_access() {
     // Test thread safety of profiling system
     let config = AppConfig::default();
-    let metrics = Arc::new(RipTideMetrics::new().unwrap());
     let health_checker = Arc::new(HealthChecker::new());
 
     let state = Arc::new(
-        AppState::new(config, metrics, health_checker)
+        AppState::new(config, health_checker)
             .await
             .expect("Failed to initialize AppState"),
     );
@@ -270,10 +261,9 @@ async fn test_profiling_concurrent_access() {
 #[tokio::test]
 async fn test_profiling_memory_growth_tracking() {
     let config = AppConfig::default();
-    let metrics = Arc::new(RipTideMetrics::new().unwrap());
     let health_checker = Arc::new(HealthChecker::new());
 
-    let state = AppState::new(config, metrics, health_checker)
+    let state = AppState::new(config, health_checker)
         .await
         .expect("Failed to initialize AppState");
 
@@ -299,10 +289,9 @@ async fn test_profiling_memory_growth_tracking() {
 async fn test_profiling_metrics_completeness() {
     // Verify all expected metrics are populated
     let config = AppConfig::default();
-    let metrics = Arc::new(RipTideMetrics::new().unwrap());
     let health_checker = Arc::new(HealthChecker::new());
 
-    let state = AppState::new(config, metrics, health_checker)
+    let state = AppState::new(config, health_checker)
         .await
         .expect("Failed to initialize AppState");
 
@@ -341,10 +330,9 @@ mod performance_baseline_tests {
         let start = std::time::Instant::now();
 
         let config = AppConfig::default();
-        let metrics = Arc::new(RipTideMetrics::new().unwrap());
         let health_checker = Arc::new(HealthChecker::new());
 
-        let state = AppState::new(config, metrics, health_checker)
+        let state = AppState::new(config, health_checker)
             .await
             .expect("Failed to initialize AppState");
 

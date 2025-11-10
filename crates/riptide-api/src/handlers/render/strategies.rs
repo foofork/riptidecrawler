@@ -5,7 +5,7 @@ use riptide_facade::facades::RenderStrategyFacade;
 use riptide_headless::dynamic::{DynamicConfig, DynamicRenderResult};
 use riptide_stealth::StealthController;
 use tokio::time::{timeout, Duration};
-use tracing::{debug, warn};
+use tracing::warn;
 
 /// Global render strategy facade
 static RENDER_FACADE: std::sync::OnceLock<RenderStrategyFacade> = std::sync::OnceLock::new();
@@ -112,7 +112,7 @@ async fn process_dynamic(
         .headless_url
         .as_ref()
         .map(|u| crate::rpc_client::RpcClient::with_url(u.clone()))
-        .unwrap_or_else(crate::rpc_client::RpcClient::new);
+        .unwrap_or_default();
 
     if rpc_client.health_check().await.is_err() {
         warn!("Headless unavailable, falling back to static");

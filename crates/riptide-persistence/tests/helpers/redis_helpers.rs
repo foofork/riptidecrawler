@@ -14,6 +14,7 @@ use testcontainers_modules::redis::Redis as RedisImage;
 pub struct RedisTestContainer<'a> {
     #[allow(dead_code)]
     container: Container<'a, RedisImage>,
+    #[allow(dead_code)]
     pub connection_string: String,
     pub client: Client,
 }
@@ -22,7 +23,7 @@ impl<'a> RedisTestContainer<'a> {
     /// Create a new Redis test container
     pub async fn new(docker: &'a Cli) -> Result<Self, anyhow::Error> {
         // Start Redis container
-        let redis_image = RedisImage::default();
+        let redis_image = RedisImage;
         let container = docker.run(redis_image);
         let port = container.get_host_port_ipv4(6379);
 
@@ -34,9 +35,7 @@ impl<'a> RedisTestContainer<'a> {
 
         // Test connection
         let mut conn = client.get_multiplexed_async_connection().await?;
-        redis::cmd("PING")
-            .query_async::<_, String>(&mut conn)
-            .await?;
+        let _: String = redis::cmd("PING").query_async(&mut conn).await?;
 
         Ok(Self {
             container,
@@ -72,20 +71,22 @@ impl<'a> RedisTestContainer<'a> {
     }
 
     /// Flush all data (use with caution)
+    #[allow(dead_code)]
     pub async fn flush_all(&self) -> Result<(), anyhow::Error> {
         let mut conn = self.get_connection().await?;
-        redis::cmd("FLUSHALL").query_async(&mut conn).await?;
+        let _: () = redis::cmd("FLUSHALL").query_async(&mut conn).await?;
         Ok(())
     }
 
     /// Get connection string
+    #[allow(dead_code)]
     pub fn get_connection_string(&self) -> &str {
         &self.connection_string
     }
 
     /// Wait for Redis to be ready
+    #[allow(dead_code)]
     pub async fn wait_until_ready(&self, timeout: Duration) -> Result<(), anyhow::Error> {
-        use redis::AsyncCommands;
         let start = std::time::Instant::now();
 
         loop {
@@ -96,12 +97,10 @@ impl<'a> RedisTestContainer<'a> {
             }
 
             match self.get_connection().await {
-                Ok(mut conn) => {
-                    match redis::cmd("PING").query_async::<_, String>(&mut conn).await {
-                        Ok(_) => return Ok(()),
-                        Err(_) => tokio::time::sleep(Duration::from_millis(100)).await,
-                    }
-                }
+                Ok(mut conn) => match redis::cmd("PING").query_async::<String>(&mut conn).await {
+                    Ok(_) => return Ok(()),
+                    Err(_) => tokio::time::sleep(Duration::from_millis(100)).await,
+                },
                 Err(_) => tokio::time::sleep(Duration::from_millis(100)).await,
             }
         }

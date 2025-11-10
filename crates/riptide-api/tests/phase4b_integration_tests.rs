@@ -26,7 +26,6 @@ mod test_utils {
     use super::*;
     use riptide_api::{
         health::HealthChecker,
-        metrics::RipTideMetrics,
         state::{AppConfig, AppState},
     };
     use std::sync::Arc;
@@ -35,11 +34,10 @@ mod test_utils {
     #[allow(dead_code)]
     pub async fn create_test_app_state() -> Arc<AppState> {
         let config = AppConfig::default();
-        let metrics = Arc::new(RipTideMetrics::new().expect("Failed to create metrics"));
         let health_checker = Arc::new(HealthChecker::new());
 
         Arc::new(
-            AppState::new(config, metrics, health_checker)
+            AppState::new(config, health_checker)
                 .await
                 .expect("Failed to create test app state"),
         )

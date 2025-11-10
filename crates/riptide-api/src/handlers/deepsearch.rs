@@ -16,7 +16,7 @@ pub struct DeepSearchRequestDTO {
     pub search_backends: Option<Vec<String>>,
 }
 
-#[instrument(skip(state))]
+#[instrument(skip(_state))]
 pub async fn handle_deep_search(
     State(_state): State<AppState>,
     Json(req): Json<DeepSearchRequestDTO>,
