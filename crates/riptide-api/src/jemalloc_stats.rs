@@ -96,6 +96,7 @@ impl JemallocStats {
     ///
     /// Returns the ratio of resident to mapped memory. Indicates how much
     /// of the mapped memory is actually resident in physical RAM.
+    #[allow(dead_code)]
     pub fn resident_ratio(&self) -> f64 {
         if self.mapped == 0 {
             return 0.0;
