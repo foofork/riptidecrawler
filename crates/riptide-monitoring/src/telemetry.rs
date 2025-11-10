@@ -911,11 +911,9 @@ mod tests {
         // File descriptor counts should be relatively stable
         // Allow for significant variation in shared environments
         if usage1.open_file_descriptors > 0 && usage2.open_file_descriptors > 0 {
-            let fd_diff = if usage1.open_file_descriptors > usage2.open_file_descriptors {
-                usage1.open_file_descriptors - usage2.open_file_descriptors
-            } else {
-                usage2.open_file_descriptors - usage1.open_file_descriptors
-            };
+            let fd_diff = usage1
+                .open_file_descriptors
+                .abs_diff(usage2.open_file_descriptors);
 
             // In shared environments, FD counts can vary significantly
             // Use adaptive tolerance: at least 2000 FDs or 100% of initial count
@@ -932,11 +930,7 @@ mod tests {
 
         // Disk usage should be very stable (shouldn't change much in 10ms)
         if usage1.disk_usage_bytes > 0 && usage2.disk_usage_bytes > 0 {
-            let disk_diff = if usage1.disk_usage_bytes > usage2.disk_usage_bytes {
-                usage1.disk_usage_bytes - usage2.disk_usage_bytes
-            } else {
-                usage2.disk_usage_bytes - usage1.disk_usage_bytes
-            };
+            let disk_diff = usage1.disk_usage_bytes.abs_diff(usage2.disk_usage_bytes);
 
             // Disk usage shouldn't change by more than 100MB in 10ms under normal conditions
             let max_diff = 100 * 1024 * 1024; // 100 MB
@@ -957,7 +951,8 @@ mod tests {
         // Create some temporary files to increase FD count
         let temp_files: Vec<_> = (0..5)
             .map(|i| {
-                tempfile::NamedTempFile::new().expect(&format!("Failed to create temp file {}", i))
+                tempfile::NamedTempFile::new()
+                    .unwrap_or_else(|_| panic!("Failed to create temp file {}", i))
             })
             .collect();
 
@@ -1050,7 +1045,7 @@ fn test_histogram_percentile_accuracy() {
     // Allow tolerance due to histogram bucketing (3 sig figs precision)
     let p95_ms = op_status.p95_latency.as_millis();
     assert!(
-        p95_ms >= 85 && p95_ms <= 105,
+        (85..=105).contains(&p95_ms),
         "P95 latency {} ms should be near 95ms (tolerance due to histogram bucketing)",
         p95_ms
     );
@@ -1058,7 +1053,7 @@ fn test_histogram_percentile_accuracy() {
     // P99 should be around 99ms
     let p99_ms = op_status.p99_latency.as_millis();
     assert!(
-        p99_ms >= 90 && p99_ms <= 110,
+        (90..=110).contains(&p99_ms),
         "P99 latency {} ms should be near 99ms (tolerance due to histogram bucketing)",
         p99_ms
     );
@@ -1092,7 +1087,7 @@ fn test_histogram_with_outliers() {
     // With 95 at 10ms and 5 at 1000ms, P95 falls in the first group
     let p95_ms = op_status.p95_latency.as_millis();
     assert!(
-        p95_ms >= 5 && p95_ms <= 100,
+        (5..=100).contains(&p95_ms),
         "P95 latency {} ms (actual distribution is 95% at 10ms, 5% at 1000ms)",
         p95_ms
     );
@@ -1124,7 +1119,7 @@ fn test_histogram_percentile_stability() {
             let p95_ms = op_status.p95_latency.as_millis();
             // Allow wider tolerance due to histogram bucketing with small sample size
             assert!(
-                    p95_ms >= 15 && p95_ms <= 23,
+                    (15..=23).contains(&p95_ms),
                     "P95 should be stable around 19ms in batch {}, got {}ms (tolerance for histogram precision)",
                     batch, p95_ms
                 );
