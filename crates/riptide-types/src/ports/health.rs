@@ -140,6 +140,7 @@ pub trait HealthRegistry: Send + Sync {
 mod tests {
     use super::*;
 
+    #[allow(dead_code)]
     struct MockHealthCheck {
         name: String,
         status: HealthStatus,

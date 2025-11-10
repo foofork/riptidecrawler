@@ -102,6 +102,7 @@ pub trait MetricsRegistry: Send + Sync {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::f64::consts::PI;
     use std::sync::{Arc, Mutex};
 
     #[derive(Default)]
@@ -171,7 +172,7 @@ mod tests {
         let collector = MockMetricsCollector::default();
 
         collector.record_counter("test_counter", 42, &[]);
-        collector.record_histogram("test_histogram", 3.14, &[]);
+        collector.record_histogram("test_histogram", PI, &[]);
         collector.record_gauge("test_gauge", 99.9, &[]);
 
         assert_eq!(collector.counters.lock().unwrap().len(), 1);
