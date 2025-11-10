@@ -2,6 +2,7 @@
 #![allow(dead_code)]
 pub mod spider;
 
+#[cfg(feature = "spider")]
 use crate::errors::ApiError;
 use crate::state::AppState;
 

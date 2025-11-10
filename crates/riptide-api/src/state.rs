@@ -807,7 +807,7 @@ impl AppState {
         };
 
         #[cfg(not(feature = "spider"))]
-        let spider: Option<Arc<dyn std::any::Any + Send + Sync>> = None;
+        let _spider: Option<Arc<dyn std::any::Any + Send + Sync>> = None;
 
         // Initialize comprehensive resource manager with headless URL
         let resource_manager =

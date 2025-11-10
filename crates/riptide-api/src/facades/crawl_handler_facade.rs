@@ -95,6 +95,7 @@ impl CrawlHandlerFacade {
     /// # Returns
     ///
     /// Crawl response formatted from spider results
+    #[cfg(feature = "spider")]
     pub async fn crawl_spider_mode(
         &self,
         seed_urls: &[String],

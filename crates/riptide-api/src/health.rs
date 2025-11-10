@@ -431,13 +431,13 @@ impl HealthChecker {
     }
 
     /// Check spider engine health with timeout protection
-    async fn check_spider_health(&self, state: &AppState) -> ServiceHealth {
+    async fn check_spider_health(&self, _state: &AppState) -> ServiceHealth {
         let start_time = Instant::now();
 
         // Check if spider engine is initialized
         #[cfg(feature = "spider")]
         {
-            if let Some(spider) = &state.spider {
+            if let Some(spider) = &_state.spider {
                 // Add timeout protection (2 seconds max)
                 match tokio::time::timeout(
                     std::time::Duration::from_secs(2),
