@@ -1,3 +1,41 @@
+Note to Analyst / Architect Review
+
+Subject: Riptide Alpha Refactor Roadmap — Final Architecture Validation
+
+Team,
+
+Attached is the finalized Riptide Alpha Refactor Roadmap (8-Week Plan).
+This plan compresses the remaining critical architectural work needed to move Riptide from its current alpha state to a clean, testable, and reliable system.
+
+Before execution, please perform a technical validation review focused on identifying any critical missing elements required for the system to actually function end-to-end after this refactor.
+
+Specifically, please verify:
+
+Runtime Completeness – confirm all essential paths (search, extraction, PDF, browser, event bus, persistence) will still function after AppState is replaced with ApplicationContext.
+
+Ports/Adapters Coverage – ensure no external system (Redis, browser, fetch, events, metrics) remains unabstracted or missing adapter wiring.
+
+Handler Path Validation – confirm all top-10 routes have enough coverage to actually execute after the migration (no unresolved dependency chains or missing facades).
+
+Resilience & Reliability – validate timeouts, circuit breaker, and idempotency hooks are correctly positioned to prevent failure cascades.
+
+Observability Minimums – confirm metrics and structured logs will provide sufficient visibility for debugging in alpha without extra tooling.
+
+Feature-Flag Safety – ensure legacy/new-context dual-mode remains compile-safe and deployable at any point during migration.
+
+Test Path Coverage – confirm the E2E and facade tests outlined are sufficient to catch critical regressions before release.
+
+If any runtime, initialization, or dependency wiring issues would still prevent the system from running end-to-end after this plan, please flag them immediately so we can amend before sprint kickoff.
+
+Goal: No surprises at runtime after this refactor.
+This is the final pass to guarantee architectural soundness before moving to beta-readiness work.
+
+Thank you for doing a full technical validation pass on this — please annotate directly in the roadmap doc or return a concise summary of findings.
+
+— [Your Name]
+Riptide Lead / Architecture Coordination
+
+
 # 🚀 Riptide Alpha Refactor Roadmap (8-Week Plan)
 
 **Project:** Riptide Event Mesh

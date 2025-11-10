@@ -89,14 +89,6 @@ impl RedisManager {
         Ok(Self { conn, client })
     }
 
-    /// Create a test instance for unit tests
-    #[cfg(test)]
-    pub fn new_test_instance() -> Self {
-        // This is a placeholder that will fail if used in tests without Redis
-        // Tests should use integration tests with real Redis
-        panic!("Use integration tests with real Redis instance")
-    }
-
     /// Get a value from Redis
     pub async fn get(&self, _namespace: &str, key: &str) -> Result<Option<Vec<u8>>> {
         let mut conn = self.conn.clone();

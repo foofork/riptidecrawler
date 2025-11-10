@@ -322,9 +322,15 @@ impl DiConfig {
     }
 }
 
+#[allow(clippy::derivable_impls)]
 impl Default for DiConfig {
     fn default() -> Self {
-        Self::for_testing()
+        Self {
+            database: DatabaseConfig::default(),
+            redis: RedisConfig::default(),
+            features: FeatureFlags::default(),
+            is_testing: false,
+        }
     }
 }
 

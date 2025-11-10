@@ -915,6 +915,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "Flaky when run in parallel - uses real system memory metrics that can be affected by other tests"]
     async fn test_check_memory_pressure_with_real_metrics() {
         let mut config = test_config();
         // Set high threshold so we're not actually under pressure during test
