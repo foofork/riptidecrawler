@@ -9,9 +9,7 @@ use std::sync::Arc;
 use std::time::Duration;
 #[cfg(feature = "browser")]
 use std::time::{Duration, Instant};
-use tracing::debug;
-#[cfg(feature = "browser")]
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 use crate::rpc_session_context::{RpcSessionContext, RpcSessionStore, SessionMetrics};
 

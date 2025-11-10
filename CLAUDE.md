@@ -26,10 +26,10 @@ cargo check -p [affected-crate]
 **Commit Rules**
 
 - ❌ No failing tests, warnings, compile errors
-- ❌ No `#[ignore]` tests — all tests must run and pass  
+- ❌ No `#[ignore]` tests unless flaky — all tests must run and pass  
 - ❌ No dead code — remove it or guard behind a documented #[cfg(...)] or #[cfg(test)]
 - ✅ Commit often, but only clean, tested
-* ✅ Complete each phase before starting the next without defferring, make what needs to happen happen and bring it all together
+* ✅ Complete each phase before starting the next without defferring, don't skip things due to time, bring it all together gracefully
 
 ---
 

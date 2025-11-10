@@ -1,7 +1,7 @@
-/// jemalloc memory statistics collection
-///
-/// Provides detailed memory metrics using tikv-jemalloc-ctl for monitoring
-/// allocator behavior, memory usage, and fragmentation.
+//! jemalloc memory statistics collection
+//!
+//! Provides detailed memory metrics using tikv-jemalloc-ctl for monitoring
+//! allocator behavior, memory usage, and fragmentation.
 #[cfg(all(feature = "jemalloc", not(target_env = "msvc")))]
 use tikv_jemalloc_ctl::{epoch, stats};
 
