@@ -84,8 +84,14 @@ pub async fn close_browser_session(
 
 #[derive(Debug, Deserialize)]
 pub struct BrowserActionRequest {
+    /// Session ID for browser action (API contract, reserved for future browser facade integration)
+    #[allow(dead_code)]
     pub session_id: String,
+    /// Action type to execute (API contract, reserved for future browser facade integration)
+    #[allow(dead_code)]
     pub action: String,
+    /// Optional parameters for the action (API contract, reserved for future browser facade integration)
+    #[allow(dead_code)]
     pub params: Option<serde_json::Value>,
 }
 

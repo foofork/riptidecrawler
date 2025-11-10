@@ -163,7 +163,7 @@ async fn test_jemalloc_allocator_active() {
         // If jemalloc feature is enabled, this test passes
         // The actual jemalloc stats testing is done in riptide-performance tests
         println!("jemalloc feature is enabled and active");
-        assert!(true, "jemalloc feature is enabled");
+        // Test passes by virtue of compiling and running with jemalloc feature
     }
 
     #[cfg(not(all(not(target_env = "msvc"), feature = "jemalloc")))]

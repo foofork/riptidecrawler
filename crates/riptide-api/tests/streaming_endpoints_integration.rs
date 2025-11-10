@@ -368,7 +368,11 @@ async fn test_streaming_metrics_collection() {
 
     // Metrics should be initialized
     assert!(
-        app_state.metrics.streaming_active_connections.get() >= 0.0,
+        app_state
+            .transport_metrics
+            .streaming_active_connections
+            .get()
+            >= 0.0,
         "Streaming metrics should be initialized"
     );
 }
@@ -376,7 +380,10 @@ async fn test_streaming_metrics_collection() {
 #[tokio::test]
 async fn test_metrics_updated_after_stream() {
     let app_state = create_test_app_state().await;
-    let initial_connections = app_state.metrics.streaming_total_connections.get();
+    let initial_connections = app_state
+        .transport_metrics
+        .streaming_total_connections
+        .get();
 
     let app = test_helpers::create_test_router(app_state.clone());
 
@@ -396,7 +403,10 @@ async fn test_metrics_updated_after_stream() {
     let _response = app.oneshot(request).await.unwrap();
 
     // Metrics should be updated (may or may not increment depending on implementation)
-    let final_connections = app_state.metrics.streaming_total_connections.get();
+    let final_connections = app_state
+        .transport_metrics
+        .streaming_total_connections
+        .get();
     assert!(
         final_connections >= initial_connections,
         "Streaming metrics should be tracked"

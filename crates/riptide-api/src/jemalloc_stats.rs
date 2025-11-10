@@ -118,12 +118,14 @@ impl JemallocStats {
         self.metadata as f64 / (1024.0 * 1024.0)
     }
 
-    /// Get mapped memory in megabytes
+    /// Get mapped memory in megabytes (available for future memory monitoring features)
+    #[allow(dead_code)]
     pub fn mapped_mb(&self) -> f64 {
         self.mapped as f64 / (1024.0 * 1024.0)
     }
 
-    /// Get retained memory in megabytes
+    /// Get retained memory in megabytes (available for future memory monitoring features)
+    #[allow(dead_code)]
     pub fn retained_mb(&self) -> f64 {
         self.retained as f64 / (1024.0 * 1024.0)
     }

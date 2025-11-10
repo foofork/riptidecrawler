@@ -33,7 +33,9 @@ impl WasmExtractorAdapter {
 
     /// Create adapter with metrics tracking
     /// Phase D: Deprecated metrics parameter - kept for reliability integration compatibility
+    /// Reserved for future metrics migration to BusinessMetrics + TransportMetrics
     #[allow(deprecated)]
+    #[allow(dead_code)]
     pub fn with_metrics(
         extractor: Arc<riptide_extraction::UnifiedExtractor>,
         metrics: Arc<crate::metrics::RipTideMetrics>,

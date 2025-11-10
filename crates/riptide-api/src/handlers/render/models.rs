@@ -22,7 +22,8 @@ pub struct RenderRequest {
     /// Output format preference
     pub output_format: Option<OutputFormat>,
 
-    /// Whether to capture artifacts (screenshots, MHTML)
+    /// Whether to capture artifacts (screenshots, MHTML) - reserved for future artifact capture feature
+    #[allow(dead_code)]
     pub capture_artifacts: Option<bool>,
 
     /// Timeout for rendering operation in seconds (used in handlers.rs:72-76)
