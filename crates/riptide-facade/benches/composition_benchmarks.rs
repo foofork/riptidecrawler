@@ -4,7 +4,6 @@
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use futures::stream::{self, BoxStream, StreamExt};
-use futures::Stream;
 use tokio::runtime::Runtime;
 
 /// Baseline: Direct stream without boxing

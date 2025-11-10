@@ -58,7 +58,7 @@ mod e2e_tests {
             .oneshot(
                 Request::builder()
                     .method("POST")
-                    .uri(&format!("/api/v1/sessions/{}/actions", session_id))
+                    .uri(format!("/api/v1/sessions/{}/actions", session_id))
                     .header("content-type", "application/json")
                     .body(Body::from(
                         json!({
@@ -79,7 +79,7 @@ mod e2e_tests {
             .clone()
             .oneshot(
                 Request::builder()
-                    .uri(&format!("/api/v1/sessions/{}/results", session_id))
+                    .uri(format!("/api/v1/sessions/{}/results", session_id))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -93,7 +93,7 @@ mod e2e_tests {
             .oneshot(
                 Request::builder()
                     .method("DELETE")
-                    .uri(&format!("/api/v1/sessions/{}", session_id))
+                    .uri(format!("/api/v1/sessions/{}", session_id))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -139,7 +139,7 @@ mod e2e_tests {
             .clone()
             .oneshot(
                 Request::builder()
-                    .uri(&format!("/api/v1/stream/{}/progress", stream_id))
+                    .uri(format!("/api/v1/stream/{}/progress", stream_id))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -153,7 +153,7 @@ mod e2e_tests {
             .oneshot(
                 Request::builder()
                     .method("POST")
-                    .uri(&format!("/api/v1/stream/{}/report", stream_id))
+                    .uri(format!("/api/v1/stream/{}/report", stream_id))
                     .header("content-type", "application/json")
                     .body(Body::from(
                         json!({
@@ -335,7 +335,7 @@ mod e2e_tests {
             .clone()
             .oneshot(
                 Request::builder()
-                    .uri(&format!("/api/v1/profiling/{}", profile_id))
+                    .uri(format!("/api/v1/profiling/{}", profile_id))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -349,7 +349,7 @@ mod e2e_tests {
             .clone()
             .oneshot(
                 Request::builder()
-                    .uri(&format!("/api/v1/profiling/{}/analysis", profile_id))
+                    .uri(format!("/api/v1/profiling/{}/analysis", profile_id))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -362,7 +362,7 @@ mod e2e_tests {
         let optimization_response = app
             .oneshot(
                 Request::builder()
-                    .uri(&format!("/api/v1/profiling/{}/optimizations", profile_id))
+                    .uri(format!("/api/v1/profiling/{}/optimizations", profile_id))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -636,7 +636,7 @@ mod e2e_tests {
                 .oneshot(
                     Request::builder()
                         .method("POST")
-                        .uri(&format!("/api/v1/browser/pool/release/{}", session_id))
+                        .uri(format!("/api/v1/browser/pool/release/{}", session_id))
                         .body(Body::empty())
                         .unwrap(),
                 )

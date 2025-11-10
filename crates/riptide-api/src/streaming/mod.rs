@@ -18,6 +18,7 @@
 pub mod buffer;
 pub mod config;
 pub mod error;
+pub mod response_helpers;
 
 // Re-export commonly used types
 pub use buffer::BufferManager;

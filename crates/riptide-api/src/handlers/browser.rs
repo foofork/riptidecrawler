@@ -7,8 +7,14 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize)]
 pub struct CreateSessionRequest {
+    /// Stealth preset configuration (reserved for future browser facade integration)
+    #[allow(dead_code)]
     pub stealth_preset: Option<String>,
+    /// Initial URL to navigate to on session creation (reserved for future browser facade integration)
+    #[allow(dead_code)]
     pub initial_url: Option<String>,
+    /// Session timeout in seconds (reserved for future browser facade integration)
+    #[allow(dead_code)]
     pub timeout_secs: Option<u64>,
 }
 
