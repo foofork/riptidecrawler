@@ -1,6 +1,8 @@
 //! Integration tests for the comprehensive metrics system (30+ metrics)
 //! Tests WEEK 1 PHASE 1B metrics recording and retrieval
 
+#![allow(deprecated)]
+
 use riptide_api::metrics::RipTideMetrics;
 use std::time::Instant;
 
