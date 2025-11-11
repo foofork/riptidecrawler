@@ -16,7 +16,7 @@ use crate::models::{
 };
 use crate::pipeline::PipelineOrchestrator;
 use crate::pipeline_enhanced::EnhancedPipelineOrchestrator;
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 use riptide_facade::facades::chunking::ChunkParameters;
 use riptide_types::config::CrawlOptions;
 use riptide_types::ExtractedDoc;
@@ -30,12 +30,12 @@ use tracing::{debug, info};
 /// - Trace context extraction
 /// - Event emission (optional - could move here)
 pub struct CrawlHandlerFacade {
-    state: AppState,
+    state: ApplicationContext,
 }
 
 impl CrawlHandlerFacade {
     /// Create a new crawl handler facade
-    pub fn new(state: AppState) -> Self {
+    pub fn new(state: ApplicationContext) -> Self {
         Self { state }
     }
 
@@ -57,6 +57,7 @@ impl CrawlHandlerFacade {
     /// # Returns
     ///
     /// Complete crawl response with results and statistics
+    #[allow(deprecated)]
     pub async fn crawl_batch(
         &self,
         urls: &[String],
@@ -96,6 +97,7 @@ impl CrawlHandlerFacade {
     ///
     /// Crawl response formatted from spider results
     #[cfg(feature = "spider")]
+    #[allow(deprecated)]
     pub async fn crawl_spider_mode(
         &self,
         seed_urls: &[String],
@@ -140,6 +142,7 @@ impl CrawlHandlerFacade {
     // ========================================================================
 
     /// Select and execute the appropriate pipeline
+    #[allow(deprecated)]
     async fn execute_pipeline(
         &self,
         urls: &[String],

@@ -3,7 +3,7 @@
 //! All business logic delegated to WorkersFacade.
 //! Handlers are <50 LOC total, focused only on HTTP transport concerns.
 
-use crate::{dto::workers::*, state::AppState};
+use crate::{dto::workers::*, context::ApplicationContext};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 /// Submit a job (ultra-thin - 5 LOC)
 pub async fn submit_job(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Json(request): Json<SubmitJobRequest>,
 ) -> Result<Json<SubmitJobResponse>, StatusCode> {
     let job = request.into_job().map_err(|_| StatusCode::BAD_REQUEST)?;
@@ -32,7 +32,7 @@ pub async fn submit_job(
 
 /// Get job status (ultra-thin - 3 LOC)
 pub async fn get_job_status(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Path(job_id): Path<Uuid>,
 ) -> Result<Json<JobStatusResponse>, StatusCode> {
     let job = state
@@ -46,7 +46,7 @@ pub async fn get_job_status(
 
 /// Get job result (ultra-thin - 3 LOC)
 pub async fn get_job_result(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Path(job_id): Path<Uuid>,
 ) -> Result<Json<JobResultResponse>, StatusCode> {
     let result = state
@@ -68,7 +68,7 @@ pub async fn get_job_result(
 
 /// Get queue stats (ultra-thin - 3 LOC)
 pub async fn get_queue_stats(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
 ) -> Result<Json<QueueStatsResponse>, StatusCode> {
     let s = state
         .worker_service
@@ -88,7 +88,7 @@ pub async fn get_queue_stats(
 
 /// Get worker stats (ultra-thin - 3 LOC)
 pub async fn get_worker_stats(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
 ) -> Result<Json<WorkerPoolStatsResponse>, StatusCode> {
     let s = state
         .worker_service
@@ -113,7 +113,7 @@ pub async fn get_worker_stats(
 
 /// Create scheduled job (ultra-thin - 6 LOC)
 pub async fn create_scheduled_job(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Json(request): Json<CreateScheduledJobRequest>,
 ) -> Result<Json<ScheduledJobResponse>, StatusCode> {
     let mut job = riptide_workers::ScheduledJob::new(
@@ -152,7 +152,7 @@ pub async fn create_scheduled_job(
 
 /// List scheduled jobs (ultra-thin - 2 LOC)
 pub async fn list_scheduled_jobs(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
 ) -> Result<Json<Vec<ScheduledJobResponse>>, StatusCode> {
     let jobs = state
         .worker_service
@@ -163,7 +163,7 @@ pub async fn list_scheduled_jobs(
 
 /// Delete scheduled job (ultra-thin - 2 LOC)
 pub async fn delete_scheduled_job(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Path(job_id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
     let deleted = state
@@ -180,7 +180,7 @@ pub async fn delete_scheduled_job(
 
 /// Get worker metrics (ultra-thin - 3 LOC)
 pub async fn get_worker_metrics(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let m = state.worker_service.get_metrics().await;
     // Phase D: Worker metrics tracked via business_metrics (detailed breakdown)
@@ -198,7 +198,7 @@ pub async fn get_worker_metrics(
 
 /// List jobs (ultra-thin - 4 LOC)
 pub async fn list_jobs(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Query(q): Query<JobListQuery>,
 ) -> Result<Json<JobListResponse>, (StatusCode, String)> {
     let limit = q.limit.unwrap_or(50).min(500);

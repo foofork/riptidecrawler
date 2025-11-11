@@ -1,5 +1,6 @@
 pub mod adapters; // Sprint 4.3: Transport adapters for streaming
 pub mod composition; // Sprint 1.3: Dependency Injection composition root
+pub mod context; // ApplicationContext type alias - clean replacement for AppState god object
 pub mod config;
 pub mod dto;
 pub mod errors;
@@ -23,12 +24,20 @@ pub mod routes;
 pub mod rpc_client;
 pub mod rpc_session_context;
 pub mod sessions;
-pub mod state;
+pub mod state; // DEPRECATED: Use context::ApplicationContext instead
 pub mod streaming;
 pub mod telemetry_config;
 pub mod tests;
 pub mod utils;
 pub mod validation;
 
-// Sprint 1.3: Re-export composition root types for convenience
-pub use composition::{ApplicationContext, ApplicationContextBuilder, DiConfig};
+// Re-export DI composition root types for convenience
+pub use composition::{ApplicationContext as DiContext, ApplicationContextBuilder, DiConfig};
+
+// Re-export handler context (ApplicationContext is the primary export)
+// Note: This is different from composition::ApplicationContext (DI context)
+// This is context::ApplicationContext (type alias for AppState - the HTTP handler state)
+pub use context::ApplicationContext;
+
+// Also re-export AppState for backward compatibility
+pub use state::AppState;

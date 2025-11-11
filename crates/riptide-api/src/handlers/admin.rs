@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::errors::{ApiError, ApiResult};
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 
 // ===== Request/Response Types =====
 
@@ -114,25 +114,25 @@ fn not_implemented() -> ApiError {
 }
 
 pub async fn create_tenant(
-    _state: State<AppState>,
+    _state: State<ApplicationContext>,
     Json(_req): Json<CreateTenantRequest>,
 ) -> ApiResult<Json<TenantResponse>> {
     Err(not_implemented())
 }
 
-pub async fn list_tenants(_state: State<AppState>) -> ApiResult<Json<Vec<TenantResponse>>> {
+pub async fn list_tenants(_state: State<ApplicationContext>) -> ApiResult<Json<Vec<TenantResponse>>> {
     Err(not_implemented())
 }
 
 pub async fn get_tenant(
-    _state: State<AppState>,
+    _state: State<ApplicationContext>,
     Path(_tenant_id): Path<String>,
 ) -> ApiResult<Json<TenantResponse>> {
     Err(not_implemented())
 }
 
 pub async fn update_tenant(
-    _state: State<AppState>,
+    _state: State<ApplicationContext>,
     Path(_tenant_id): Path<String>,
     Json(_req): Json<UpdateTenantRequest>,
 ) -> ApiResult<Json<TenantResponse>> {
@@ -140,54 +140,54 @@ pub async fn update_tenant(
 }
 
 pub async fn delete_tenant(
-    _state: State<AppState>,
+    _state: State<ApplicationContext>,
     Path(_tenant_id): Path<String>,
 ) -> ApiResult<StatusCode> {
     Err(not_implemented())
 }
 
 pub async fn get_tenant_usage(
-    _state: State<AppState>,
+    _state: State<ApplicationContext>,
     Path(_tenant_id): Path<String>,
 ) -> ApiResult<Json<ResourceUsageResponse>> {
     Err(not_implemented())
 }
 
 pub async fn get_tenant_billing(
-    _state: State<AppState>,
+    _state: State<ApplicationContext>,
     Path(_tenant_id): Path<String>,
 ) -> ApiResult<Json<BillingResponse>> {
     Err(not_implemented())
 }
 
 pub async fn warm_cache(
-    _state: State<AppState>,
+    _state: State<ApplicationContext>,
     Json(_req): Json<WarmCacheRequest>,
 ) -> ApiResult<Json<WarmCacheResponse>> {
     Err(not_implemented())
 }
 
 pub async fn invalidate_cache(
-    _state: State<AppState>,
+    _state: State<ApplicationContext>,
     Json(_req): Json<InvalidateCacheRequest>,
 ) -> ApiResult<Json<InvalidateCacheResponse>> {
     Err(not_implemented())
 }
 
-pub async fn get_cache_stats(_state: State<AppState>) -> ApiResult<Json<CacheStatsResponse>> {
+pub async fn get_cache_stats(_state: State<ApplicationContext>) -> ApiResult<Json<CacheStatsResponse>> {
     Err(not_implemented())
 }
 
-pub async fn reload_state(_state: State<AppState>) -> ApiResult<Json<serde_json::Value>> {
+pub async fn reload_state(_state: State<ApplicationContext>) -> ApiResult<Json<serde_json::Value>> {
     Err(not_implemented())
 }
 
-pub async fn create_checkpoint(_state: State<AppState>) -> ApiResult<Json<CheckpointResponse>> {
+pub async fn create_checkpoint(_state: State<ApplicationContext>) -> ApiResult<Json<CheckpointResponse>> {
     Err(not_implemented())
 }
 
 pub async fn restore_checkpoint(
-    _state: State<AppState>,
+    _state: State<ApplicationContext>,
     Path(_checkpoint_id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
     Err(not_implemented())

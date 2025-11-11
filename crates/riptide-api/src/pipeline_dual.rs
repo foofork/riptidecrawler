@@ -13,7 +13,7 @@
 #![cfg(feature = "llm")]
 
 use crate::errors::{ApiError, ApiResult};
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 use anyhow::Result;
 use riptide_events::{CrawlEvent, CrawlOperation, EventBus, EventEmitter, ExtractionMode};
 use riptide_types::{CrawlOptions, ExtractedDoc};
@@ -95,7 +95,7 @@ pub struct DualPathOrchestrator {
 impl DualPathOrchestrator {
     /// Create new dual-path orchestrator
     pub fn new(
-        _state: AppState,
+        _state: ApplicationContext,
         _options: CrawlOptions,
         config: DualPathConfig,
         event_bus: Arc<EventBus>,

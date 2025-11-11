@@ -7,7 +7,7 @@ use riptide_performance::limits::RequestPermit;
 // use std::sync::Arc; // Unused
 use tracing::{debug, warn};
 
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 
 /// Rate limiting middleware that enforces request limits
 ///
@@ -17,7 +17,7 @@ use crate::state::AppState;
 /// - Track circuit breaker state
 /// - Monitor resource usage
 pub async fn rate_limit_middleware(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     request: Request,
     next: Next,
 ) -> Result<Response, Response> {

@@ -3,7 +3,7 @@
 //! Handlers delegate business logic to riptide-facade::PdfFacade.
 //! Responsible only for HTTP mapping, resource management, and metrics.
 
-use crate::{dto::pdf::*, errors::ApiError, resource_manager::ResourceResult, state::AppState};
+use crate::{dto::pdf::*, errors::ApiError, resource_manager::ResourceResult, context::ApplicationContext};
 use axum::{
     extract::{Multipart, State},
     response::{sse::Event, Sse},
@@ -46,7 +46,7 @@ pub async fn pdf_health_check() -> axum::response::Json<serde_json::Value> {
 
 /// Process PDF synchronously - 9 LOC handler
 pub async fn process_pdf(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Json(req): Json<PdfProcessRequest>,
 ) -> Result<Json<PdfProcessResponse>, ApiError> {
     let pdf_data = req
@@ -78,7 +78,7 @@ pub async fn process_pdf(
 
 /// Process PDF with streaming - 15 LOC handler (refactored Phase 4.3)
 pub async fn process_pdf_stream(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Json(req): Json<PdfProcessRequest>,
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, ApiError> {
     let pdf_data = req
@@ -111,7 +111,7 @@ pub async fn process_pdf_stream(
 
 /// Upload and process PDF - 9 LOC handler
 pub async fn process_pdf_upload(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     mut multipart: Multipart,
 ) -> Result<Json<PdfProcessResponse>, ApiError> {
     let mut pdf_data = None;
@@ -155,7 +155,7 @@ pub async fn process_pdf_upload(
 }
 
 async fn acquire_pdf_resources(
-    state: &AppState,
+    state: &ApplicationContext,
 ) -> Result<crate::resource_manager::PdfResourceGuard, ApiError> {
     // Use ResourceFacade for unified resource coordination (Sprint 4.4 - Phase 5 Complete)
     use riptide_facade::facades::ResourceResult as FacadeResult;

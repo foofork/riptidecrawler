@@ -1,7 +1,7 @@
 //! Browser pool management handlers (ultra-thin, delegates to BrowserFacade)
 
 use crate::errors::ApiError;
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 use axum::{extract::State, http::StatusCode, Json};
 use serde::{Deserialize, Serialize};
 
@@ -27,7 +27,7 @@ pub struct SessionResponse {
 }
 
 pub async fn create_browser_session(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Json(_request): Json<CreateSessionRequest>,
 ) -> Result<Json<SessionResponse>, ApiError> {
     // browser_facade was removed due to circular dependency
@@ -56,7 +56,7 @@ pub async fn create_browser_session(
 }
 
 pub async fn get_browser_pool_status(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     // browser_facade was removed due to circular dependency
     // TODO: Restore pool status retrieval when facade is re-integrated
@@ -76,7 +76,7 @@ pub async fn get_browser_pool_status(
 }
 
 pub async fn close_browser_session(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     axum::extract::Path(_session_id): axum::extract::Path<String>,
 ) -> Result<StatusCode, ApiError> {
     Ok(StatusCode::NO_CONTENT)
@@ -102,7 +102,7 @@ pub struct BrowserActionResponse {
 }
 
 pub async fn execute_browser_action(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Json(_request): Json<BrowserActionRequest>,
 ) -> Result<Json<BrowserActionResponse>, ApiError> {
     // browser_facade was removed due to circular dependency

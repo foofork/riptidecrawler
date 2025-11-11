@@ -1,5 +1,5 @@
+use crate::context::ApplicationContext;
 use crate::errors::{ApiError, ApiResult};
-use crate::state::AppState;
 use async_trait::async_trait;
 use reqwest::Response;
 use riptide_extraction::strategies::{
@@ -83,7 +83,7 @@ impl From<StrategiesPipelineResult> for riptide_types::pipeline::StrategiesPipel
 /// For future advanced pipeline orchestration (Phase 5+)
 #[allow(dead_code)]
 pub struct StrategiesPipelineOrchestrator {
-    state: AppState,
+    state: ApplicationContext,
     options: CrawlOptions,
     strategy_config: StrategyConfig,
 }
@@ -92,7 +92,7 @@ impl StrategiesPipelineOrchestrator {
     /// Create a new strategies pipeline orchestrator
     #[allow(dead_code)]
     pub fn new(
-        state: AppState,
+        state: ApplicationContext,
         options: CrawlOptions,
         strategy_config: Option<StrategyConfig>,
     ) -> Self {
@@ -105,7 +105,7 @@ impl StrategiesPipelineOrchestrator {
 
     /// Create with auto-detected strategy based on URL and options
     #[allow(dead_code)]
-    pub fn with_auto_strategy(state: AppState, options: CrawlOptions, url: &str) -> Self {
+    pub fn with_auto_strategy(state: ApplicationContext, options: CrawlOptions, url: &str) -> Self {
         let strategy_config = Self::auto_detect_strategy(url, &options);
         Self::new(state, options, Some(strategy_config))
     }

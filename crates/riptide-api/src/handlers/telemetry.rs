@@ -14,7 +14,7 @@ use std::collections::HashMap;
 use tracing::{debug, info, warn};
 
 use crate::errors::ApiError;
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 use crate::telemetry_config::parse_trace_id;
 
 // parse_span_id used in tests
@@ -162,7 +162,7 @@ pub struct TraceSummary {
     )
 )]
 pub async fn list_traces(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Query(query): Query<TraceQueryParams>,
 ) -> Result<Json<Vec<TraceMetadata>>, ApiError> {
     info!("Listing traces with query: {:?}", query);
@@ -204,7 +204,7 @@ pub async fn list_traces(
     )
 )]
 pub async fn get_trace_tree(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Query(query): Query<TraceQueryParams>,
 ) -> Result<Json<TraceTreeResponse>, ApiError> {
     let trace_id_str = query
@@ -260,7 +260,7 @@ pub async fn get_trace_tree(
     )
 )]
 pub async fn get_telemetry_status(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let config = crate::telemetry_config::TelemetryConfig::from_env();
 

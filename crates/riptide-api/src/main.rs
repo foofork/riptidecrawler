@@ -1,5 +1,6 @@
 mod adapters;
 mod config;
+mod context; // ApplicationContext - clean replacement for AppState
 mod dto;
 mod errors;
 mod facades;
@@ -20,7 +21,7 @@ mod routes;
 mod rpc_client;
 mod rpc_session_context;
 mod sessions;
-mod state;
+mod state; // DEPRECATED: Use context::ApplicationContext instead
 mod strategies_pipeline;
 mod streaming;
 mod telemetry_config;
@@ -44,7 +45,8 @@ use crate::middleware::{
     auth_middleware, rate_limit_middleware, request_validation_middleware, PayloadLimitLayer,
 };
 use crate::sessions::middleware::SessionLayer;
-use crate::state::{AppConfig, AppState};
+use crate::context::ApplicationContext;
+use crate::state::AppConfig;
 use axum::{
     routing::{get, post},
     Router,
@@ -163,7 +165,7 @@ async fn main() -> anyhow::Result<()> {
     // Initialize application state with all dependencies
     // Phase D: Removed deprecated metrics parameter
     tracing::info!("Initializing application state and dependencies");
-    let app_state = AppState::new(config, health_checker.clone()).await?;
+    let app_state = ApplicationContext::new(config, health_checker.clone()).await?;
     tracing::info!("Application state initialization complete");
 
     // Worker service is initialized and ready to process jobs
@@ -600,7 +602,7 @@ async fn main() -> anyhow::Result<()> {
 /// Listens for SIGTERM and SIGINT signals to gracefully shutdown the server.
 /// This allows for proper cleanup of connections and resources including
 /// the session cleanup background task.
-async fn shutdown_signal(app_state: Arc<AppState>) {
+async fn shutdown_signal(app_state: Arc<ApplicationContext>) {
     use tokio::signal;
 
     let ctrl_c = async {

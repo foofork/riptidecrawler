@@ -7,14 +7,14 @@
 //! - PUT /engine/probe-first - Toggle probe-first mode
 
 use crate::handlers::engine_selection;
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 use axum::{
     routing::{get, post, put},
     Router,
 };
 
 /// Create engine selection routes
-pub fn engine_routes() -> Router<AppState> {
+pub fn engine_routes() -> Router<ApplicationContext> {
     Router::new()
         .route("/analyze", post(engine_selection::analyze_engine))
         .route("/decide", post(engine_selection::decide_engine))

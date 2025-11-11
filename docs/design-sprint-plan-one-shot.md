@@ -313,26 +313,6 @@ Perform atomic bulk migration: AppState → ApplicationContext in single sprint.
 
 ---
 
-## Risk Mitigation
-
-### Rollback Strategy
-
-**If migration fails at ANY point**:
-
-```bash
-# Rollback to pre-migration state (single commit)
-git reset --hard HEAD~1
-
-# Or rollback to tagged state
-git reset --hard pre-migration-baseline
-```
-
-**Rollback Triggers**:
-- Quality gate score <10/10
-- Compilation errors cannot be resolved in 8 hours
-- Test suite regression >5% failures
-- Circular dependencies reintroduced
-
 ### Mitigation Strategies
 
 1. **Create Baseline Tag**:

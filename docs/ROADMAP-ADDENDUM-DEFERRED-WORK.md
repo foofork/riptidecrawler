@@ -48,8 +48,6 @@ The initial comprehensive analysis (Week 0 research) identified multiple improve
 - ✅ **Chromium support**: Production-ready, 21/24 tests passing
 - ✅ **Multi-Chromium pooling**: Works well (health monitoring, resource limits)
 - ✅ **CDP connection pooling**: 70%+ connection reuse achieved
-- ❌ **Firefox support**: Missing entirely
-- ❌ **WebKit support**: Missing entirely
 - ❌ **3 failing tests**: CDP batch execution issues
 
 **Analysis Documents**:
@@ -58,40 +56,9 @@ The initial comprehensive analysis (Week 0 research) identified multiple improve
 
 ### Deferred Work Items
 
-#### 1.1: Multi-Browser Support (Firefox)
-**Effort**: 3-4 weeks
-**Priority**: P1 (high value for cross-browser testing)
-
-**Tasks**:
-- [ ] Create `FirefoxBrowserAdapter` implementing `BrowserDriver` port
-- [ ] Firefox CDP protocol differences (devtools protocol variations)
-- [ ] Firefox binary detection and version management
-- [ ] Firefox-specific browser pool configuration
-- [ ] Firefox headless mode support
-- [ ] Integration tests for Firefox adapter
-
 **Dependencies**:
 - ✅ BrowserDriver port exists (created in Sprint 2)
-- Requires: Firefox binary, geckodriver
 
-**ROI**: Enables cross-browser testing, broader market coverage
-
-#### 1.2: Multi-Browser Support (WebKit)
-**Effort**: 3-4 weeks
-**Priority**: P2 (lower priority than Firefox)
-
-**Tasks**:
-- [ ] Create `WebKitBrowserAdapter` implementing `BrowserDriver` port
-- [ ] WebKit/Safari technology preview integration
-- [ ] Playwright WebKit backend (if using Playwright)
-- [ ] macOS-specific challenges (Safari requires macOS)
-- [ ] Integration tests for WebKit adapter
-
-**Dependencies**:
-- ✅ BrowserDriver port exists
-- Requires: macOS environment or WebKit GTK on Linux
-
-**ROI**: Safari testing coverage, iOS simulation
 
 #### 1.3: Fix CDP Batch Execution Tests
 **Effort**: 1-2 days
@@ -109,20 +76,6 @@ The initial comprehensive analysis (Week 0 research) identified multiple improve
 - [ ] Test under different load conditions
 
 **Why Deferred**: Not blocking refactoring, can be fixed post-Sprint 16
-
-#### 1.4: Browser Pool Enhancements
-**Effort**: 2 weeks
-**Priority**: P2 (nice-to-have)
-
-**Enhancements Identified**:
-- [ ] Dynamic pool sizing based on load
-- [ ] Browser version pinning (prevent auto-updates mid-crawl)
-- [ ] Pool warmup on startup (pre-launch browsers)
-- [ ] Browser recycling after N requests (prevent memory leaks)
-- [ ] Pool metrics dashboard (checkout/checkin rates, wait times)
-- [ ] Connection pool optimization (reduce 70% → 85%+ reuse)
-
-**Why Deferred**: Current pooling works, optimizations can wait
 
 ---
 

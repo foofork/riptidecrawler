@@ -1,6 +1,6 @@
 //! Deep search handler - <50 LOC after facade refactoring
 use crate::errors::ApiError;
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 use axum::{extract::State, Json};
 use riptide_facade::facades::deep_search::{
     DeepSearchFacade, DeepSearchRequest, DeepSearchResponse,
@@ -18,7 +18,7 @@ pub struct DeepSearchRequestDTO {
 
 #[instrument(skip(_state))]
 pub async fn handle_deep_search(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Json(req): Json<DeepSearchRequestDTO>,
 ) -> Result<Json<DeepSearchResponse>, ApiError> {
     DeepSearchFacade::new()

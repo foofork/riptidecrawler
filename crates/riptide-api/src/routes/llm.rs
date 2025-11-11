@@ -2,7 +2,7 @@
 
 #[cfg(feature = "llm")]
 use crate::handlers::llm;
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 use axum::{
     routing::{get, post},
     Router,
@@ -10,7 +10,7 @@ use axum::{
 
 /// Create LLM management routes
 #[cfg(feature = "llm")]
-pub fn llm_routes() -> Router<AppState> {
+pub fn llm_routes() -> Router<ApplicationContext> {
     Router::new()
         .route("/providers", get(llm::list_providers))
         .route("/providers/current", get(llm::get_current_provider_info))
@@ -22,7 +22,7 @@ pub fn llm_routes() -> Router<AppState> {
 /// Create stub LLM routes when feature is disabled
 /// Returns HTTP 501 "Not Implemented" for all LLM endpoints
 #[cfg(not(feature = "llm"))]
-pub fn llm_routes() -> Router<AppState> {
+pub fn llm_routes() -> Router<ApplicationContext> {
     use crate::handlers::stubs::*;
 
     Router::new()

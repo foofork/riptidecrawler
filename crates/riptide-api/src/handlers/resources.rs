@@ -6,7 +6,7 @@
 //! - Memory usage
 //! - Performance indicators
 
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 use axum::{extract::State, http::StatusCode, Json};
 use serde::Serialize;
 
@@ -77,7 +77,7 @@ pub struct PerformanceStatus {
 
 /// Get comprehensive resource status
 pub async fn get_resource_status(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
 ) -> Result<Json<ResourceStatusResponse>, StatusCode> {
     // Use ResourceFacade for unified resource status (Sprint 4.4)
     let facade_status = state
@@ -151,7 +151,7 @@ pub async fn get_resource_status(
 
 /// Get browser pool specific status
 pub async fn get_browser_pool_status(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
 ) -> Result<Json<BrowserPoolStatus>, StatusCode> {
     #[cfg(feature = "browser")]
     let (total_capacity, in_use, available) = match &_state.resource_manager.browser_pool {
@@ -175,7 +175,7 @@ pub async fn get_browser_pool_status(
 
 /// Get rate limiter status
 pub async fn get_rate_limiter_status(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
 ) -> Result<Json<RateLimiterStatus>, StatusCode> {
     let resource_status = state.resource_manager.get_resource_status().await;
 
@@ -187,7 +187,7 @@ pub async fn get_rate_limiter_status(
 
 /// Get memory status
 pub async fn get_memory_status(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
 ) -> Result<Json<MemoryStatus>, StatusCode> {
     let resource_status = state.resource_manager.get_resource_status().await;
 
@@ -218,7 +218,7 @@ pub async fn get_memory_status(
 
 /// Get performance metrics
 pub async fn get_performance_status(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
 ) -> Result<Json<PerformanceStatus>, StatusCode> {
     let resource_status = state.resource_manager.get_resource_status().await;
 
@@ -230,7 +230,7 @@ pub async fn get_performance_status(
 
 /// Get memory leak detection report
 pub async fn get_memory_leaks(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
 ) -> Result<Json<crate::resource_manager::memory_manager::LeakReport>, StatusCode> {
     let report = state.resource_manager.memory_manager.detect_leaks();
     Ok(Json(report))
@@ -238,7 +238,7 @@ pub async fn get_memory_leaks(
 
 /// Get PDF semaphore status
 pub async fn get_pdf_semaphore_status(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
 ) -> Result<Json<SemaphoreStatus>, StatusCode> {
     let resource_status = state.resource_manager.get_resource_status().await;
 

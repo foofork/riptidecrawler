@@ -94,18 +94,16 @@ impl CrawlFacade {
     /// # Example
     ///
     /// ```rust,ignore
-    /// use riptide_api::pipeline::PipelineOrchestrator;
-    /// use riptide_api::strategies_pipeline::StrategiesPipelineOrchestrator;
-    /// use riptide_types::config::CrawlOptions;
+    /// // Concrete implementations are injected by ApplicationContext
+    /// // See riptide-api/src/context.rs for factory methods
+    /// use riptide_types::pipeline::{PipelineExecutor, StrategiesPipelineExecutor};
     /// use std::sync::Arc;
     ///
-    /// let state = AppState::new().await?;
-    /// let options = CrawlOptions::default();
+    /// // ApplicationContext provides concrete implementations
+    /// let pipeline_exec: Arc<dyn PipelineExecutor> = context.pipeline_executor();
+    /// let strategies_exec: Arc<dyn StrategiesPipelineExecutor> = context.strategies_executor();
     ///
-    /// let pipeline = Arc::new(PipelineOrchestrator::new(state.clone(), options.clone()));
-    /// let strategies = Arc::new(StrategiesPipelineOrchestrator::new(state, options, None));
-    ///
-    /// let facade = CrawlFacade::new(pipeline, strategies);
+    /// let facade = CrawlFacade::new(pipeline_exec, strategies_exec);
     /// ```
     pub fn new(
         pipeline_orchestrator: Arc<dyn PipelineExecutor>,

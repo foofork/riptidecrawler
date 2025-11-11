@@ -1,6 +1,6 @@
 use super::models::RenderRequest;
 use crate::errors::{ApiError, ApiResult};
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 use riptide_facade::facades::RenderStrategyFacade;
 use riptide_headless::dynamic::{DynamicConfig, DynamicRenderResult};
 use riptide_stealth::StealthController;
@@ -28,7 +28,7 @@ pub(super) fn create_adaptive_dynamic_config(url: &str) -> DynamicConfig {
 
 /// Process by render mode - unified entry point
 pub(super) async fn process_by_mode(
-    state: &AppState,
+    state: &ApplicationContext,
     request: &RenderRequest,
     session_id: Option<&str>,
 ) -> ApiResult<(
@@ -71,7 +71,7 @@ pub(super) async fn process_by_mode(
 
 /// Process PDF content
 async fn process_pdf(
-    state: &AppState,
+    state: &ApplicationContext,
     url: &str,
     pdf_config: Option<&riptide_pdf::PdfConfig>,
 ) -> ApiResult<(
@@ -96,7 +96,7 @@ async fn process_pdf(
 
 /// Process with dynamic rendering
 async fn process_dynamic(
-    state: &AppState,
+    state: &ApplicationContext,
     url: &str,
     config: &DynamicConfig,
     stealth: Option<&mut StealthController>,
@@ -166,7 +166,7 @@ async fn process_dynamic(
 
 /// Process statically
 async fn process_static(
-    state: &AppState,
+    state: &ApplicationContext,
     url: &str,
     stealth: Option<&mut StealthController>,
     session_id: Option<&str>,
@@ -248,7 +248,7 @@ async fn process_static(
 
 /// Process adaptively
 async fn process_adaptive(
-    state: &AppState,
+    state: &ApplicationContext,
     url: &str,
     request: &RenderRequest,
     stealth: Option<&mut StealthController>,

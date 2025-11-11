@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use crate::context::ApplicationContext;
 use axum::{
     body::Body,
     extract::{Request, State},
@@ -11,8 +12,6 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
-
-use crate::state::AppState;
 
 /// Authentication attempt tracking
 #[derive(Clone)]
@@ -576,7 +575,7 @@ impl Default for AuthConfig {
 /// - **Secure headers**: Failed authentication includes WWW-Authenticate header
 /// - **Audit logging**: All authentication attempts are logged for security monitoring
 pub async fn auth_middleware(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     request: Request,
     next: Next,
 ) -> Result<Response, Response> {

@@ -5,11 +5,12 @@
 
 use crate::config::RiptideApiConfig;
 use crate::health::HealthChecker;
-use crate::state::{AppConfig, AppState};
+use crate::context::ApplicationContext;
+use crate::state::AppConfig;
 use anyhow::Result;
 use std::sync::Arc;
 
-/// Test builder for AppState
+/// Test builder for ApplicationContext
 pub struct AppStateBuilder {
     config: Option<AppConfig>,
     api_config: Option<RiptideApiConfig>,
@@ -47,11 +48,11 @@ impl AppStateBuilder {
         self
     }
 
-    /// Build the AppState
+    /// Build the ApplicationContext
     ///
     /// This will use defaults for any values not explicitly set.
     /// Note: This requires Redis to be available for full functionality.
-    pub async fn build(self) -> Result<AppState> {
+    pub async fn build(self) -> Result<ApplicationContext> {
         let config = self.config.unwrap_or_default();
         let api_config = self.api_config.unwrap_or_default();
         // Phase D: Removed deprecated metrics parameter
@@ -59,7 +60,7 @@ impl AppStateBuilder {
             .health_checker
             .unwrap_or_else(|| Arc::new(HealthChecker::new()));
 
-        AppState::new_base(config, api_config, health_checker, None).await
+        ApplicationContext::new_base(config, api_config, health_checker, None).await
     }
 }
 

@@ -10,12 +10,12 @@ use axum::{
 };
 use std::time::Instant;
 
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 use riptide_types::{SearchQuery, SearchResponse, SearchResult};
 
 /// Search using configured providers (thin handler pattern)
 #[tracing::instrument(skip(state))]
-pub async fn search(State(state): State<AppState>, Query(params): Query<SearchQuery>) -> Response {
+pub async fn search(State(state): State<ApplicationContext>, Query(params): Query<SearchQuery>) -> Response {
     let start = Instant::now();
     let facade = match state.search_facade.as_ref() {
         Some(f) => f,

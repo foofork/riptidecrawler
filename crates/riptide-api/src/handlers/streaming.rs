@@ -5,7 +5,7 @@
 //! Currently kept as stub to maintain API compatibility.
 
 use crate::errors::ApiError;
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 use axum::{extract::State, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
@@ -40,7 +40,7 @@ pub struct StreamStatusResponse {
 #[allow(dead_code)]
 #[instrument(skip(_state))]
 pub async fn handle_stream_start(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Json(_req): Json<StreamStartRequestDTO>,
 ) -> Result<Json<StreamStartResponse>, ApiError> {
     // TODO Phase 4.3: Wire StreamingFacade with proper dependencies
@@ -55,7 +55,7 @@ pub async fn handle_stream_start(
 #[allow(dead_code)]
 #[instrument(skip(_state))]
 pub async fn handle_stream_status(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Json(_stream_id): Json<String>,
 ) -> Result<Json<StreamStatusResponse>, ApiError> {
     // TODO Phase 4.3: Wire StreamingFacade with proper dependencies
@@ -67,7 +67,7 @@ pub async fn handle_stream_status(
 }
 
 // Backward compatibility for crawl_stream
-pub async fn crawl_stream(State(_state): State<AppState>) -> Result<impl IntoResponse, ApiError> {
+pub async fn crawl_stream(State(_state): State<ApplicationContext>) -> Result<impl IntoResponse, ApiError> {
     Ok(axum::response::Response::builder()
         .status(200)
         .header("content-type", "text/event-stream")

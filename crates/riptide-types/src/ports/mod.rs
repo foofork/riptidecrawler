@@ -61,6 +61,9 @@ pub mod infrastructure;
 pub mod repository;
 pub mod session;
 
+// Phase 2 ports
+pub mod circuit_breaker;
+
 // Sprint 1.5 ports
 pub mod health;
 pub mod http;
@@ -77,6 +80,10 @@ pub mod rate_limit;
 
 // Re-export all ports for convenience
 pub use cache::{CacheStats, CacheStorage};
+pub use circuit_breaker::{
+    with_circuit_breaker, CircuitBreaker, CircuitBreakerConfig, CircuitBreakerPermit,
+    CircuitBreakerStats, CircuitState,
+};
 pub use events::{DomainEvent, EventBus, EventHandler, SubscriptionId};
 pub use features::{
     BrowserDriver, BrowserSession, PdfMetadata, PdfProcessor, ScriptResult, SearchDocument,

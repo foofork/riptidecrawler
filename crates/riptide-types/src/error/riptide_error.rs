@@ -102,6 +102,14 @@ pub enum RiptideError {
         tenant_id: String,
     },
 
+    /// Circuit breaker is open
+    #[error("Circuit breaker is open: {0}")]
+    CircuitBreakerOpen(String),
+
+    /// Operation not implemented
+    #[error("Operation not implemented: {0}")]
+    NotImplemented(String),
+
     /// Generic error with custom message
     #[error("{0}")]
     Custom(String),

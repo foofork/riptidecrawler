@@ -16,7 +16,7 @@ mod tests {
     use super::*;
     use crate::handlers::render::models::{RenderRequest, RenderStats};
     #[allow(unused_imports)]
-    use crate::state::AppState;
+    use crate::context::ApplicationContext;
     use axum::http::StatusCode;
     use riptide_types::{ExtractionMode, OutputFormat};
 
@@ -36,7 +36,7 @@ mod tests {
         };
 
         // This would be tested with actual state
-        // let result = render(State(app_state), session_ctx, Json(empty_url_request)).await;
+        // let result = render(State(context), session_ctx, Json(empty_url_request)).await;
         // assert!(result.is_err());
     }
 

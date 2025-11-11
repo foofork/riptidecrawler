@@ -2,7 +2,7 @@
 
 use axum::{extract::State, Json};
 use crate::errors::{ApiError, ApiResult};
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 
 /// Helper function to return not-implemented error for persistence endpoints
 fn persistence_not_implemented() -> ApiError {

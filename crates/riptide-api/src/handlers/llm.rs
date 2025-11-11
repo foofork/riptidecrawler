@@ -4,7 +4,7 @@
 //! multi-provider system for runtime configuration and provider switching.
 
 use crate::errors::{ApiError, ApiResult};
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 use axum::{
     extract::{Query, State},
     http::StatusCode,
@@ -239,7 +239,7 @@ pub struct CurrentProviderResponse {
 ///
 /// This endpoint returns information about the currently active LLM provider.
 pub async fn get_current_provider_info(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
 ) -> Result<impl IntoResponse, ApiError> {
     let start_time = Instant::now();
 
@@ -296,7 +296,7 @@ pub async fn get_current_provider_info(
 /// - `include_cost`: Include cost information in response
 /// - `include_models`: Include detailed model information
 pub async fn list_providers(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Query(params): Query<ProviderQuery>,
 ) -> Result<impl IntoResponse, ApiError> {
     let start_time = Instant::now();
@@ -372,7 +372,7 @@ pub async fn list_providers(
 /// - `gradual_rollout`: Whether to perform gradual rollout (default: false)
 /// - `rollout_percentage`: Percentage for gradual rollout (default: 100)
 pub async fn switch_provider(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Json(request): Json<SwitchProviderRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
     let start_time = Instant::now();
@@ -548,7 +548,7 @@ pub async fn switch_provider(
 /// - `global_config`: Global configuration settings
 /// - `validate`: Whether to validate configuration before applying
 pub async fn update_config(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Json(request): Json<ConfigUpdateRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
     let start_time = Instant::now();
@@ -662,7 +662,7 @@ pub async fn update_config(
 ///
 /// This endpoint returns the current LLM configuration including
 /// active provider and configuration summary.
-pub async fn get_config(State(state): State<AppState>) -> Result<impl IntoResponse, ApiError> {
+pub async fn get_config(State(state): State<ApplicationContext>) -> Result<impl IntoResponse, ApiError> {
     let start_time = Instant::now();
 
     info!("Received get config request");

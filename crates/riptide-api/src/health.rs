@@ -1,5 +1,5 @@
 use crate::models::{DependencyStatus, HealthResponse, ServiceHealth, SystemMetrics};
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 // prometheus 0.14 uses protobuf 3.x - no trait import needed
 use serde_json::Value;
 use std::collections::HashMap;
@@ -63,18 +63,18 @@ impl HealthChecker {
     }
 
     /// Perform comprehensive health check
-    pub async fn check_health(&self, state: &AppState) -> HealthResponse {
+    pub async fn check_health(&self, context: &ApplicationContext) -> HealthResponse {
         let start_time = Instant::now();
         debug!("Starting comprehensive health check");
 
-        // Basic health status from AppState
-        let basic_health = state.health_check().await;
+        // Basic health status from ApplicationContext
+        let basic_health = context.health_check().await;
 
         // Enhanced dependency checks
-        let dependencies = self.check_dependencies(state).await;
+        let dependencies = self.check_dependencies(context).await;
 
         // System metrics collection
-        let metrics = self.collect_system_metrics(state).await;
+        let metrics = self.collect_system_metrics(context).await;
 
         // Calculate uptime
         let uptime = super::handlers::START_TIME
@@ -125,11 +125,11 @@ impl HealthChecker {
                         "wasm": [0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0],
                         "render": [0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0]
                     },
-                    "cache_ttl": state.config.cache_ttl,
-                    "max_concurrency": state.config.max_concurrency,
+                    "cache_ttl": context.config.cache_ttl,
+                    "max_concurrency": context.config.max_concurrency,
                     "gate_thresholds": {
-                        "high": state.config.gate_hi_threshold,
-                        "low": state.config.gate_lo_threshold
+                        "high": context.config.gate_hi_threshold,
+                        "low": context.config.gate_lo_threshold
                     }
                 });
                 obj.insert("bucket_config".to_string(), bucket_config);
@@ -152,32 +152,32 @@ impl HealthChecker {
     }
 
     /// Check all dependencies with enhanced diagnostics
-    async fn check_dependencies(&self, state: &AppState) -> DependencyStatus {
+    async fn check_dependencies(&self, context: &ApplicationContext) -> DependencyStatus {
         // Redis health check with timing
-        let redis_health = self.check_redis_health(state).await;
+        let redis_health = self.check_redis_health(context).await;
 
         // HTTP client health check with timing
-        let http_health = self.check_http_client_health(state).await;
+        let http_health = self.check_http_client_health(context).await;
 
         // WASM extractor health check
-        let extractor_health = self.check_extractor_health(state).await;
+        let extractor_health = self.check_extractor_health(context).await;
 
         // Headless service health check (if configured)
-        let headless_health = if state.config.headless_url.is_some() {
-            Some(self.check_headless_health(state).await)
+        let headless_health = if context.config.headless_url.is_some() {
+            Some(self.check_headless_health(context).await)
         } else {
             None
         };
 
         // Worker service health check
-        let worker_health = self.check_worker_service_health(state).await;
+        let worker_health = self.check_worker_service_health(context).await;
 
         // Spider engine health check (if enabled)
         let spider_health = {
             #[cfg(feature = "spider")]
             {
-                if state.spider.is_some() {
-                    Some(self.check_spider_health(state).await)
+                if context.spider.is_some() {
+                    Some(self.check_spider_health(context).await)
                 } else {
                     None
                 }
@@ -199,10 +199,10 @@ impl HealthChecker {
     }
 
     /// Enhanced Redis health check with performance metrics
-    async fn check_redis_health(&self, state: &AppState) -> ServiceHealth {
+    async fn check_redis_health(&self, context: &ApplicationContext) -> ServiceHealth {
         let start_time = Instant::now();
 
-        match self.test_redis_operations(state).await {
+        match self.test_redis_operations(context).await {
             Ok(_) => {
                 let response_time = start_time.elapsed().as_millis() as u64;
                 ServiceHealth {
@@ -225,8 +225,8 @@ impl HealthChecker {
     }
 
     /// Test Redis operations including connectivity and performance
-    async fn test_redis_operations(&self, state: &AppState) -> anyhow::Result<()> {
-        let mut cache = state.cache.lock().await;
+    async fn test_redis_operations(&self, context: &ApplicationContext) -> anyhow::Result<()> {
+        let mut cache = context.cache.lock().await;
 
         // Test basic set/get operations
         let test_key = "health_check_test";
@@ -262,9 +262,9 @@ impl HealthChecker {
     }
 
     /// Enhanced HTTP client health check
-    async fn check_http_client_health(&self, state: &AppState) -> ServiceHealth {
+    async fn check_http_client_health(&self, context: &ApplicationContext) -> ServiceHealth {
         // First verify client configuration is valid
-        if !Self::verify_http_client_config(state) {
+        if !Self::verify_http_client_config(context) {
             return ServiceHealth {
                 status: "unhealthy".to_string(),
                 message: Some(
@@ -287,7 +287,7 @@ impl HealthChecker {
         let mut last_error = None;
 
         for endpoint in &test_endpoints {
-            match state.http_client.head(*endpoint).send().await {
+            match context.http_client.head(*endpoint).send().await {
                 Ok(response) if response.status().is_success() => {
                     successful_tests += 1;
                 }
@@ -329,7 +329,7 @@ impl HealthChecker {
     }
 
     /// Check WASM extractor health
-    async fn check_extractor_health(&self, _state: &AppState) -> ServiceHealth {
+    async fn check_extractor_health(&self, _context: &ApplicationContext) -> ServiceHealth {
         // Since WASM extractor is initialized at startup, we assume it's healthy
         // In a real implementation, you might want to test with a simple extraction
         ServiceHealth {
@@ -341,22 +341,22 @@ impl HealthChecker {
     }
 
     /// Verify HTTP client configuration is valid
-    fn verify_http_client_config(state: &AppState) -> bool {
+    fn verify_http_client_config(context: &ApplicationContext) -> bool {
         // Verify timeout settings are reasonable (between 1s and 300s)
-        let fetch_ok = state.config.enhanced_pipeline_config.fetch_timeout_secs >= 1
-            && state.config.enhanced_pipeline_config.fetch_timeout_secs <= 300;
-        let render_ok = state.config.enhanced_pipeline_config.render_timeout_secs >= 1
-            && state.config.enhanced_pipeline_config.render_timeout_secs <= 300;
+        let fetch_ok = context.config.enhanced_pipeline_config.fetch_timeout_secs >= 1
+            && context.config.enhanced_pipeline_config.fetch_timeout_secs <= 300;
+        let render_ok = context.config.enhanced_pipeline_config.render_timeout_secs >= 1
+            && context.config.enhanced_pipeline_config.render_timeout_secs <= 300;
 
         fetch_ok && render_ok
     }
 
     /// Check headless service health
-    pub async fn check_headless_health(&self, state: &AppState) -> ServiceHealth {
-        if let Some(headless_url) = &state.config.headless_url {
+    pub async fn check_headless_health(&self, context: &ApplicationContext) -> ServiceHealth {
+        if let Some(headless_url) = &context.config.headless_url {
             let start_time = Instant::now();
 
-            match state
+            match context
                 .http_client
                 .get(format!("{}/healthz", headless_url))
                 .send()
@@ -395,7 +395,7 @@ impl HealthChecker {
     }
 
     /// Check worker service health (background job processing)
-    async fn check_worker_service_health(&self, state: &AppState) -> ServiceHealth {
+    async fn check_worker_service_health(&self, context: &ApplicationContext) -> ServiceHealth {
         let start_time = Instant::now();
 
         // Check if worker service is running by verifying:
@@ -404,7 +404,7 @@ impl HealthChecker {
         // 3. Background task system is operational
 
         // Check Redis connectivity for worker queues
-        let redis_check = self.test_redis_operations(state).await;
+        let redis_check = self.test_redis_operations(context).await;
 
         match redis_check {
             Ok(_) => {
@@ -431,13 +431,13 @@ impl HealthChecker {
     }
 
     /// Check spider engine health with timeout protection
-    async fn check_spider_health(&self, _state: &AppState) -> ServiceHealth {
+    async fn check_spider_health(&self, _context: &ApplicationContext) -> ServiceHealth {
         let start_time = Instant::now();
 
         // Check if spider engine is initialized
         #[cfg(feature = "spider")]
         {
-            if let Some(spider) = &_state.spider {
+            if let Some(spider) = &_context.spider {
                 // Add timeout protection (2 seconds max)
                 match tokio::time::timeout(
                     std::time::Duration::from_secs(2),
@@ -493,7 +493,7 @@ impl HealthChecker {
     }
 
     /// Collect comprehensive system metrics with real implementations
-    pub async fn collect_system_metrics(&self, state: &AppState) -> SystemMetrics {
+    pub async fn collect_system_metrics(&self, context: &ApplicationContext) -> SystemMetrics {
         // Get real system-level metrics
         let system_metrics = Self::get_comprehensive_system_metrics().await;
 
@@ -501,7 +501,7 @@ impl HealthChecker {
         let memory_usage_bytes = system_metrics.memory_usage_bytes;
 
         // Get metrics from Prometheus registry
-        let metrics_data = state.metrics_registry().gather();
+        let metrics_data = context.metrics_registry().gather();
 
         // Extract key metrics from the prometheus data
         let mut total_requests = 0u64;
@@ -551,7 +551,7 @@ impl HealthChecker {
         };
 
         #[cfg(feature = "browser")]
-        let active_connections = match &state.resource_manager.browser_pool {
+        let active_connections = match &context.resource_manager.browser_pool {
             Some(pool) => pool.get_stats().await.in_use as u32,
             None => 0, // No local browser pool when using headless service
         };
@@ -745,7 +745,7 @@ pub fn classify_health_score(score: f32) -> &'static str {
 
 /// Perform headless service health check
 #[allow(dead_code)] // Public API for external use, actual implementation in HealthChecker
-pub async fn perform_headless_health_check(_state: &AppState) -> ServiceHealth {
+pub async fn perform_headless_health_check(_context: &ApplicationContext) -> ServiceHealth {
     // Placeholder implementation - actual headless check is in HealthChecker
     ServiceHealth {
         status: "not_implemented".to_string(),
@@ -757,15 +757,15 @@ pub async fn perform_headless_health_check(_state: &AppState) -> ServiceHealth {
 
 /// Collect system metrics
 #[allow(dead_code)] // Public API for external use, delegates to HealthChecker
-pub async fn collect_system_metrics(state: &AppState) -> SystemMetrics {
+pub async fn collect_system_metrics(context: &ApplicationContext) -> SystemMetrics {
     let checker = HealthChecker::new();
-    checker.collect_system_metrics(state).await
+    checker.collect_system_metrics(context).await
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::AppState;
+    use crate::context::ApplicationContext;
 
     #[test]
     fn test_health_checker_initialization() {
@@ -804,7 +804,7 @@ mod tests {
     #[tokio::test]
     #[ignore = "requires Redis - run with: cargo test -- --ignored"]
     async fn test_health_check_basic() {
-        let state = AppState::new_test_minimal().await;
+        let state = ApplicationContext::new_test_minimal().await;
         let checker = HealthChecker::new();
 
         let health_response = checker.check_health(&state).await;
@@ -820,7 +820,7 @@ mod tests {
     #[tokio::test]
     #[ignore = "requires Redis - run with: cargo test -- --ignored"]
     async fn test_health_check_dependencies() {
-        let state = AppState::new_test_minimal().await;
+        let state = ApplicationContext::new_test_minimal().await;
         let checker = HealthChecker::new();
 
         let health_response = checker.check_health(&state).await;
@@ -837,7 +837,7 @@ mod tests {
     #[tokio::test]
     #[ignore = "requires Redis - run with: cargo test -- --ignored"]
     async fn test_system_metrics_collection() {
-        let state = AppState::new_test_minimal().await;
+        let state = ApplicationContext::new_test_minimal().await;
         let checker = HealthChecker::new();
 
         let metrics = checker.collect_system_metrics(&state).await;
@@ -853,7 +853,7 @@ mod tests {
     #[tokio::test]
     #[ignore = "requires Redis - run with: cargo test -- --ignored"]
     async fn test_spider_health_check_not_configured() {
-        let state = AppState::new_test_minimal().await;
+        let state = ApplicationContext::new_test_minimal().await;
         let checker = HealthChecker::new();
 
         let health_response = checker.check_health(&state).await;
@@ -865,7 +865,7 @@ mod tests {
     #[tokio::test]
     #[ignore = "requires Redis - run with: cargo test -- --ignored"]
     async fn test_redis_health_check() {
-        let state = AppState::new_test_minimal().await;
+        let state = ApplicationContext::new_test_minimal().await;
         let checker = HealthChecker::new();
 
         let health_response = checker.check_health(&state).await;
@@ -883,7 +883,7 @@ mod tests {
     #[tokio::test]
     #[ignore = "requires Redis - run with: cargo test -- --ignored"]
     async fn test_worker_service_health_check() {
-        let state = AppState::new_test_minimal().await;
+        let state = ApplicationContext::new_test_minimal().await;
         let checker = HealthChecker::new();
 
         let health_response = checker.check_health(&state).await;
@@ -901,7 +901,7 @@ mod tests {
     #[tokio::test]
     #[ignore = "requires Redis - run with: cargo test -- --ignored"]
     async fn test_health_check_performance() {
-        let state = AppState::new_test_minimal().await;
+        let state = ApplicationContext::new_test_minimal().await;
         let checker = HealthChecker::new();
 
         // Warm up
@@ -924,7 +924,7 @@ mod tests {
     #[tokio::test]
     #[ignore = "requires Redis - run with: cargo test -- --ignored"]
     async fn test_metrics_collection_performance() {
-        let state = AppState::new_test_minimal().await;
+        let state = ApplicationContext::new_test_minimal().await;
         let checker = HealthChecker::new();
 
         let start = std::time::Instant::now();
@@ -944,7 +944,7 @@ mod tests {
     #[ignore = "requires Redis - run with: cargo test -- --ignored"]
     async fn test_spider_timeout_protection() {
         // This test verifies the timeout mechanism exists
-        let state = AppState::new_test_minimal().await;
+        let state = ApplicationContext::new_test_minimal().await;
         let checker = HealthChecker::new();
 
         // Health check should complete quickly even if components are slow

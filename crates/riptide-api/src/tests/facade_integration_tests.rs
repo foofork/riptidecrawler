@@ -16,7 +16,8 @@ use crate::config::RiptideApiConfig;
 #[cfg(feature = "browser")]
 use crate::handlers::browser::CreateSessionRequest;
 use crate::health::HealthChecker;
-use crate::state::{AppConfig, AppState};
+use crate::context::ApplicationContext;
+use crate::state::AppConfig;
 use anyhow::Result;
 use axum::{extract::State, Json};
 #[cfg(feature = "browser")]
@@ -37,8 +38,8 @@ use wiremock::{
 // Test Helpers
 // ============================================================================
 
-/// Create a test AppState with minimal configuration (no real resources)
-async fn create_test_app_state() -> Result<AppState> {
+/// Create a test ApplicationContext with minimal configuration (no real resources)
+async fn create_test_app_state() -> Result<ApplicationContext> {
     let config = AppConfig {
         redis_url: "redis://localhost:6379".to_string(),
         wasm_path: "./target/wasm32-wasip2/release/riptide_extractor_wasm.wasm".to_string(),
@@ -57,7 +58,7 @@ async fn create_test_app_state() -> Result<AppState> {
     // Phase D: Removed deprecated metrics parameter
     let health_checker = Arc::new(HealthChecker::new());
 
-    AppState::new_base(config, api_config, health_checker, None).await
+    ApplicationContext::new_base(config, api_config, health_checker, None).await
 }
 
 /// Create a mock HTTP server for testing fetch operations

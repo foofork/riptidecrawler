@@ -5,7 +5,7 @@
 /// This module provides endpoints for retrieving and visualizing enhanced pipeline metrics,
 /// including detailed phase timing data, gate decision statistics, and performance trends.
 use crate::errors::ApiError;
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -138,7 +138,7 @@ pub struct TimeoutConfig {
     )
 )]
 pub async fn get_pipeline_metrics(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
 ) -> Result<Json<EnhancedPipelineMetrics>, ApiError> {
     // Collect metrics from the metrics system
     // Note: metrics variable removed as it's not yet used (placeholder implementation)
@@ -224,7 +224,7 @@ pub async fn get_pipeline_metrics(
     )
 )]
 pub async fn toggle_enhanced_pipeline(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Json(request): Json<ToggleRequest>,
 ) -> Result<Json<ToggleResponse>, ApiError> {
     // Note: In production, this would require authentication and authorization

@@ -56,6 +56,25 @@ use crate::middleware::AuthConfig;
 /// This struct contains all the shared resources needed for crawling operations,
 /// including HTTP clients, cache connections, and content extractors. The state
 /// is wrapped in Arc for efficient sharing across async handlers.
+///
+/// # Deprecation Notice
+/// **DEPRECATED**: Use `context::ApplicationContext` instead.
+///
+/// This type is maintained for backward compatibility but new code should use
+/// ApplicationContext which provides a cleaner abstraction following hexagonal
+/// architecture principles.
+///
+/// # Migration Path
+/// ```rust
+/// // Old (deprecated):
+/// use crate::state::AppState;
+/// async fn handler(State(state): State<AppState>) { }
+///
+/// // New (recommended):
+/// use crate::context::ApplicationContext;
+/// async fn handler(State(ctx): State<ApplicationContext>) { }
+/// ```
+#[deprecated(since = "0.1.0", note = "Use context::ApplicationContext instead. See migration guide in docs/migrations/APPSTATE_ELIMINATION_PLAN.md")]
 #[derive(Clone)]
 pub struct AppState {
     /// HTTP client for fetching web content
@@ -1472,6 +1491,7 @@ impl AppState {
     }
 
     /// Record phase timing using business metrics
+    #[allow(deprecated)]
     pub fn record_phase_timing(&self, phase: &str, duration_secs: f64) {
         // Map phase name to appropriate histogram
         match phase {
@@ -1498,22 +1518,26 @@ impl AppState {
     }
 
     /// Record gate decision using business metrics
+    #[allow(deprecated)]
     pub fn record_gate_decision(&self, decision: &str) {
         self.business_metrics.record_gate_decision(decision);
     }
 
     /// Get prometheus registry for metrics endpoint
+    #[allow(deprecated)]
     pub fn metrics_registry(&self) -> &prometheus::Registry {
         self.combined_metrics.registry()
     }
 
     /// Update streaming metrics (delegates to business metrics)
+    #[allow(deprecated)]
     pub fn update_streaming_metrics(&self, _metrics: &crate::streaming::GlobalStreamingMetrics) {
         // Delegate to business metrics for streaming operations
         self.business_metrics.record_stream_created("", "");
     }
 
     /// Record PDF processing success
+    #[allow(deprecated)]
     pub fn record_pdf_success(&self, pages: usize, duration_secs: f64) {
         self.business_metrics
             .record_pdf_processing_success(duration_secs, pages as u32, 0.0);

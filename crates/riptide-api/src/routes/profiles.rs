@@ -5,9 +5,9 @@
 //! This module defines the routing configuration for domain profile management
 //! and engine caching endpoints.
 
+use crate::context::ApplicationContext;
 #[cfg(feature = "llm")]
 use crate::handlers::profiles;
-use crate::state::AppState;
 use axum::{
     routing::{delete, get, post, put},
     Router,
@@ -66,7 +66,7 @@ use axum::{
 /// GET /api/v1/profiles/metrics
 /// ```
 #[cfg(feature = "llm")]
-pub fn profile_routes() -> Router<AppState> {
+pub fn profile_routes() -> Router<ApplicationContext> {
     Router::new()
         // Profile CRUD operations
         .route("/", post(profiles::create_profile))
@@ -89,7 +89,7 @@ pub fn profile_routes() -> Router<AppState> {
 /// Create stub profile routes when feature is disabled
 /// Returns HTTP 501 "Not Implemented" for all profile endpoints
 #[cfg(not(feature = "llm"))]
-pub fn profile_routes() -> Router<AppState> {
+pub fn profile_routes() -> Router<ApplicationContext> {
     use crate::handlers::stubs::*;
 
     Router::new()

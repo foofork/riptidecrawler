@@ -3,37 +3,16 @@
 //! These tests verify that the CrawlFacade correctly delegates to the
 //! underlying production orchestrators (1,596 lines) without rebuilding them.
 
-use riptide_api::state::AppState;
+mod common;
+
+use common::{create_test_orchestrators, create_test_pipeline_orchestrator, create_test_state, create_test_strategies_orchestrator};
 use riptide_facade::facades::{CrawlFacade, CrawlMode, CrawlResult};
 use riptide_types::config::CrawlOptions;
-use std::sync::Arc;
-
-/// Helper to create test AppState
-async fn create_test_state() -> AppState {
-    let config = riptide_api::state::AppConfig::default();
-    let health_checker = std::sync::Arc::new(riptide_api::health::HealthChecker::new());
-    AppState::new(config, health_checker)
-        .await
-        .expect("Failed to create test AppState")
-}
 
 #[tokio::test]
 async fn test_facade_wraps_both_orchestrators() {
-    let state = create_test_state().await;
     let options = CrawlOptions::default();
-
-    // Create orchestrators from state
-    let pipeline = Arc::new(riptide_api::pipeline::PipelineOrchestrator::new(
-        state.clone(),
-        options.clone(),
-    ));
-    let strategies = Arc::new(
-        riptide_api::strategies_pipeline::StrategiesPipelineOrchestrator::new(
-            state.clone(),
-            options,
-            None,
-        ),
-    );
+    let (pipeline, strategies) = create_test_orchestrators(options).await;
 
     let facade = CrawlFacade::new(pipeline, strategies);
 
@@ -53,21 +32,8 @@ async fn test_facade_wraps_both_orchestrators() {
 
 #[tokio::test]
 async fn test_standard_mode_delegation() {
-    let state = create_test_state().await;
     let options = CrawlOptions::default();
-
-    // Create orchestrators from state
-    let pipeline = Arc::new(riptide_api::pipeline::PipelineOrchestrator::new(
-        state.clone(),
-        options.clone(),
-    ));
-    let strategies = Arc::new(
-        riptide_api::strategies_pipeline::StrategiesPipelineOrchestrator::new(
-            state.clone(),
-            options.clone(),
-            None,
-        ),
-    );
+    let (pipeline, strategies) = create_test_orchestrators(options.clone()).await;
 
     let facade = CrawlFacade::new(pipeline, strategies);
 
@@ -95,21 +61,8 @@ async fn test_standard_mode_delegation() {
 
 #[tokio::test]
 async fn test_enhanced_mode_delegation() {
-    let state = create_test_state().await;
     let options = CrawlOptions::default();
-
-    // Create orchestrators from state
-    let pipeline = Arc::new(riptide_api::pipeline::PipelineOrchestrator::new(
-        state.clone(),
-        options.clone(),
-    ));
-    let strategies = Arc::new(
-        riptide_api::strategies_pipeline::StrategiesPipelineOrchestrator::new(
-            state.clone(),
-            options.clone(),
-            None,
-        ),
-    );
+    let (pipeline, strategies) = create_test_orchestrators(options.clone()).await;
 
     let facade = CrawlFacade::new(pipeline, strategies);
 
@@ -133,21 +86,8 @@ async fn test_enhanced_mode_delegation() {
 
 #[tokio::test]
 async fn test_batch_crawl_delegation() {
-    let state = create_test_state().await;
     let options = CrawlOptions::default();
-
-    // Create orchestrators from state
-    let pipeline = Arc::new(riptide_api::pipeline::PipelineOrchestrator::new(
-        state.clone(),
-        options.clone(),
-    ));
-    let strategies = Arc::new(
-        riptide_api::strategies_pipeline::StrategiesPipelineOrchestrator::new(
-            state.clone(),
-            options,
-            None,
-        ),
-    );
+    let (pipeline, strategies) = create_test_orchestrators(options).await;
 
     let facade = CrawlFacade::new(pipeline, strategies);
 
@@ -174,24 +114,13 @@ async fn test_batch_crawl_delegation() {
 
 #[tokio::test]
 async fn test_facade_with_custom_options() {
-    let state = create_test_state().await;
     let options = CrawlOptions {
         spider_max_depth: Some(3),
         ..Default::default()
     };
 
-    // Create orchestrators from state with custom options
-    let pipeline = Arc::new(riptide_api::pipeline::PipelineOrchestrator::new(
-        state.clone(),
-        options.clone(),
-    ));
-    let strategies = Arc::new(
-        riptide_api::strategies_pipeline::StrategiesPipelineOrchestrator::new(
-            state.clone(),
-            options,
-            None,
-        ),
-    );
+    // Create orchestrators with custom options
+    let (pipeline, strategies) = create_test_orchestrators(options.clone()).await;
 
     let facade = CrawlFacade::new(pipeline, strategies);
 
@@ -202,22 +131,8 @@ async fn test_facade_with_custom_options() {
 
 #[tokio::test]
 async fn test_facade_with_strategy_config() {
-    let state = create_test_state().await;
     let options = CrawlOptions::default();
-    let strategy_config = riptide_extraction::strategies::StrategyConfig::default();
-
-    // Create orchestrators from state with custom strategy config
-    let pipeline = Arc::new(riptide_api::pipeline::PipelineOrchestrator::new(
-        state.clone(),
-        options.clone(),
-    ));
-    let strategies = Arc::new(
-        riptide_api::strategies_pipeline::StrategiesPipelineOrchestrator::new(
-            state.clone(),
-            options,
-            Some(strategy_config),
-        ),
-    );
+    let (pipeline, strategies) = create_test_orchestrators(options.clone()).await;
 
     let facade = CrawlFacade::new(pipeline, strategies);
 
@@ -235,21 +150,8 @@ async fn test_mode_enum_comparison() {
 
 #[tokio::test]
 async fn test_orchestrator_access() {
-    let state = create_test_state().await;
     let options = CrawlOptions::default();
-
-    // Create orchestrators from state
-    let pipeline = Arc::new(riptide_api::pipeline::PipelineOrchestrator::new(
-        state.clone(),
-        options.clone(),
-    ));
-    let strategies = Arc::new(
-        riptide_api::strategies_pipeline::StrategiesPipelineOrchestrator::new(
-            state.clone(),
-            options,
-            None,
-        ),
-    );
+    let (pipeline, strategies) = create_test_orchestrators(options).await;
 
     let facade = CrawlFacade::new(pipeline, strategies);
 
@@ -263,21 +165,8 @@ async fn test_orchestrator_access() {
 
 #[tokio::test]
 async fn test_facade_clone_safety() {
-    let state = create_test_state().await;
     let options = CrawlOptions::default();
-
-    // Create orchestrators from state
-    let pipeline = Arc::new(riptide_api::pipeline::PipelineOrchestrator::new(
-        state.clone(),
-        options.clone(),
-    ));
-    let strategies = Arc::new(
-        riptide_api::strategies_pipeline::StrategiesPipelineOrchestrator::new(
-            state.clone(),
-            options,
-            None,
-        ),
-    );
+    let (pipeline, strategies) = create_test_orchestrators(options).await;
 
     let facade = CrawlFacade::new(pipeline, strategies);
 
@@ -300,21 +189,8 @@ async fn test_facade_clone_safety() {
 /// Test that verifies the facade maintains production code integrity
 #[tokio::test]
 async fn test_production_code_not_rebuilt() {
-    let state = create_test_state().await;
     let options = CrawlOptions::default();
-
-    // Create orchestrators from state
-    let pipeline = Arc::new(riptide_api::pipeline::PipelineOrchestrator::new(
-        state.clone(),
-        options.clone(),
-    ));
-    let strategies = Arc::new(
-        riptide_api::strategies_pipeline::StrategiesPipelineOrchestrator::new(
-            state.clone(),
-            options,
-            None,
-        ),
-    );
+    let (pipeline, strategies) = create_test_orchestrators(options).await;
 
     let facade = CrawlFacade::new(pipeline, strategies);
 

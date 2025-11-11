@@ -5,7 +5,7 @@
 #![allow(dead_code)]
 use crate::errors::ApiError;
 use crate::models::*;
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 use axum::{
     extract::{Query, State},
     response::IntoResponse,
@@ -64,7 +64,7 @@ pub struct SpiderCrawlQuery {
     )
 )]
 pub async fn spider_crawl(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Query(_query): Query<SpiderCrawlQuery>,
     Json(body): Json<SpiderCrawlBody>,
 ) -> Result<impl IntoResponse, ApiError> {
@@ -104,7 +104,7 @@ pub async fn spider_crawl(
 
 /// Get spider status and metrics
 pub async fn spider_status(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Json(_body): Json<SpiderStatusRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
     // Get spider facade
@@ -137,7 +137,7 @@ pub async fn spider_status(
 
 /// Spider control endpoint for start/stop/reset operations
 pub async fn spider_control(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Json(_body): Json<SpiderControlRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
     // Get spider facade
@@ -168,7 +168,7 @@ pub async fn spider_control(
 /// Coordinates rate limiting, memory pressure, and pool capacity through
 /// the ResourceFacade layer (Phase 5 integration).
 async fn acquire_spider_resources(
-    state: &AppState,
+    state: &ApplicationContext,
     tenant_id: &str,
 ) -> Result<crate::adapters::ResourceSlot, ApiError> {
     use riptide_facade::facades::ResourceResult as FacadeResult;

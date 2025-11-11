@@ -37,6 +37,7 @@ pub mod config;
 
 use anyhow::Result;
 use riptide_types::ports::infrastructure::{Clock, Entropy, SystemClock, SystemEntropy};
+use riptide_types::ports::{CircuitBreaker, CircuitBreakerConfig};
 use riptide_types::{EventBus, IdempotencyStore, Repository, TransactionManager};
 
 use serde::{Deserialize, Serialize};
@@ -122,6 +123,10 @@ pub struct ApplicationContext {
     /// Idempotency store for duplicate request prevention
     pub idempotency_store: Arc<dyn IdempotencyStore>,
 
+    // === Resilience ===
+    /// Circuit breaker for fault tolerance
+    pub circuit_breaker: Arc<dyn CircuitBreaker>,
+
     // === Configuration ===
     /// Feature flags and runtime configuration
     pub config: DiConfig,
@@ -205,6 +210,14 @@ impl ApplicationContext {
                 Arc::new(InMemoryIdempotencyStore::new()) as Arc<dyn IdempotencyStore>;
             info!("Idempotency store initialized (in-memory)");
 
+            // Wire circuit breaker
+            let circuit_breaker = {
+                use riptide_cache::adapters::StandardCircuitBreakerAdapter;
+                StandardCircuitBreakerAdapter::new(CircuitBreakerConfig::default())
+                    as Arc<dyn CircuitBreaker>
+            };
+            info!("Circuit breaker initialized (standard)");
+
             info!("ApplicationContext initialization complete (PostgreSQL mode)");
 
             return Ok(Self {
@@ -215,6 +228,7 @@ impl ApplicationContext {
                 event_repository,
                 event_bus,
                 idempotency_store,
+                circuit_breaker,
                 config: config.clone(),
             });
         }
@@ -244,6 +258,14 @@ impl ApplicationContext {
                 Arc::new(InMemoryIdempotencyStore::new()) as Arc<dyn IdempotencyStore>;
             info!("Idempotency store initialized (in-memory)");
 
+            // === Wire Circuit Breaker ===
+            let circuit_breaker = {
+                use riptide_cache::adapters::StandardCircuitBreakerAdapter;
+                StandardCircuitBreakerAdapter::new(CircuitBreakerConfig::default())
+                    as Arc<dyn CircuitBreaker>
+            };
+            info!("Circuit breaker initialized (standard)");
+
             info!("ApplicationContext initialization complete (in-memory mode)");
 
             Ok(Self {
@@ -254,6 +276,7 @@ impl ApplicationContext {
                 event_repository,
                 event_bus,
                 idempotency_store,
+                circuit_breaker,
                 config: config.clone(),
             })
         }
@@ -344,6 +367,12 @@ impl ApplicationContext {
             let idempotency_store =
                 Arc::new(InMemoryIdempotencyStore::new()) as Arc<dyn IdempotencyStore>;
 
+            let circuit_breaker = {
+                use riptide_cache::adapters::StandardCircuitBreakerAdapter;
+                StandardCircuitBreakerAdapter::new(CircuitBreakerConfig::default())
+                    as Arc<dyn CircuitBreaker>
+            };
+
             let config = DiConfig::default();
 
             Self {
@@ -354,6 +383,7 @@ impl ApplicationContext {
                 event_repository,
                 event_bus,
                 idempotency_store,
+                circuit_breaker,
                 config,
             }
         }

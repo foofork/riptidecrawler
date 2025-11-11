@@ -14,6 +14,9 @@ riptide-events = { path = "../riptide-events" }
 # Phase 1: WASM Optional - Use native-parser by default
 riptide-extraction = { path = "../riptide-extraction", default-features = false, features = ["css-extraction", "regex-extraction", "dom-utils", "chunking", "native-parser"] }
 anyhow = "1.0"
+# Phase 2: Circuit breaker dependencies
+riptide-utils = { path = "../riptide-utils" }
+riptide-intelligence = { path = "../riptide-intelligence" }
 thiserror = "1.0"
 
 # Async runtime
@@ -46,6 +49,9 @@ tracing = "0.1"
 
 # Collections
 dashmap = "6.0"
+
+# Synchronization primitives
+parking_lot = "0.12"
 
 # URL parsing for cache warming
 url = "2.5"

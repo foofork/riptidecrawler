@@ -2,7 +2,7 @@
 //!
 //! This module defines the HTTP routes for stealth configuration, testing, and capabilities.
 
-use crate::{handlers::stealth, state::AppState};
+use crate::{handlers::stealth, context::ApplicationContext};
 use axum::{
     routing::{get, post},
     Router,
@@ -15,7 +15,7 @@ use axum::{
 /// - Stealth effectiveness testing
 /// - Stealth capabilities inquiry
 /// - Health check for stealth features
-pub fn stealth_routes() -> Router<AppState> {
+pub fn stealth_routes() -> Router<ApplicationContext> {
     Router::new()
         // Stealth configuration endpoint
         .route("/configure", post(stealth::configure_stealth))

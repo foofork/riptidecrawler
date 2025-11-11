@@ -1,6 +1,6 @@
 //! Memory handler - <50 LOC after facade refactoring
 use crate::errors::ApiError;
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 use axum::{extract::State, Json};
 use riptide_facade::facades::memory::{MemoryFacade, MemoryUsageResponse};
 use tracing::instrument;
@@ -9,7 +9,7 @@ use tracing::instrument;
 #[allow(dead_code)]
 #[instrument(skip(_state))]
 pub async fn handle_memory_usage(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
 ) -> Result<Json<MemoryUsageResponse>, ApiError> {
     MemoryFacade::new()
         .get_memory_usage()
@@ -20,7 +20,7 @@ pub async fn handle_memory_usage(
 
 /// Memory profile handler stub - returns basic memory statistics
 pub async fn memory_profile_handler(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
 ) -> Result<Json<MemoryUsageResponse>, ApiError> {
     Ok(Json(MemoryUsageResponse {
         total_bytes: 0,

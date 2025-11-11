@@ -26,6 +26,7 @@ use anyhow::Result;
 use riptide_types::ports::infrastructure::{
     Clock, DeterministicEntropy, Entropy, FakeClock, SystemClock, SystemEntropy,
 };
+use riptide_types::ports::{CircuitBreaker, CircuitBreakerConfig};
 use riptide_types::{EventBus, IdempotencyStore, Repository};
 
 #[cfg(not(feature = "postgres"))]
@@ -53,6 +54,7 @@ pub struct ApplicationContextBuilder {
     event_repository: Option<Arc<dyn Repository<Event>>>,
     event_bus: Option<Arc<dyn EventBus>>,
     idempotency_store: Option<Arc<dyn IdempotencyStore>>,
+    circuit_breaker: Option<Arc<dyn CircuitBreaker>>,
     config: DiConfig,
 }
 
@@ -66,6 +68,7 @@ impl ApplicationContextBuilder {
             event_repository: None,
             event_bus: None,
             idempotency_store: None,
+            circuit_breaker: None,
             config: DiConfig::for_testing(),
         }
     }
@@ -293,6 +296,12 @@ impl ApplicationContextBuilder {
             .idempotency_store
             .unwrap_or_else(|| Arc::new(InMemoryIdempotencyStore::new()));
 
+        let circuit_breaker = self.circuit_breaker.unwrap_or_else(|| {
+            use riptide_cache::adapters::StandardCircuitBreakerAdapter;
+            StandardCircuitBreakerAdapter::new(CircuitBreakerConfig::default())
+                as Arc<dyn CircuitBreaker>
+        });
+
         // For testing, we create a stub transaction manager
         let transaction_manager = Arc::new(InMemoryTransactionManager::new())
             as Arc<dyn TransactionManager<Transaction = InMemoryTransaction>>;
@@ -305,6 +314,7 @@ impl ApplicationContextBuilder {
             event_repository,
             event_bus,
             idempotency_store,
+            circuit_breaker,
             config: self.config,
         }
     }
@@ -350,6 +360,12 @@ impl ApplicationContextBuilder {
         let transaction_manager = Arc::new(InMemoryTransactionManager::new())
             as Arc<dyn TransactionManager<Transaction = InMemoryTransaction>>;
 
+        let circuit_breaker = self.circuit_breaker.unwrap_or_else(|| {
+            use riptide_cache::adapters::StandardCircuitBreakerAdapter;
+            StandardCircuitBreakerAdapter::new(CircuitBreakerConfig::default())
+                as Arc<dyn CircuitBreaker>
+        });
+
         Ok(ApplicationContext {
             clock: self.clock.unwrap(),
             entropy: self.entropy.unwrap(),
@@ -358,6 +374,7 @@ impl ApplicationContextBuilder {
             event_repository: self.event_repository.unwrap(),
             event_bus: self.event_bus.unwrap(),
             idempotency_store: self.idempotency_store.unwrap(),
+            circuit_breaker,
             config: self.config,
         })
     }

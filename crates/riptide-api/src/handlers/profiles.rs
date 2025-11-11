@@ -3,7 +3,7 @@
 //! All business logic delegated to ProfileFacade.
 //! Handlers are <50 LOC total, focused only on HTTP transport concerns.
 
-use crate::{dto::profiles::*, errors::ApiError, state::AppState};
+use crate::{dto::profiles::*, errors::ApiError, context::ApplicationContext};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -16,7 +16,7 @@ use tracing::{debug, error, info};
 
 /// Create profile (ultra-thin - 4 LOC)
 pub async fn create_profile(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Json(request): Json<CreateProfileRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
     let facade = ProfileFacade::new();
@@ -41,7 +41,7 @@ pub async fn create_profile(
 
 /// Get profile (ultra-thin - 3 LOC)
 pub async fn get_profile(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Path(domain): Path<String>,
 ) -> Result<impl IntoResponse, ApiError> {
     let profile = ProfileManager::load(&domain).map_err(|_| ApiError::NotFound {
@@ -52,7 +52,7 @@ pub async fn get_profile(
 
 /// Update profile (ultra-thin - 4 LOC)
 pub async fn update_profile(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Path(domain): Path<String>,
     Json(request): Json<UpdateProfileRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
@@ -73,7 +73,7 @@ pub async fn update_profile(
 
 /// Delete profile (ultra-thin - 3 LOC)
 pub async fn delete_profile(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Path(domain): Path<String>,
 ) -> Result<impl IntoResponse, ApiError> {
     ProfileManager::delete(&domain).map_err(|_| ApiError::NotFound {
@@ -85,7 +85,7 @@ pub async fn delete_profile(
 
 /// Batch create profiles (ultra-thin - 4 LOC)
 pub async fn batch_create_profiles(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Json(request): Json<BatchCreateRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
     let facade = ProfileFacade::new();
@@ -119,7 +119,7 @@ pub async fn batch_create_profiles(
 
 /// Search profiles (ultra-thin - 3 LOC)
 pub async fn search_profiles(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Query(query): Query<SearchQuery>,
 ) -> Result<impl IntoResponse, ApiError> {
     let profiles = ProfileManager::search(&query.query).map_err(|e| ApiError::InternalError {
@@ -130,7 +130,7 @@ pub async fn search_profiles(
 
 /// List profiles (ultra-thin - 3 LOC)
 pub async fn list_profiles(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Query(query): Query<ListQuery>,
 ) -> Result<impl IntoResponse, ApiError> {
     let profiles = if let Some(f) = query.filter {
@@ -153,7 +153,7 @@ pub async fn list_profiles(
 
 /// Get profile stats (ultra-thin - 3 LOC)
 pub async fn get_profile_stats(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Path(domain): Path<String>,
 ) -> Result<impl IntoResponse, ApiError> {
     let profile = ProfileManager::load(&domain).map_err(|_| ApiError::NotFound {
@@ -164,7 +164,7 @@ pub async fn get_profile_stats(
 
 /// Warm cache (ultra-thin - 4 LOC)
 pub async fn warm_cache(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Json(request): Json<WarmCacheRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
     let facade = ProfileFacade::new();
@@ -185,7 +185,7 @@ pub async fn warm_cache(
 
 /// Get caching metrics (ultra-thin - 3 LOC)
 pub async fn get_caching_metrics(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
 ) -> Result<impl IntoResponse, ApiError> {
     let facade = ProfileFacade::new();
     let metrics = facade
@@ -204,7 +204,7 @@ pub async fn get_caching_metrics(
 
 /// Clear all caches (ultra-thin - 3 LOC)
 pub async fn clear_all_caches(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
 ) -> Result<impl IntoResponse, ApiError> {
     let facade = ProfileFacade::new();
     facade

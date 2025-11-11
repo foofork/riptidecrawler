@@ -81,7 +81,7 @@ futures.workspace = true
 scraper.workspace = true
 spider_chromiumoxide_cdp = { workspace = true }
 criterion = "0.5"
-# Integration tests need riptide-api to create orchestrators
+# Test utilities for creating orchestrators
 riptide-api = { path = "../riptide-api" }
 
 [features]

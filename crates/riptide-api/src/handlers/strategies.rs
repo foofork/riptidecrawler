@@ -1,6 +1,6 @@
 //! Strategies handler - <50 LOC after facade refactoring
 use crate::errors::ApiError;
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 use axum::{extract::State, Json};
 use riptide_facade::facades::strategies::{StrategiesFacade, StrategyRequest, StrategyResponse};
 use serde::Deserialize;
@@ -19,7 +19,7 @@ pub struct StrategyRequestDTO {
 #[allow(dead_code)]
 #[instrument(skip(_state))]
 pub async fn handle_strategy_selection(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Json(req): Json<StrategyRequestDTO>,
 ) -> Result<Json<StrategyResponse>, ApiError> {
     StrategiesFacade::new()

@@ -2,7 +2,7 @@
 //!
 //! This module defines the HTTP routes for PDF processing with progress tracking.
 
-use crate::{handlers::pdf, state::AppState};
+use crate::{handlers::pdf, context::ApplicationContext};
 use axum::{
     routing::{get, post},
     Router,
@@ -15,7 +15,7 @@ use axum::{
 /// - Multipart PDF file upload and processing
 /// - Streaming PDF processing with real-time progress
 /// - Health check for PDF processing capabilities
-pub fn pdf_routes() -> Router<AppState> {
+pub fn pdf_routes() -> Router<ApplicationContext> {
     Router::new()
         // Synchronous PDF processing endpoint (JSON body)
         .route("/process", post(pdf::process_pdf))

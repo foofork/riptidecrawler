@@ -1,6 +1,6 @@
 //! Monitoring handler - <50 LOC after facade refactoring
 use crate::errors::ApiError;
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 use axum::{extract::State, Json};
 use riptide_facade::facades::monitoring::{
     HealthScoreResponse, MonitoringFacade, PerformanceReportResponse,
@@ -11,7 +11,7 @@ use tracing::instrument;
 #[allow(dead_code)]
 #[instrument(skip(_state))]
 pub async fn handle_health_score(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
 ) -> Result<Json<HealthScoreResponse>, ApiError> {
     MonitoringFacade::new()
         .get_health_score()
@@ -24,7 +24,7 @@ pub async fn handle_health_score(
 #[allow(dead_code)]
 #[instrument(skip(_state))]
 pub async fn handle_performance_report(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
 ) -> Result<Json<PerformanceReportResponse>, ApiError> {
     MonitoringFacade::new()
         .get_performance_report()
@@ -35,7 +35,7 @@ pub async fn handle_performance_report(
 
 /// Get health score stub - returns healthy status
 pub async fn get_health_score(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
 ) -> Result<Json<HealthScoreResponse>, ApiError> {
     Ok(Json(HealthScoreResponse {
         health_score: 100.0,
@@ -46,7 +46,7 @@ pub async fn get_health_score(
 
 /// Get performance report stub - returns empty report
 pub async fn get_performance_report(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
 ) -> Result<Json<PerformanceReportResponse>, ApiError> {
     Ok(Json(PerformanceReportResponse {
         metrics: std::collections::HashMap::new(),
@@ -57,7 +57,7 @@ pub async fn get_performance_report(
 
 /// Get current metrics stub - returns basic system metrics
 pub async fn get_current_metrics(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     Ok(Json(serde_json::json!({
         "cpu": 0.0,
@@ -68,7 +68,7 @@ pub async fn get_current_metrics(
 
 /// Get alert rules stub - returns empty rules list
 pub async fn get_alert_rules(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     Ok(Json(serde_json::json!({
         "rules": [],
@@ -78,7 +78,7 @@ pub async fn get_alert_rules(
 
 /// Get active alerts stub - returns no active alerts
 pub async fn get_active_alerts(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     Ok(Json(serde_json::json!({
         "alerts": [],
@@ -88,7 +88,7 @@ pub async fn get_active_alerts(
 
 /// Get memory metrics stub - returns zero memory usage
 pub async fn get_memory_metrics(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     Ok(Json(serde_json::json!({
         "allocated_mb": 0,
@@ -99,7 +99,7 @@ pub async fn get_memory_metrics(
 
 /// Get leak analysis stub - returns no leaks detected
 pub async fn get_leak_analysis(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     Ok(Json(serde_json::json!({
         "leaks_detected": 0,
@@ -109,7 +109,7 @@ pub async fn get_leak_analysis(
 
 /// Get allocation metrics stub - returns zero allocations
 pub async fn get_allocation_metrics(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     Ok(Json(serde_json::json!({
         "total_allocations": 0,
@@ -120,7 +120,7 @@ pub async fn get_allocation_metrics(
 
 /// Get WASM health stub - returns healthy WASM status
 pub async fn get_wasm_health(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     Ok(Json(serde_json::json!({
         "status": "healthy",
@@ -130,7 +130,7 @@ pub async fn get_wasm_health(
 
 /// Get resource status stub - returns normal resource status
 pub async fn get_resource_status(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     Ok(Json(serde_json::json!({
         "cpu": 0.0,

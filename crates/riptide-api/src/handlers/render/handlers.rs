@@ -3,14 +3,14 @@
 use super::models::{RenderRequest, RenderResponse, RenderStats};
 use crate::errors::ApiError;
 use crate::sessions::middleware::SessionContext;
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 use axum::{extract::State, response::IntoResponse, Json};
 use std::time::Instant;
 use tracing::{info, warn};
 
 /// Enhanced render endpoint with resource controls
 pub async fn render(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     session_ctx: SessionContext,
     Json(body): Json<RenderRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
@@ -32,7 +32,7 @@ pub async fn render(
 }
 
 async fn process_render(
-    state: AppState,
+    state: ApplicationContext,
     session_ctx: SessionContext,
     body: RenderRequest,
     start: Instant,

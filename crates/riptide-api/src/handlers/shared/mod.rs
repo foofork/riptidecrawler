@@ -4,15 +4,15 @@ pub mod spider;
 
 #[cfg(feature = "spider")]
 use crate::errors::ApiError;
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 
 /// Helper for recording metrics in handlers
 pub struct MetricsRecorder<'a> {
-    state: &'a AppState,
+    state: &'a ApplicationContext,
 }
 
 impl<'a> MetricsRecorder<'a> {
-    pub fn new(state: &'a AppState) -> Self {
+    pub fn new(state: &'a ApplicationContext) -> Self {
         Self { state }
     }
 
@@ -91,13 +91,13 @@ impl<'a> MetricsRecorder<'a> {
 /// Helper for emitting events in handlers (WIP - behind `events` feature)
 #[cfg(feature = "events")]
 pub struct EventEmitter<'a> {
-    _state: &'a AppState,
+    _state: &'a ApplicationContext,
 }
 
 #[cfg(feature = "events")]
 impl<'a> EventEmitter<'a> {
     #[allow(dead_code)]
-    pub fn new(state: &'a AppState) -> Self {
+    pub fn new(state: &'a ApplicationContext) -> Self {
         Self { _state: state }
     }
 
@@ -128,7 +128,7 @@ impl Default for ResultTransformer {
 
 /// Helper for building spider configurations
 pub struct SpiderConfigBuilder<'a> {
-    _state: &'a AppState,
+    _state: &'a ApplicationContext,
     seed_url: url::Url,
     #[allow(dead_code)] // Reserved for future spider configuration
     max_depth: Option<usize>,
@@ -141,7 +141,7 @@ pub struct SpiderConfigBuilder<'a> {
 }
 
 impl<'a> SpiderConfigBuilder<'a> {
-    pub fn new(state: &'a AppState, seed_url: url::Url) -> Self {
+    pub fn new(state: &'a ApplicationContext, seed_url: url::Url) -> Self {
         Self {
             _state: state,
             seed_url,

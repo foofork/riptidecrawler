@@ -1,6 +1,6 @@
 use crate::errors::ApiError;
 use crate::models::{DependencyStatus, HealthResponse, ServiceHealth, SystemMetrics};
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use std::time::Instant;
 use tracing::{debug, info};
@@ -31,7 +31,7 @@ pub fn init_startup_time() {
         otel.status_code
     )
 )]
-pub async fn health(State(state): State<AppState>) -> Result<impl IntoResponse, ApiError> {
+pub async fn health(State(state): State<ApplicationContext>) -> Result<impl IntoResponse, ApiError> {
     let start_time = Instant::now();
     debug!("Starting health check");
 
@@ -276,7 +276,7 @@ pub(super) fn get_network_metrics() -> (u32, u64, f64) {
         otel.status_code
     )
 )]
-pub async fn health_detailed(State(state): State<AppState>) -> Result<impl IntoResponse, ApiError> {
+pub async fn health_detailed(State(state): State<ApplicationContext>) -> Result<impl IntoResponse, ApiError> {
     debug!("Starting comprehensive detailed health check");
 
     // Use HealthChecker to perform comprehensive health check with timeout
@@ -314,7 +314,7 @@ pub async fn health_detailed(State(state): State<AppState>) -> Result<impl IntoR
 ///
 /// Returns health status for a specific component: redis, extractor, http_client, or headless
 pub async fn component_health_check(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     axum::extract::Path(component): axum::extract::Path<String>,
 ) -> Result<impl IntoResponse, ApiError> {
     debug!(component = %component, "Checking specific component health");
@@ -390,7 +390,7 @@ pub async fn component_health_check(
 ///
 /// Returns comprehensive system metrics including CPU, memory, disk, and network stats
 pub async fn health_metrics_check(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
 ) -> Result<impl IntoResponse, ApiError> {
     debug!("Collecting system metrics");
 

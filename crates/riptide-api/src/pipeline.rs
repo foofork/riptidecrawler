@@ -1,5 +1,5 @@
+use crate::context::ApplicationContext;
 use crate::errors::{ApiError, ApiResult};
-use crate::state::AppState;
 use async_trait::async_trait;
 use reqwest::Response;
 use riptide_events::{BaseEvent, EventSeverity};
@@ -109,7 +109,7 @@ impl From<PipelineRetryConfig> for InternalRetryConfig {
 /// The pipeline is designed for high throughput and includes comprehensive
 /// error handling, timeout management, and performance monitoring.
 pub struct PipelineOrchestrator {
-    state: AppState,
+    state: ApplicationContext,
     options: CrawlOptions,
     #[cfg(feature = "llm")]
     retry_config: InternalRetryConfig,
@@ -119,13 +119,13 @@ pub struct PipelineOrchestrator {
 
 impl PipelineOrchestrator {
     /// Create a new pipeline orchestrator with the given state and options.
-    pub fn new(state: AppState, options: CrawlOptions) -> Self {
+    pub fn new(state: ApplicationContext, options: CrawlOptions) -> Self {
         Self::with_retry_config(state, options, PipelineRetryConfig::default())
     }
 
     /// Create a new pipeline orchestrator with custom retry configuration.
     pub fn with_retry_config(
-        state: AppState,
+        state: ApplicationContext,
         options: CrawlOptions,
         retry_config: PipelineRetryConfig,
     ) -> Self {

@@ -2,7 +2,7 @@
 
 #[cfg(feature = "extraction")]
 use crate::handlers::tables;
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 use axum::{
     routing::{get, post},
     Router,
@@ -10,7 +10,7 @@ use axum::{
 
 /// Create table routes
 #[cfg(feature = "extraction")]
-pub fn table_routes() -> Router<AppState> {
+pub fn table_routes() -> Router<ApplicationContext> {
     Router::new()
         .route("/extract", post(tables::extract_tables))
         .route("/:id/export", get(tables::export_table))
@@ -19,7 +19,7 @@ pub fn table_routes() -> Router<AppState> {
 /// Create stub table routes when feature is disabled
 /// Returns HTTP 501 "Not Implemented" for all table endpoints
 #[cfg(not(feature = "extraction"))]
-pub fn table_routes() -> Router<AppState> {
+pub fn table_routes() -> Router<ApplicationContext> {
     use crate::handlers::stubs::*;
 
     Router::new()

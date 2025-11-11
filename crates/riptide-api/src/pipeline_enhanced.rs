@@ -17,7 +17,8 @@
 /// - ENHANCED_PIPELINE_RENDER_TIMEOUT: Render phase timeout in seconds
 use crate::errors::ApiResult;
 use crate::pipeline::{PipelineOrchestrator, PipelineResult, PipelineStats};
-use crate::state::{AppState, EnhancedPipelineConfig};
+use crate::context::ApplicationContext;
+use crate::state::EnhancedPipelineConfig;
 use anyhow::Result;
 use riptide_types::config::CrawlOptions;
 use riptide_types::ExtractedDoc;
@@ -34,7 +35,7 @@ use tracing::{debug, info, warn};
 /// - Phase visualization data
 pub struct EnhancedPipelineOrchestrator {
     /// Application state
-    state: AppState,
+    state: ApplicationContext,
 
     /// Crawl options
     options: CrawlOptions,
@@ -48,7 +49,7 @@ pub struct EnhancedPipelineOrchestrator {
 
 impl EnhancedPipelineOrchestrator {
     /// Create new enhanced pipeline orchestrator
-    pub fn new(state: AppState, options: CrawlOptions) -> Self {
+    pub fn new(state: ApplicationContext, options: CrawlOptions) -> Self {
         let config = state.config.enhanced_pipeline_config.clone();
         let pipeline = PipelineOrchestrator::new(state.clone(), options.clone());
 

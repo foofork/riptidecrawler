@@ -9,7 +9,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 
 use crate::errors::ApiError;
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 
 /// Stealth configuration request
 #[derive(Debug, Deserialize)]
@@ -50,7 +50,7 @@ pub struct StealthTestResult {
 /// for the BrowserFacade and HybridHeadlessLauncher.
 #[cfg(feature = "browser")]
 pub async fn configure_stealth(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Json(_request): Json<StealthConfigRequest>,
 ) -> Response {
     // browser_facade was removed due to circular dependency
@@ -109,7 +109,7 @@ pub async fn configure_stealth(
 /// Stub implementation when browser feature is not enabled
 #[cfg(not(feature = "browser"))]
 pub async fn configure_stealth(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Json(_request): Json<StealthConfigRequest>,
 ) -> Response {
     ApiError::invalid_request(
@@ -124,7 +124,7 @@ pub async fn configure_stealth(
 /// This endpoint launches a test browser session and checks
 /// for common detection points.
 #[cfg(feature = "browser")]
-pub async fn test_stealth(State(_state): State<AppState>) -> Response {
+pub async fn test_stealth(State(_state): State<ApplicationContext>) -> Response {
     // browser_facade was removed due to circular dependency
     ApiError::invalid_request(
         "Browser facade temporarily unavailable due to refactoring. \
@@ -216,7 +216,7 @@ pub async fn test_stealth(State(_state): State<AppState>) -> Response {
 
 /// Stub implementation when browser feature is not enabled
 #[cfg(not(feature = "browser"))]
-pub async fn test_stealth(State(_state): State<AppState>) -> Response {
+pub async fn test_stealth(State(_state): State<ApplicationContext>) -> Response {
     ApiError::invalid_request(
         "Browser feature not enabled in build. Stealth testing requires browser feature. \
         Recompile with --features browser to use stealth features.",
@@ -253,7 +253,7 @@ pub async fn stealth_health_check() -> axum::response::Json<serde_json::Value> {
 /// Returns information about available stealth features
 /// and current configuration.
 #[cfg(feature = "browser")]
-pub async fn get_stealth_capabilities(State(_state): State<AppState>) -> Response {
+pub async fn get_stealth_capabilities(State(_state): State<ApplicationContext>) -> Response {
     // browser_facade was removed due to circular dependency
     ApiError::invalid_request(
         "Browser facade temporarily unavailable due to refactoring. \
@@ -302,7 +302,7 @@ pub async fn get_stealth_capabilities(State(_state): State<AppState>) -> Respons
 
 /// Stub implementation when browser feature is not enabled
 #[cfg(not(feature = "browser"))]
-pub async fn get_stealth_capabilities(State(_state): State<AppState>) -> Response {
+pub async fn get_stealth_capabilities(State(_state): State<ApplicationContext>) -> Response {
     ApiError::invalid_request(
         "Browser feature not enabled in build. Stealth capabilities requires browser feature. \
         Recompile with --features browser to use stealth features.",

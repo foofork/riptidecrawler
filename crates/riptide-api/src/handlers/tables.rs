@@ -3,7 +3,7 @@
 //! Handlers delegate all business logic to riptide-facade::TableFacade.
 //! Responsible only for HTTP mapping, metrics, and error conversion.
 
-use crate::{dto::tables::*, errors::ApiError, state::AppState};
+use crate::{dto::tables::*, errors::ApiError, context::ApplicationContext};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -20,7 +20,7 @@ fn facade() -> &'static TableFacade {
 
 /// Extract tables from HTML (7 LOC)
 pub async fn extract_tables(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Json(req): Json<ApiTableRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
     let start = Instant::now();
@@ -50,7 +50,7 @@ pub async fn extract_tables(
 /// Get table by ID (4 LOC) - Future API endpoint
 #[allow(dead_code)]
 pub async fn get_table(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Path((request_id, _table_id)): Path<(String, usize)>,
 ) -> Result<impl IntoResponse, ApiError> {
     let table = facade()
@@ -62,7 +62,7 @@ pub async fn get_table(
 
 /// Export table to format (5 LOC)
 pub async fn export_table(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Path((request_id, _table_id)): Path<(String, usize)>,
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, ApiError> {
@@ -84,7 +84,7 @@ pub async fn export_table(
 /// Get extraction statistics (3 LOC) - Future API
 #[allow(dead_code)]
 pub async fn get_table_stats(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Path(_request_id): Path<String>,
 ) -> Result<impl IntoResponse, ApiError> {
     let stats = facade().get_extraction_stats().await.map_err(|e| {

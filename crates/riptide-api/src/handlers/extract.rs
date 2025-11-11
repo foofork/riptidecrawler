@@ -6,7 +6,7 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use std::time::Instant;
 
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 
 // Import HTTP DTOs from riptide-types (Phase 2C.1 - breaking circular dependency)
 use riptide_types::ExtractRequest;
@@ -15,10 +15,11 @@ use riptide_types::ExtractRequest;
 ///
 /// This endpoint provides a unified interface for content extraction,
 /// delegating to the ExtractionFacade for all business logic.
+#[allow(deprecated)]
 #[axum::debug_handler]
 #[tracing::instrument(skip(state), fields(url = %payload.url, mode = %payload.mode))]
 pub async fn extract(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Json(payload): Json<ExtractRequest>,
 ) -> impl IntoResponse {
     let start = Instant::now();

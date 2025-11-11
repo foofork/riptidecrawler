@@ -3,7 +3,8 @@
 //! Phase 3 Sprint 3.1: Refactored to <40 LOC total by delegating to SessionManager.
 //! Handlers are pure HTTP mapping with no business logic.
 
-use crate::{dto::sessions::*, errors::ApiError, sessions::Cookie, state::AppState};
+use crate::{dto::sessions::*, errors::ApiError, sessions::Cookie};
+use crate::context::ApplicationContext;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -15,7 +16,7 @@ use axum::{
 #[allow(dead_code)]
 fn handle_error(
     result: Result<impl Into<ApiError>, impl std::fmt::Display>,
-    state: &AppState,
+    state: &ApplicationContext,
 ) -> Result<(), ApiError> {
     result.map(|_| ()).map_err(|e| {
         state.transport_metrics.record_redis_error();
@@ -23,7 +24,7 @@ fn handle_error(
     })
 }
 
-pub async fn create_session(State(state): State<AppState>) -> Result<impl IntoResponse, ApiError> {
+pub async fn create_session(State(state): State<ApplicationContext>) -> Result<impl IntoResponse, ApiError> {
     let session = state.session_manager.create_session().await.map_err(|e| {
         state.transport_metrics.record_redis_error();
         ApiError::dependency("session_manager", e.to_string())
@@ -34,7 +35,7 @@ pub async fn create_session(State(state): State<AppState>) -> Result<impl IntoRe
 /// Future API endpoint for getting session details
 #[allow(dead_code)]
 pub async fn get_session(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Path(session_id): Path<String>,
 ) -> Result<impl IntoResponse, ApiError> {
     let session = state
@@ -50,7 +51,7 @@ pub async fn get_session(
 }
 
 pub async fn list_sessions(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Query(query): Query<ListSessionsQuery>,
 ) -> Result<impl IntoResponse, ApiError> {
     let sessions = state
@@ -65,7 +66,7 @@ pub async fn list_sessions(
 }
 
 pub async fn delete_session(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Path(session_id): Path<String>,
 ) -> Result<StatusCode, ApiError> {
     state
@@ -80,7 +81,7 @@ pub async fn delete_session(
 }
 
 pub async fn extend_session(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Path(session_id): Path<String>,
     Json(request): Json<ExtendSessionRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
@@ -99,7 +100,7 @@ pub async fn extend_session(
 }
 
 pub async fn set_cookie(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Path(session_id): Path<String>,
     Json(request): Json<SetCookieRequest>,
 ) -> Result<StatusCode, ApiError> {
@@ -127,7 +128,7 @@ pub async fn set_cookie(
 }
 
 pub async fn get_cookie(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Path((session_id, domain, name)): Path<(String, String, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
     let cookie = state
@@ -145,7 +146,7 @@ pub async fn get_cookie(
 /// Future API endpoint for listing session cookies
 #[allow(dead_code)]
 pub async fn list_cookies(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Path(session_id): Path<String>,
 ) -> Result<impl IntoResponse, ApiError> {
     let jar = state
@@ -165,7 +166,7 @@ pub async fn list_cookies(
 }
 
 pub async fn delete_cookie(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Path((session_id, domain, name)): Path<(String, String, String)>,
 ) -> Result<StatusCode, ApiError> {
     state
@@ -180,7 +181,7 @@ pub async fn delete_cookie(
 }
 
 pub async fn clear_cookies(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Path(session_id): Path<String>,
 ) -> Result<StatusCode, ApiError> {
     state
@@ -196,7 +197,7 @@ pub async fn clear_cookies(
 
 /// Get session statistics stub
 pub async fn get_session_stats(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let sessions = state.session_manager.list_sessions_filtered(false).await;
     let total_sessions = sessions.len();
@@ -212,7 +213,7 @@ pub async fn get_session_stats(
 
 /// Cleanup expired sessions stub
 pub async fn cleanup_expired_sessions(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
 ) -> Result<StatusCode, ApiError> {
     // Get all sessions including expired ones
     let all_sessions = state.session_manager.list_sessions_filtered(true).await;
@@ -233,7 +234,7 @@ pub async fn cleanup_expired_sessions(
 
 /// Get session info stub
 pub async fn get_session_info(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Path(session_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let session = state
@@ -257,7 +258,7 @@ pub async fn get_session_info(
 
 /// Get cookies for domain stub
 pub async fn get_cookies_for_domain(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     Path((session_id, domain)): Path<(String, String)>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let jar = state

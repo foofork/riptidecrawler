@@ -1,7 +1,7 @@
 use crate::errors::ApiError;
 use crate::facades::CrawlHandlerFacade;
 use crate::models::{CrawlBody, CrawlResponse};
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 use crate::telemetry_config::extract_trace_context;
 use crate::validation::validate_crawl_request;
 use axum::{extract::State, http::HeaderMap, Json};
@@ -20,6 +20,7 @@ use tracing::{debug, info, warn, Span};
 ///
 /// Supports various crawl options including caching strategies, concurrency limits,
 /// and extraction modes.
+#[allow(deprecated)]
 #[tracing::instrument(
     name = "crawl_handler",
     skip(state, body, headers),
@@ -34,7 +35,7 @@ use tracing::{debug, info, warn, Span};
     )
 )]
 pub async fn crawl(
-    State(state): State<AppState>,
+    State(state): State<ApplicationContext>,
     headers: HeaderMap,
     Json(body): Json<CrawlBody>,
 ) -> Result<Json<CrawlResponse>, ApiError> {

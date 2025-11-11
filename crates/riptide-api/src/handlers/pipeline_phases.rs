@@ -1,6 +1,6 @@
 //! Pipeline phases handler - <50 LOC after facade refactoring
 use crate::errors::ApiError;
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 use axum::{extract::State, Json};
 use riptide_facade::facades::pipeline_phases::{
     PhaseConfig, PhaseExecutionRequest, PhaseExecutionResponse, PipelinePhasesFacade,
@@ -31,7 +31,7 @@ pub struct PhaseConfigDTO {
 #[allow(dead_code)]
 #[instrument(skip(_state))]
 pub async fn handle_phase_execution(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Json(req): Json<PhaseExecutionRequestDTO>,
 ) -> Result<Json<PhaseExecutionResponse>, ApiError> {
     let config = req.config.map(|c| PhaseConfig {
@@ -59,7 +59,7 @@ pub struct PipelinePhase {
 }
 
 pub async fn get_pipeline_phases(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
 ) -> Result<Json<Vec<PipelinePhase>>, ApiError> {
     Ok(Json(vec![
         PipelinePhase {

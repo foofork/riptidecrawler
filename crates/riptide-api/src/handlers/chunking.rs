@@ -1,6 +1,6 @@
 //! Chunking handler - <50 LOC after facade refactoring
 use crate::errors::ApiError;
-use crate::state::AppState;
+use crate::context::ApplicationContext;
 use axum::{extract::State, Json};
 use riptide_facade::facades::chunking::{
     ChunkParameters, ChunkRequest, ChunkResponse, ChunkingFacade,
@@ -27,7 +27,7 @@ pub struct ChunkParametersDTO {
 
 #[instrument(skip(_state))]
 pub async fn handle_chunking(
-    State(_state): State<AppState>,
+    State(_state): State<ApplicationContext>,
     Json(req): Json<ChunkRequestDTO>,
 ) -> Result<Json<ChunkResponse>, ApiError> {
     info!(mode = %req.chunking_mode, len = req.content.len(), "Chunking");
