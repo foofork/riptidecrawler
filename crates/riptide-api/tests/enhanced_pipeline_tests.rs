@@ -8,7 +8,7 @@
 /// 5. Concurrency and performance characteristics
 use riptide_api::pipeline::PipelineOrchestrator;
 use riptide_api::pipeline_enhanced::{EnhancedPipelineOrchestrator, PhaseTiming};
-use riptide_api::state::AppState;
+use riptide_api::state::ApplicationContext;
 use riptide_types::config::CrawlOptions;
 
 #[cfg(test)]

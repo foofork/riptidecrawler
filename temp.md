@@ -1,648 +1,538 @@
-Note to Analyst / Architect Review
-
-Subject: Riptide Alpha Refactor Roadmap — Final Architecture Validation
-
-Team,
-
-Attached is the finalized Riptide Alpha Refactor Roadmap (8-Week Plan).
-This plan compresses the remaining critical architectural work needed to move Riptide from its current alpha state to a clean, testable, and reliable system.
-
-Before execution, please perform a technical validation review focused on identifying any critical missing elements required for the system to actually function end-to-end after this refactor.
-
-Specifically, please verify:
-
-Runtime Completeness – confirm all essential paths (search, extraction, PDF, browser, event bus, persistence) will still function after AppState is replaced with ApplicationContext.
-
-Ports/Adapters Coverage – ensure no external system (Redis, browser, fetch, events, metrics) remains unabstracted or missing adapter wiring.
-
-Handler Path Validation – confirm all top-10 routes have enough coverage to actually execute after the migration (no unresolved dependency chains or missing facades).
-
-Resilience & Reliability – validate timeouts, circuit breaker, and idempotency hooks are correctly positioned to prevent failure cascades.
-
-Observability Minimums – confirm metrics and structured logs will provide sufficient visibility for debugging in alpha without extra tooling.
-
-Feature-Flag Safety – ensure legacy/new-context dual-mode remains compile-safe and deployable at any point during migration.
-
-Test Path Coverage – confirm the E2E and facade tests outlined are sufficient to catch critical regressions before release.
-
-If any runtime, initialization, or dependency wiring issues would still prevent the system from running end-to-end after this plan, please flag them immediately so we can amend before sprint kickoff.
-
-Goal: No surprises at runtime after this refactor.
-This is the final pass to guarantee architectural soundness before moving to beta-readiness work.
-
-Thank you for doing a full technical validation pass on this — please annotate directly in the roadmap doc or return a concise summary of findings.
-
-— [Your Name]
-Riptide Lead / Architecture Coordination
-
-
-# 🚀 Riptide Alpha Refactor Roadmap (8-Week Plan)
-
-**Project:** Riptide Event Mesh
-**Stage:** Alpha (pre-production)
-**Timeline:** 8 weeks (compressed from 12-week plan)
-**Priority:** P0 (Critical) and P1 (High Priority)
-**Goal:** Achieve a working, testable, and reliable alpha system with a clean hexagonal architecture and unified state management.
-
----
-
-## Executive Summary
-
-This roadmap delivers an **alpha-ready**, testable version of Riptide by focusing only on high-impact architectural work needed for the system to function end-to-end:
-
-* **P0:** Eliminate the `AppState` god object and unify all infrastructure access behind clean port traits in `ApplicationContext`.
-* **P1:** Implement minimal adapters and refactor the top 10 API handlers/facades to use the new architecture.
-* **P1:** Add resilience (timeouts, circuit breakers, idempotency) and essential observability.
-
-**Success Metrics**
-
-* AppState reduced from 2213 → <300 lines
-* Top 10 handlers fully migrated to clean facade usage
-* 100% of external dependencies accessed via ports
-* End-to-end tests passing for key routes
-* Feature-flagged dual-mode builds (`legacy` vs. `new-context`)
-
----
-
-## Week 0: Pre-Sprint Setup
-
-### Prerequisites
-
-* [ ] Create `git tag alpha-pre-refactor-backup`
-* [ ] Verify baseline tests: `cargo test --workspace`
-* [ ] Measure initial AppState metrics (lines, dependencies)
-* [ ] Add feature flags for dual implementation (`legacy-appstate`, `new-context`)
-* [ ] Create migration tracking spreadsheet (`docs/migration-tracking.xlsx`)
-
-### Team Assumptions
-
-* **1 Senior Developer** – 32 hrs/week (80% coding, 20% review)
-* **Code Review:** 4 hrs/week
-* **Testing:** 25% dev time
-* **Buffer:** 20% for unknowns
-
----
-
-# PHASE 1 — FOUNDATIONS (Weeks 1–2)
-
-Refactor core state management and introduce minimal port traits + adapters.
-
----
-
-## Sprint 1: ApplicationContext & Feature Flags (Week 1)
-
-### Sprint Goal
-
-Migrate infrastructure fields from `AppState` to a new `ApplicationContext` while keeping legacy support via feature flags.
-
-### Duration
-
-**5 business days (40 hrs)**
-
-### Tasks
-
-#### Day 1: Setup & Field Inventory (8 hrs)
-
-* [ ] **Task 1.1:** Audit all `AppState` fields in
-  `/workspaces/eventmesh/crates/riptide-api/src/state.rs` (lines 60–200)
-  Categorize each as:
-
-  * Core Infrastructure (CI)
-  * Business Facade (BF)
-  * Metrics (M)
-  * Configuration (C)
-
-  Output: `docs/appstate-field-inventory.md`
-
-* [ ] **Task 1.2:** Add dual-feature configuration
-
-  ```toml
-  [features]
-  default = ["legacy-appstate"]
-  legacy-appstate = []
-  new-context = []
-  ```
-
-#### Day 2–3: ApplicationContext Definition & Migration (16 hrs)
-
-* [ ] **Task 1.3:** Create `ApplicationContext` at
-  `/workspaces/eventmesh/crates/riptide-api/src/composition/mod.rs`
-
-  ```rust
-  pub struct ApplicationContext {
-      pub cache_storage: Arc<dyn CacheStorage>,
-      pub event_bus: Arc<dyn EventBus>,
-      pub idempotency_store: Arc<dyn IdempotencyStore>,
-      pub session_store: Arc<dyn SessionStorage>,
-  }
-  ```
-
-* [ ] **Task 1.4:** Create adapter for CacheManager → CacheStorage
-  `/workspaces/eventmesh/crates/riptide-cache/src/adapters/cache_storage_adapter.rs`
-
-  ```rust
-  use riptide_types::ports::CacheStorage;
-  use crate::CacheManager;
-
-  pub struct CacheManagerAdapter {
-      inner: Arc<tokio::sync::Mutex<CacheManager>>,
-  }
-
-  #[async_trait::async_trait]
-  impl CacheStorage for CacheManagerAdapter {
-      async fn get(&self, key: &str) -> Result<Option<Vec<u8>>> {
-          let cache = self.inner.lock().await;
-          cache.get(key).await
-      }
-
-      async fn set(&self, key: &str, val: Vec<u8>, ttl: Duration) -> Result<()> {
-          let mut cache = self.inner.lock().await;
-          cache.set_simple(key, &val, ttl.as_secs()).await
-      }
-  }
-  ```
-
-* [ ] **Task 1.5:** Update handlers to use context:
-
-  ```rust
-  // BEFORE
-  pub async fn crawl_handler(State(app_state): State<Arc<AppState>>) -> Result<Json<CrawlResult>> {
-      app_state.cache.lock().await.get("key").await?;
-  }
-
-  // AFTER
-  pub async fn crawl_handler(State(ctx): State<Arc<ApplicationContext>>) -> Result<Json<CrawlResult>> {
-      ctx.cache_storage.get("key").await?;
-  }
-  ```
-
-#### Day 4–5: Testing & Validation (16 hrs)
-
-* [ ] Add migration tests:
-  `/workspaces/eventmesh/crates/riptide-api/src/tests/appstate_migration_tests.rs`
-
-  ```rust
-  #[tokio::test]
-  async fn test_cache_access_via_context() {
-      let ctx = ApplicationContext::for_testing();
-      ctx.cache_storage.set("alpha", b"value".to_vec(), Duration::from_secs(60)).await?;
-      let v = ctx.cache_storage.get("alpha").await?;
-      assert_eq!(v, Some(b"value".to_vec()));
-  }
-  ```
-
-* [ ] Regression checks:
-
-  ```bash
-  cargo test -p riptide-api --features legacy-appstate
-  cargo test -p riptide-api --features new-context
-  ```
-
-### Acceptance Criteria
-
-* ✅ ApplicationContext defined and integrated
-* ✅ 8+ core infrastructure fields migrated
-* ✅ 2 new port traits: `CacheStorage`, `SessionStorage`
-* ✅ Tests pass in both feature modes
-* ✅ Docs updated
-
----
-
-## Sprint 2: Minimal Ports & Adapter Layer (Week 2)
-
-### Sprint Goal
-
-Introduce the minimum required ports and adapters to support the top 10 routes.
-
-### Duration
-
-**5 business days (40 hrs)**
-
-### Tasks
-
-#### Day 1: Define Port Traits (8 hrs)
-
-* [ ] Create/verify the following in
-  `/workspaces/eventmesh/crates/riptide-types/src/ports/`:
-
-  * `cache.rs` → `CacheStorage`
-  * `http.rs` → `HttpClient`
-  * `browser.rs` → `BrowserDriver`
-  * `events.rs` → `EventBus`
-  * `metrics.rs` → `MetricsRegistry`
-  * `circuit_breaker.rs` → `CircuitBreaker`
-
-#### Day 2–3: Create Adapters (16 hrs)
-
-Example: BrowserDriver
-`/workspaces/eventmesh/crates/riptide-headless/src/adapters/browser_driver_adapter.rs`
-
-```rust
-use riptide_types::ports::browser::*;
-use crate::launcher::HeadlessLauncher;
-
-pub struct HeadlessBrowserDriver {
-    launcher: Arc<HeadlessLauncher>,
-}
-
-#[async_trait::async_trait]
-impl BrowserDriver for HeadlessBrowserDriver {
-    async fn navigate(&self, url: &str) -> Result<Box<dyn PageSession>> {
-        let page = self.launcher.new_page().await?;
-        page.goto(url).await?;
-        Ok(Box::new(HeadlessPageSession { page }))
-    }
-}
-```
-
-#### Day 4: Wire into ApplicationContext (8 hrs)
-
-```rust
-impl ApplicationContext {
-    pub async fn new(config: &DiConfig) -> Result<Self> {
-        Ok(Self {
-            cache_storage: Arc::new(CacheManagerAdapter::new()),
-            http_client: Arc::new(FetchClientAdapter::new()),
-            browser_driver: Arc::new(HeadlessBrowserDriver::new()),
-            event_bus: Arc::new(LocalEventBus::new()),
-            metrics_registry: Arc::new(PrometheusMetrics::new()),
-            circuit_breaker: Arc::new(SimpleCircuitBreaker::new()),
-        })
-    }
-}
-```
-
-#### Day 5: Test Adapters (8 hrs)
-
-* [ ] Unit tests for each adapter (happy + failure case)
-* [ ] Add fake port implementations in
-  `/workspaces/eventmesh/crates/riptide-types/src/ports/test_doubles.rs`
-
-### Acceptance Criteria
-
-* ✅ 6 minimal port traits exist
-* ✅ 6 adapters implemented
-* ✅ ApplicationContext compiles and wires them correctly
-* ✅ All adapter tests pass
-
----
-
-# PHASE 2 — TOP-LEVEL REFACTOR (Weeks 3–5)
-
-Focus on handlers, facades, and core functionality for top 10 routes.
-
----
-
-## Sprint 3: Handler Simplification & Facade Boundaries (Week 3)
-
-### Sprint Goal
-
-Slim down the top 10 API handlers and migrate them to use facade orchestration via clean ports.
-
-### Duration
-
-**5 business days (40 hrs)**
-
-### Tasks
-
-#### Day 1–3: Refactor Handlers (24 hrs)
-
-```rust
-// BEFORE
-pub async fn crawl_handler(State(app_state): State<Arc<AppState>>, Json(req): Json<CrawlRequest>) -> Result<Json<CrawlResult>> {
-    let cache = app_state.cache.lock().await;
-    let _ = cache.get(&req.url).await?;
-    let result = app_state.extraction_facade.extract(&req.url).await?;
-    Ok(Json(result))
-}
-
-// AFTER
-pub async fn crawl_handler(State(ctx): State<Arc<ApplicationContext>>, Json(req): Json<CrawlRequest>) -> Result<Json<CrawlResult>> {
-    ctx.metrics_registry.increment("crawl_requests_total");
-    let result = ctx.create_extraction_facade().extract(&req.url).await?;
-    Ok(Json(result))
-}
-```
-
-* [ ] Refactor all 10 handlers under `/riptide-api/src/handlers/`
-* [ ] Each under 50 lines, no concrete infra calls
-* [ ] Moved orchestration into facades
-* [ ] Standardize error mapping (domain → ApiError)
-
-#### Day 4–5: Introduce Reliability Layer (16 hrs)
-
-Add shared timeout, circuit breaker, and idempotency behavior.
-
-```rust
-let result = ctx.circuit_breaker.run(async {
-    ctx.http_client.get(&url).await
-}).await?;
-
-ctx.idempotency_store.save(&request_id, &result)?;
-```
-
-### Acceptance Criteria
-
-* ✅ 10 handlers refactored and compile under `new-context`
-* ✅ Circuit breaker + timeouts implemented
-* ✅ Consistent error mapping confirmed
-* ✅ Handlers <50 LOC and covered by existing tests
-
----
-
-## Sprint 4: End-to-End Validation (Week 4)
-
-### Sprint Goal
-
-Establish baseline reliability and E2E confidence across all top routes.
-
-### Duration
-
-**5 business days (40 hrs)**
-
-### Tasks
-
-#### Day 1–2: Integration Tests (16 hrs)
-
-`/workspaces/eventmesh/crates/riptide-api/tests/e2e_tests.rs`
-
-```rust
-#[tokio::test]
-async fn test_crawl_route_e2e() {
-    let ctx = ApplicationContext::for_testing();
-    let req = CrawlRequest { url: "https://example.com".into(), mode: CrawlMode::Default };
-    let res = crawl_handler(State(Arc::new(ctx)), Json(req)).await?;
-    assert!(res.status().is_success());
-}
-```
-
-#### Day 3–4: Resilience Testing (16 hrs)
-
-```rust
-#[tokio::test]
-async fn test_circuit_breaker_opens() {
-    let breaker = SimpleCircuitBreaker::with_threshold(2);
-    breaker.fail();
-    breaker.fail();
-    assert!(breaker.is_open());
-}
-```
-
-#### Day 5: Documentation & Review (8 hrs)
-
-* [ ] Update architecture diagrams (AppState → ApplicationContext)
-* [ ] Record current E2E test coverage baseline
-
-### Acceptance Criteria
-
-* ✅ All 10 routes pass E2E
-* ✅ Circuit breaker degradation verified
-* ✅ Documentation updated
-
----
-
-# PHASE 3 — CLEANUP & COMPLETION (Weeks 6–8)
-
-Finish migration, remove legacy dependencies, and add observability + stability.
-
----
-
-## Sprint 5: Port Sweep & Facade Finalization (Week 6)
-
-### Sprint Goal
-
-Remove remaining infrastructure dependencies from facades; migrate all to port-based architecture.
-
-### Duration
-
-**5 business days (40 hrs)**
-
-### Tasks
-
-#### Day 1: Audit Facades (8 hrs)
-
-```bash
-grep -r "use riptide_" crates/riptide-facade/src/facades/ | grep -v "riptide_types"
-```
-
-Document results in `docs/infrastructure-violations.md`.
-
-#### Day 2–3: Refactor Facades (16 hrs)
-
-Example: ExtractionFacade
-
-```rust
-// BEFORE
-use riptide_headless::HeadlessLauncher;
-pub struct ExtractionFacade {
-    browser: Arc<HeadlessLauncher>,
-    cache: Arc<CacheManager>,
-}
-
-// AFTER
-use riptide_types::ports::{BrowserDriver, CacheStorage, EventBus};
-pub struct ExtractionFacade {
-    browser: Arc<dyn BrowserDriver>,
-    cache: Arc<dyn CacheStorage>,
-    events: Arc<dyn EventBus>,
-}
-```
-
-#### Day 4: Facade Factories in Context (8 hrs)
-
-```rust
-impl ApplicationContext {
-    pub fn create_extraction_facade(&self) -> Arc<ExtractionFacade> {
-        Arc::new(ExtractionFacade::new(
-            self.browser_driver.clone(),
-            self.cache_storage.clone(),
-            self.event_bus.clone(),
-        ))
-    }
-}
-```
-
-#### Day 5: Validation Tests (8 hrs)
-
-* Compile-time dependency isolation test:
-
-  ```rust
-  use riptide_facade::facades::ExtractionFacade;
-  use riptide_types::ports::*;
-  ```
-
-  Must compile **without** importing `riptide-api`.
-
-### Acceptance Criteria
-
-* ✅ All facades depend only on port traits
-* ✅ Zero infrastructure violations
-* ✅ All handlers use factory-created facades
-* ✅ Tests pass for facades and handlers
-
----
-
-## Sprint 6: Targeted Test Coverage (Week 7)
-
-### Sprint Goal
-
-Add practical unit and integration tests for migrated components (not full 100% coverage yet).
-
-### Duration
-
-**5 business days (40 hrs)**
-
-### Tasks
-
-* [ ] Add tests for 10 migrated facades (happy path, error path, cache hit/miss)
-* [ ] Add adapter failure simulations (`MockCacheStorage`, `MockHttpClient`)
-* [ ] Dual-feature CI test run (`legacy` + `new-context`)
-* [ ] Verify no regressions introduced in `cargo clippy -- -D warnings`
-
-### Acceptance Criteria
-
-* ✅ Facade tests added for all top routes
-* ✅ Dual-mode CI build passes
-* ✅ Clippy and cargo test clean
-
----
-
-## Sprint 7: Observability & Runbook (Week 8)
-
-### Sprint Goal
-
-Add basic metrics, structured logging, and a simple alpha runbook.
-
-### Duration
-
-**5 business days (40 hrs)**
-
-### Tasks
-
-#### Day 1–2: Structured Logging
-
-```rust
-tracing::info!(
-    facade = "extraction",
-    url = %url,
-    duration_ms = duration.as_millis(),
-    cache_hit = hit,
-    "Extraction complete"
-);
-```
-
-#### Day 3: Basic Metrics
-
-* [ ] Add metrics for `requests_total`, `error_total`, `cache_hit_ratio`
-* [ ] Expose via `MetricsRegistry` port
-
-#### Day 4: Runbook
-
-Create `docs/operations/alpha-runbook.md`:
-
-```markdown
-## Flip Features
-cargo run --features new-context
-## Rollback
-cargo run --features legacy-appstate
-## Verify Health
-curl /metrics
-```
-
-#### Day 5: Cleanup & Review
-
-* [ ] Confirm legacy path works (for rollback)
-* [ ] Archive `state.rs` (final removal after beta)
-
-### Acceptance Criteria
-
-* ✅ Structured logs emitted for all routes
-* ✅ Metrics accessible via port layer
-* ✅ Runbook documented
-* ✅ Dual-feature flip tested manually
-
----
-
-# ✅ Alpha Completion Summary
-
-### Deliverables
-
-| Area                          | Result                                                       |
-| ----------------------------- | ------------------------------------------------------------ |
-| AppState → ApplicationContext | ✅ Unified                                                    |
-| Handlers (Top 10)             | ✅ <50 LOC, facade-driven                                     |
-| Facades                       | ✅ Port-based, no infra deps                                  |
-| Ports & Adapters              | ✅ 6 minimal (cache, http, browser, events, metrics, breaker) |
-| E2E Tests                     | ✅ Passing under both flags                                   |
-| Observability                 | ✅ Basic metrics + structured logs                            |
-| Reliability                   | ✅ Timeouts, circuit breaker, idempotency, rate limits        |
-| Docs                          | ✅ Updated + runbook complete                                 |
-
-### Architecture Diagram
-
-```
-┌─────────────────┐
-│ riptide-types   │ ← Domain layer (Ports & Types)
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ riptide-facade  │ ← Application layer (Use cases)
-│  (Facades)      │ ✅ depends only on ports
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ riptide-api     │ ← Interface layer (Handlers, Context)
-│ (DI, HTTP)      │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ Infrastructure  │ ← Adapters (Redis, Browser, HTTP)
-└─────────────────┘
-```
-
----
-
-# Rollback Plan
-
-```bash
-# Revert to legacy mode
-cargo build --features legacy-appstate
-
-# Undo new-context migration if broken
-git revert <migration-commit>
-
-# Restore original state.rs
-git checkout pre-refactor-backup -- crates/riptide-api/src/state.rs
-```
-
----
-
-# Success Metrics
-
-| Metric                     | Before  | After                | Improvement   |
-| -------------------------- | ------- | -------------------- | ------------- |
-| AppState LOC               | 2213    | <300                 | 86% reduction |
-| Top Routes (cleaned)       | 0       | 10                   | ✅             |
-| Infra Violations           | 32      | 0                    | ✅             |
-| Facades Using Ports        | 0%      | 100%                 | ✅             |
-| E2E Tests Passing          | partial | full                 | ✅             |
-| Circuit Breaker & Timeouts | none    | implemented          | ✅             |
-| Observability              | none    | basic logs + metrics | ✅             |
-
----
-
-# Future Phase (Post-Alpha)
-
-1. Expand ports/adapters to full system coverage
-2. Add full test suite (100+ cases)
-3. Build CI coverage tracking + load tests
-4. Extend observability (Grafana/alerts)
-5. Remove legacy flag after beta validation
-
----
-
-**Result:**
-Riptide Alpha is now **functional, reliable, and testable** — ready to
+   Compiling riptide-api v0.9.0 (/workspaces/riptidecrawler/crates/riptide-api)
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/auth_middleware_tests.rs:24:12
+   |
+24 |     state::AppState,
+   |            ^^^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/auth_middleware_tests.rs:41:21
+   |
+41 |     let mut state = AppState::new_test_minimal().await;
+   |                     ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+   --> crates/riptide-api/tests/auth_middleware_tests.rs:101:21
+    |
+101 |     let mut state = AppState::new_test_minimal().await;
+    |                     ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+   --> crates/riptide-api/tests/auth_middleware_tests.rs:158:21
+    |
+158 |     let mut state = AppState::new_test_minimal().await;
+    |                     ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+   --> crates/riptide-api/tests/auth_middleware_tests.rs:193:21
+    |
+193 |     let mut state = AppState::new_test_minimal().await;
+    |                     ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+   --> crates/riptide-api/tests/auth_middleware_tests.rs:247:21
+    |
+247 |     let mut state = AppState::new_test_minimal().await;
+    |                     ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+   --> crates/riptide-api/tests/auth_middleware_tests.rs:289:21
+    |
+289 |     let mut state = AppState::new_test_minimal().await;
+    |                     ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+   --> crates/riptide-api/tests/auth_middleware_tests.rs:335:21
+    |
+335 |     let mut state = AppState::new_test_minimal().await;
+    |                     ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+   --> crates/riptide-api/tests/auth_middleware_tests.rs:396:21
+    |
+396 |     let mut state = AppState::new_test_minimal().await;
+    |                     ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+   --> crates/riptide-api/tests/auth_middleware_tests.rs:479:21
+    |
+479 |     let mut state = AppState::new_test_minimal().await;
+    |                     ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+   --> crates/riptide-api/tests/auth_middleware_tests.rs:508:21
+    |
+508 |     let mut state = AppState::new_test_minimal().await;
+    |                     ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+   --> crates/riptide-api/tests/auth_middleware_tests.rs:593:21
+    |
+593 |     let mut state = AppState::new_test_minimal().await;
+    |                     ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+   --> crates/riptide-api/tests/auth_middleware_tests.rs:624:21
+    |
+624 |     let mut state = AppState::new_test_minimal().await;
+    |                     ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+ --> crates/riptide-api/tests/test_helpers.rs:9:59
+  |
+9 | use riptide_api::{handlers, health::HealthChecker, state::AppState};
+  |                                                           ^^^^^^^^
+  |
+  = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/test_helpers.rs:23:37
+   |
+23 | pub async fn create_test_state() -> AppState {
+   |                                     ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/test_helpers.rs:41:5
+   |
+41 |     AppState::new(config, health_checker)
+   |     ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/test_helpers.rs:71:11
+   |
+71 |     match AppState::new(config, health_checker).await {
+   |           ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/test_helpers.rs:82:34
+   |
+82 | pub fn create_test_router(state: AppState) -> Router {
+   |                                  ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/auth_rate_limiting_tests.rs:25:12
+   |
+25 |     state::AppState,
+   |            ^^^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/auth_rate_limiting_tests.rs:33:21
+   |
+33 |     let mut state = AppState::new_test_minimal().await;
+   |                     ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+   --> crates/riptide-api/tests/pdf_integration_tests.rs:257:28
+    |
+257 |         state::{AppConfig, AppState},
+    |                            ^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+   --> crates/riptide-api/tests/pdf_integration_tests.rs:265:25
+    |
+265 |         let app_state = AppState::new(config, health_checker)
+    |                         ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/streaming_endpoints_integration.rs:18:37
+   |
+18 | use riptide_api::state::{AppConfig, AppState};
+   |                                     ^^^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/streaming_endpoints_integration.rs:27:37
+   |
+27 | async fn create_test_app_state() -> AppState {
+   |                                     ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/streaming_endpoints_integration.rs:31:5
+   |
+31 |     AppState::new(config, health_checker)
+   |     ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+ --> crates/riptide-api/tests/test_helpers.rs:9:59
+  |
+9 | use riptide_api::{handlers, health::HealthChecker, state::AppState};
+  |                                                           ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/enhanced_pipeline_tests.rs:11:25
+   |
+11 | use riptide_api::state::AppState;
+   |                         ^^^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/enhanced_pipeline_tests.rs:19:31
+   |
+19 |     fn create_test_state() -> AppState {
+   |                               ^^^^^^^^
+
+warning: `riptide-api` (test "enhanced_pipeline_tests") generated 2 warnings
+warning: `riptide-api` (test "auth_middleware_tests") generated 13 warnings
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/phase4b_integration_tests.rs:29:28
+   |
+29 |         state::{AppConfig, AppState},
+   |                            ^^^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/phase4b_integration_tests.rs:35:49
+   |
+35 |     pub async fn create_test_app_state() -> Arc<AppState> {
+   |                                                 ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/phase4b_integration_tests.rs:40:13
+   |
+40 |             AppState::new(config, health_checker)
+   |             ^^^^^^^^
+
+warning: `riptide-api` (test "auth_rate_limiting_tests") generated 2 warnings
+warning: `riptide-api` (test "stress_tests") generated 5 warnings
+warning: `riptide-api` (test "pdf_integration_tests") generated 2 warnings
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/profiling_integration_tests.rs:11:37
+   |
+11 | use riptide_api::state::{AppConfig, AppState};
+   |                                     ^^^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/profiling_integration_tests.rs:21:17
+   |
+21 |     let state = AppState::new(config, health_checker)
+   |                 ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/profiling_integration_tests.rs:49:17
+   |
+49 |     let state = AppState::new(config, health_checker)
+   |                 ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/profiling_integration_tests.rs:74:17
+   |
+74 |     let state = AppState::new(config, health_checker)
+   |                 ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+   --> crates/riptide-api/tests/profiling_integration_tests.rs:106:17
+    |
+106 |     let state = AppState::new(config, health_checker)
+    |                 ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+   --> crates/riptide-api/tests/profiling_integration_tests.rs:137:17
+    |
+137 |     let state = AppState::new(config, health_checker)
+    |                 ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+   --> crates/riptide-api/tests/profiling_integration_tests.rs:180:17
+    |
+180 |     let state = AppState::new(config, health_checker)
+    |                 ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+   --> crates/riptide-api/tests/profiling_integration_tests.rs:200:17
+    |
+200 |     let state = AppState::new(config, health_checker)
+    |                 ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+   --> crates/riptide-api/tests/profiling_integration_tests.rs:229:9
+    |
+229 |         AppState::new(config, health_checker)
+    |         ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+   --> crates/riptide-api/tests/profiling_integration_tests.rs:266:17
+    |
+266 |     let state = AppState::new(config, health_checker)
+    |                 ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+   --> crates/riptide-api/tests/profiling_integration_tests.rs:294:17
+    |
+294 |     let state = AppState::new(config, health_checker)
+    |                 ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+   --> crates/riptide-api/tests/profiling_integration_tests.rs:335:21
+    |
+335 |         let state = AppState::new(config, health_checker)
+    |                     ^^^^^^^^
+
+warning: `riptide-api` (test "memory_profile_tests") generated 5 warnings (5 duplicates)
+warning: `riptide-api` (test "streaming_endpoints_integration") generated 8 warnings (4 duplicates)
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/auth_integration_tests.rs:21:12
+   |
+21 |     state::AppState,
+   |            ^^^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/auth_integration_tests.rs:29:21
+   |
+29 |     let mut state = AppState::new_test_minimal().await;
+   |                     ^^^^^^^^
+
+warning: `riptide-api` (test "cross_module_integration") generated 5 warnings (5 duplicates)
+error[E0433]: failed to resolve: use of undeclared type `Arc`
+  --> crates/riptide-facade/tests/crawl_facade_integration_tests.rs:27:9
+   |
+27 |         Arc::strong_count(pipeline_ref) >= 1,
+   |         ^^^ use of undeclared type `Arc`
+   |
+help: consider importing this struct
+   |
+ 8 + use std::sync::Arc;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `Arc`
+  --> crates/riptide-facade/tests/crawl_facade_integration_tests.rs:31:9
+   |
+31 |         Arc::strong_count(strategies_ref) >= 1,
+   |         ^^^ use of undeclared type `Arc`
+   |
+help: consider importing this struct
+   |
+ 8 + use std::sync::Arc;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `Arc`
+   --> crates/riptide-facade/tests/crawl_facade_integration_tests.rs:131:13
+    |
+131 |     assert!(Arc::strong_count(facade.pipeline_executor()) >= 1);
+    |             ^^^ use of undeclared type `Arc`
+    |
+help: consider importing this struct
+    |
+  8 + use std::sync::Arc;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `Arc`
+   --> crates/riptide-facade/tests/crawl_facade_integration_tests.rs:132:13
+    |
+132 |     assert!(Arc::strong_count(facade.strategies_executor()) >= 1);
+    |             ^^^ use of undeclared type `Arc`
+    |
+help: consider importing this struct
+    |
+  8 + use std::sync::Arc;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `Arc`
+   --> crates/riptide-facade/tests/crawl_facade_integration_tests.rs:143:13
+    |
+143 |     assert!(Arc::strong_count(facade.pipeline_executor()) >= 1);
+    |             ^^^ use of undeclared type `Arc`
+    |
+help: consider importing this struct
+    |
+  8 + use std::sync::Arc;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `Arc`
+   --> crates/riptide-facade/tests/crawl_facade_integration_tests.rs:144:13
+    |
+144 |     assert!(Arc::strong_count(facade.strategies_executor()) >= 1);
+    |             ^^^ use of undeclared type `Arc`
+    |
+help: consider importing this struct
+    |
+  8 + use std::sync::Arc;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `Arc`
+   --> crates/riptide-facade/tests/crawl_facade_integration_tests.rs:180:34
+    |
+180 |     let initial_pipeline_count = Arc::strong_count(pipeline1);
+    |                                  ^^^ use of undeclared type `Arc`
+    |
+help: consider importing this struct
+    |
+  8 + use std::sync::Arc;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `Arc`
+   --> crates/riptide-facade/tests/crawl_facade_integration_tests.rs:181:36
+    |
+181 |     let initial_strategies_count = Arc::strong_count(strategies1);
+    |                                    ^^^ use of undeclared type `Arc`
+    |
+help: consider importing this struct
+    |
+  8 + use std::sync::Arc;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `Arc`
+   --> crates/riptide-facade/tests/crawl_facade_integration_tests.rs:184:22
+    |
+184 |     let _pipeline2 = Arc::clone(pipeline1);
+    |                      ^^^ use of undeclared type `Arc`
+    |
+help: consider importing this struct
+    |
+  8 + use std::sync::Arc;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `Arc`
+   --> crates/riptide-facade/tests/crawl_facade_integration_tests.rs:185:24
+    |
+185 |     let _strategies2 = Arc::clone(strategies1);
+    |                        ^^^ use of undeclared type `Arc`
+    |
+help: consider importing this struct
+    |
+  8 + use std::sync::Arc;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `Arc`
+   --> crates/riptide-facade/tests/crawl_facade_integration_tests.rs:188:16
+    |
+188 |     assert_eq!(Arc::strong_count(pipeline1), initial_pipeline_count + 1);
+    |                ^^^ use of undeclared type `Arc`
+    |
+help: consider importing this struct
+    |
+  8 + use std::sync::Arc;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `Arc`
+   --> crates/riptide-facade/tests/crawl_facade_integration_tests.rs:189:16
+    |
+189 |     assert_eq!(Arc::strong_count(strategies1), initial_strategies_count + 1);
+    |                ^^^ use of undeclared type `Arc`
+    |
+help: consider importing this struct
+    |
+  8 + use std::sync::Arc;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `Arc`
+   --> crates/riptide-facade/tests/crawl_facade_integration_tests.rs:210:9
+    |
+210 |         Arc::strong_count(pipeline_arc) >= 1,
+    |         ^^^ use of undeclared type `Arc`
+    |
+help: consider importing this struct
+    |
+  8 + use std::sync::Arc;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `Arc`
+   --> crates/riptide-facade/tests/crawl_facade_integration_tests.rs:214:9
+    |
+214 |         Arc::strong_count(strategies_arc) >= 1,
+    |         ^^^ use of undeclared type `Arc`
+    |
+help: consider importing this struct
+    |
+  8 + use std::sync::Arc;
+    |
+
+warning: unused imports: `create_test_pipeline_orchestrator`, `create_test_state`, and `create_test_strategies_orchestrator`
+  --> crates/riptide-facade/tests/crawl_facade_integration_tests.rs:9:32
+   |
+ 9 |     create_test_orchestrators, create_test_pipeline_orchestrator, create_test_state,
+   |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+10 |     create_test_strategies_orchestrator,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/profiling_endpoints_live.rs:20:37
+   |
+20 | use riptide_api::state::{AppConfig, AppState};
+   |                                     ^^^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/profiling_endpoints_live.rs:23:37
+   |
+23 | async fn create_test_state() -> Arc<AppState> {
+   |                                     ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/profiling_endpoints_live.rs:28:9
+   |
+28 |         AppState::new(config, health_checker)
+   |         ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-api/tests/profiling_endpoints_live.rs:35:33
+   |
+35 | fn build_test_router(state: Arc<AppState>) -> axum::Router {
+   |                                 ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+ --> crates/riptide-facade/tests/common/mod.rs:8:37
+  |
+8 | use riptide_api::state::{AppConfig, AppState};
+  |                                     ^^^^^^^^
+  |
+  = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-facade/tests/common/mod.rs:17:37
+   |
+17 | pub async fn create_test_state() -> AppState {
+   |                                     ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-facade/tests/common/mod.rs:20:5
+   |
+20 |     AppState::new(config, health_checker)
+   |     ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-facade/tests/common/mod.rs:27:12
+   |
+27 |     state: AppState,
+   |            ^^^^^^^^
+
+warning: use of deprecated type alias `riptide_api::AppState`: Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md
+  --> crates/riptide-facade/tests/common/mod.rs:35:12
+   |
+35 |     state: AppState,
+   |            ^^^^^^^^
+
+For more information about this error, try `rustc --explain E0433`.
+warning: `riptide-facade` (test "crawl_facade_integration_tests") generated 6 warnings
+error: could not compile `riptide-facade` (test "crawl_facade_integration_tests") due to 14 previous errors; 6 warnings emitted
+warning: build failed, waiting for other jobs to finish...
+warning: `riptide-api` (test "auth_integration_tests") generated 2 warnings
+warning: `riptide-api` (test "profiling_integration_tests") generated 12 warnings
+warning: `riptide-api` (test "phase4b_integration_tests") generated 3 warnings
+warning: `riptide-api` (test "profiling_endpoints_live") generated 4 warnings
+warning: `riptide-api` (test "e2e_full_stack") generated 5 warnings (5 duplicates)
+warning: `riptide-api` (test "spider_respect_robots_tests") generated 5 warnings (5 duplicates)
+warning: `riptide-api` (test "api_tests") generated 5 warnings (5 duplicates)
+warning: `riptide-api` (test "table_extraction_integration_tests") generated 5 warnings (5 duplicates)
+warning: `riptide-api` (test "browser_pool_integration") generated 5 warnings (5 duplicates)
+warning: `riptide-api` (test "performance_regression") generated 5 warnings (5 duplicates)
+✓ Tests passed
+
+=========================================
+All quality checks passed! ✓
+Time taken: 12m 48s

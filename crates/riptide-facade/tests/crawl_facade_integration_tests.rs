@@ -11,6 +11,7 @@ use common::{
 };
 use riptide_facade::facades::{CrawlFacade, CrawlMode, CrawlResult};
 use riptide_types::config::CrawlOptions;
+use std::sync::Arc;
 
 #[tokio::test]
 async fn test_facade_wraps_both_orchestrators() {

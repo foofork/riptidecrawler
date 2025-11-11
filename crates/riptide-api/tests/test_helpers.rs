@@ -6,7 +6,7 @@ use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use axum::routing::{get, post};
 use axum::Router;
-use riptide_api::{handlers, health::HealthChecker, state::AppState};
+use riptide_api::{handlers, health::HealthChecker, state::ApplicationContext};
 use serde_json::json;
 use std::sync::Arc;
 use tower::ServiceExt;
