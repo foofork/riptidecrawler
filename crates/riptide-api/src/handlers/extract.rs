@@ -15,7 +15,6 @@ use riptide_types::ExtractRequest;
 ///
 /// This endpoint provides a unified interface for content extraction,
 /// delegating to the ExtractionFacade for all business logic.
-#[allow(deprecated)]
 #[axum::debug_handler]
 #[tracing::instrument(skip(state), fields(url = %payload.url, mode = %payload.mode))]
 pub async fn extract(

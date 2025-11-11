@@ -3,8 +3,7 @@
 //! ## Facade Pattern Usage
 //!
 //! This handler uses `state.fetch_engine` directly for advanced metrics and per-host circuit breakers.
-
-#![allow(deprecated)]
+//!
 //! For simple HTTP operations without metrics, consider using `state.scraper_facade` which provides:
 //! - `scraper_facade.fetch_html(url)` - Fetch HTML content as string
 //! - `scraper_facade.fetch_bytes(url)` - Fetch raw bytes

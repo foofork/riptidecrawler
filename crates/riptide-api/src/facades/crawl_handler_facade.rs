@@ -57,7 +57,6 @@ impl CrawlHandlerFacade {
     /// # Returns
     ///
     /// Complete crawl response with results and statistics
-    #[allow(deprecated)]
     pub async fn crawl_batch(
         &self,
         urls: &[String],
@@ -97,7 +96,6 @@ impl CrawlHandlerFacade {
     ///
     /// Crawl response formatted from spider results
     #[cfg(feature = "spider")]
-    #[allow(deprecated)]
     pub async fn crawl_spider_mode(
         &self,
         seed_urls: &[String],
@@ -142,7 +140,6 @@ impl CrawlHandlerFacade {
     // ========================================================================
 
     /// Select and execute the appropriate pipeline
-    #[allow(deprecated)]
     async fn execute_pipeline(
         &self,
         urls: &[String],

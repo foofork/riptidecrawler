@@ -20,7 +20,6 @@ use tracing::{debug, info, warn, Span};
 ///
 /// Supports various crawl options including caching strategies, concurrency limits,
 /// and extraction modes.
-#[allow(deprecated)]
 #[tracing::instrument(
     name = "crawl_handler",
     skip(state, body, headers),

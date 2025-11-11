@@ -62,7 +62,6 @@ use crate::jemalloc_stats::JemallocStats;
     since = "4.5.0",
     note = "Split into BusinessMetrics (facade) and TransportMetrics (API). Use CombinedMetrics for unified endpoint."
 )]
-#[allow(deprecated)]
 #[derive(Debug)]
 pub struct RipTideMetrics {
     /// Prometheus registry for metrics
@@ -202,7 +201,6 @@ pub struct RipTideMetrics {
     pub jemalloc_metadata_ratio: Gauge,  // Metadata overhead ratio
 }
 
-#[allow(deprecated)]
 impl RipTideMetrics {
     /// Initialize metrics with Prometheus registry
     pub fn new() -> anyhow::Result<Self> {
@@ -1689,7 +1687,6 @@ impl PhaseTimer {
     }
 
     /// End timing and log results
-    #[allow(deprecated)]
     pub fn end(self, metrics: &RipTideMetrics, success: bool) {
         let duration = self.start_time.elapsed();
         let duration_secs = duration.as_secs_f64();

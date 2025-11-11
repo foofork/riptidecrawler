@@ -8,7 +8,6 @@ use axum::{extract::State, response::Json};
 use riptide_facade::facades::{EngineCapability, EngineConfig, EngineStats};
 
 /// POST /engine/analyze - Analyze HTML and recommend engine (3 LOC)
-#[allow(deprecated)]
 pub async fn analyze_engine(
     State(state): State<ApplicationContext>,
     Json(request): Json<AnalyzeRequest>,
@@ -21,7 +20,6 @@ pub async fn analyze_engine(
 }
 
 /// POST /engine/decide - Decide engine with flags (3 LOC)
-#[allow(deprecated)]
 pub async fn decide_engine(
     State(state): State<ApplicationContext>,
     Json(request): Json<DecideRequest>,
@@ -36,7 +34,6 @@ pub async fn decide_engine(
 /// GET /engine/capabilities - Get all engine capabilities (2 LOC)
 /// Future API for listing available extraction engines
 #[allow(dead_code)]
-#[allow(deprecated)]
 pub async fn get_engine_capabilities(
     State(state): State<ApplicationContext>,
 ) -> ApiResult<Json<Vec<EngineCapability>>> {
@@ -44,13 +41,11 @@ pub async fn get_engine_capabilities(
 }
 
 /// GET /engine/stats - Get engine statistics (2 LOC)
-#[allow(deprecated)]
 pub async fn get_engine_stats(State(state): State<ApplicationContext>) -> ApiResult<Json<EngineStats>> {
     Ok(Json(state.engine_facade.get_stats().await?))
 }
 
 /// POST /engine/probe-first - Toggle probe-first mode (3 LOC)
-#[allow(deprecated)]
 pub async fn set_probe_first(
     State(state): State<ApplicationContext>,
     Json(request): Json<ProbeFirstRequest>,
