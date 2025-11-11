@@ -13,7 +13,6 @@
 /// This struct contains all shared resources needed for crawling operations,
 /// including HTTP clients, cache connections, and content extractors. The state
 /// is wrapped in Arc for efficient sharing across async handlers.
-
 use crate::config::RiptideApiConfig;
 use crate::health::HealthChecker;
 use crate::metrics_integration::CombinedMetrics;
@@ -146,6 +145,7 @@ pub struct ApplicationContext {
     pub performance_metrics: Arc<tokio::sync::Mutex<PerformanceMetrics>>,
 
     /// Monitoring system for performance tracking and alerting
+    #[allow(dead_code)]
     pub monitoring_system: Arc<MonitoringSystem>,
 
     /// FetchEngine for HTTP operations with per-host circuit breakers and rate limiting
@@ -267,6 +267,7 @@ pub struct AppConfig {
     // #[cfg(feature = "wasm-extractor")]
     // pub cache_warming_config: CacheWarmingConfig,
     /// Engine selection configuration (Phase 10)
+    #[allow(dead_code)]
     pub engine_selection_config: EngineSelectionConfig,
 }
 
@@ -332,6 +333,7 @@ impl Default for EnhancedPipelineConfig {
 #[derive(Clone, Debug)]
 pub struct EngineSelectionConfig {
     /// Enable probe-first escalation for SPAs (try WASM before headless)
+    #[allow(dead_code)]
     pub probe_first_spa: bool,
     /// Enable visible text density calculation
     #[allow(dead_code)] // Used in engine selection handlers
@@ -1476,6 +1478,7 @@ impl ApplicationContext {
     }
 
     /// Record Redis error using transport metrics
+    #[allow(dead_code)]
     pub fn record_redis_error(&self) {
         self.transport_metrics.record_redis_error();
     }
@@ -2015,6 +2018,7 @@ pub struct MonitoringSystem {
     pub alert_manager: Arc<tokio::sync::Mutex<AlertManager>>,
 
     /// Health calculator for system health scoring
+    #[allow(dead_code)]
     pub health_calculator: Arc<HealthCalculator>,
 
     /// Configuration for monitoring behavior
@@ -2184,12 +2188,14 @@ impl MonitoringSystem {
     }
 
     /// Calculate current health score
+    #[allow(dead_code)]
     pub async fn calculate_health_score(&self) -> Result<f32> {
         let metrics = self.metrics_collector.get_current_metrics().await?;
         Ok(self.health_calculator.calculate_health(&metrics))
     }
 
     /// Generate performance report
+    #[allow(dead_code)]
     pub async fn generate_performance_report(&self) -> Result<PerformanceReport> {
         let metrics = self.metrics_collector.get_current_metrics().await?;
         let health_score = self.health_calculator.calculate_health(&metrics);
@@ -2213,6 +2219,7 @@ impl Default for MonitoringSystem {
 
 /// Performance report containing metrics and health analysis
 #[derive(Debug, Clone, serde::Serialize)]
+#[allow(dead_code)]
 pub struct PerformanceReport {
     /// Current performance metrics
     pub metrics: riptide_monitoring::PerformanceMetrics,

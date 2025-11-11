@@ -1,9 +1,9 @@
 //! Minimal render handlers delegating to processing strategies.
 
 use super::models::{RenderRequest, RenderResponse, RenderStats};
+use crate::context::ApplicationContext;
 use crate::errors::ApiError;
 use crate::sessions::middleware::SessionContext;
-use crate::context::ApplicationContext;
 use axum::{extract::State, response::IntoResponse, Json};
 use std::time::Instant;
 use tracing::{info, warn};

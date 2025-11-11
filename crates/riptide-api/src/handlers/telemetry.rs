@@ -13,8 +13,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::{debug, info, warn};
 
-use crate::errors::ApiError;
 use crate::context::ApplicationContext;
+use crate::errors::ApiError;
 use crate::telemetry_config::parse_trace_id;
 
 // parse_span_id used in tests

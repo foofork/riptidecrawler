@@ -11,8 +11,8 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::errors::{ApiError, ApiResult};
 use crate::context::ApplicationContext;
+use crate::errors::{ApiError, ApiResult};
 
 // ===== Request/Response Types =====
 
@@ -120,7 +120,9 @@ pub async fn create_tenant(
     Err(not_implemented())
 }
 
-pub async fn list_tenants(_state: State<ApplicationContext>) -> ApiResult<Json<Vec<TenantResponse>>> {
+pub async fn list_tenants(
+    _state: State<ApplicationContext>,
+) -> ApiResult<Json<Vec<TenantResponse>>> {
     Err(not_implemented())
 }
 
@@ -174,7 +176,9 @@ pub async fn invalidate_cache(
     Err(not_implemented())
 }
 
-pub async fn get_cache_stats(_state: State<ApplicationContext>) -> ApiResult<Json<CacheStatsResponse>> {
+pub async fn get_cache_stats(
+    _state: State<ApplicationContext>,
+) -> ApiResult<Json<CacheStatsResponse>> {
     Err(not_implemented())
 }
 
@@ -182,7 +186,9 @@ pub async fn reload_state(_state: State<ApplicationContext>) -> ApiResult<Json<s
     Err(not_implemented())
 }
 
-pub async fn create_checkpoint(_state: State<ApplicationContext>) -> ApiResult<Json<CheckpointResponse>> {
+pub async fn create_checkpoint(
+    _state: State<ApplicationContext>,
+) -> ApiResult<Json<CheckpointResponse>> {
     Err(not_implemented())
 }
 

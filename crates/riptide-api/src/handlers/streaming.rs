@@ -4,8 +4,8 @@
 //! after all dependencies are properly wired in AppState.
 //! Currently kept as stub to maintain API compatibility.
 
-use crate::errors::ApiError;
 use crate::context::ApplicationContext;
+use crate::errors::ApiError;
 use axum::{extract::State, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
@@ -67,7 +67,9 @@ pub async fn handle_stream_status(
 }
 
 // Backward compatibility for crawl_stream
-pub async fn crawl_stream(State(_state): State<ApplicationContext>) -> Result<impl IntoResponse, ApiError> {
+pub async fn crawl_stream(
+    State(_state): State<ApplicationContext>,
+) -> Result<impl IntoResponse, ApiError> {
     Ok(axum::response::Response::builder()
         .status(200)
         .header("content-type", "text/event-stream")

@@ -35,21 +35,18 @@ pub async fn create_test_strategies_orchestrator(
     state: AppState,
     options: CrawlOptions,
 ) -> Arc<StrategiesPipelineOrchestrator> {
-    Arc::new(StrategiesPipelineOrchestrator::new(
-        state, options, None,
-    ))
+    Arc::new(StrategiesPipelineOrchestrator::new(state, options, None))
 }
 
 /// Create both orchestrators for testing the CrawlFacade
 pub async fn create_test_orchestrators(
     options: CrawlOptions,
-) -> (Arc<PipelineOrchestrator>, Arc<StrategiesPipelineOrchestrator>) {
+) -> (
+    Arc<PipelineOrchestrator>,
+    Arc<StrategiesPipelineOrchestrator>,
+) {
     let state = create_test_state().await;
     let pipeline = Arc::new(PipelineOrchestrator::new(state.clone(), options.clone()));
-    let strategies = Arc::new(StrategiesPipelineOrchestrator::new(
-        state,
-        options,
-        None,
-    ));
+    let strategies = Arc::new(StrategiesPipelineOrchestrator::new(state, options, None));
     (pipeline, strategies)
 }

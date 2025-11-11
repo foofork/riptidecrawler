@@ -211,8 +211,8 @@ impl CircuitBreaker for LlmCircuitBreakerAdapter {
             }
             LlmState::HalfOpen => {
                 // Check if we should close the circuit
-                let success_rate = state.stats.successful_requests as f32
-                    / state.stats.total_requests as f32;
+                let success_rate =
+                    state.stats.successful_requests as f32 / state.stats.total_requests as f32;
                 if success_rate >= self.config.success_rate_threshold {
                     state.state = LlmState::Closed;
                     state.stats.state = LlmState::Closed;

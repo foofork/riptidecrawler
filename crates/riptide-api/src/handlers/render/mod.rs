@@ -14,9 +14,9 @@ pub use handlers::render;
 mod tests {
     #[allow(unused_imports)]
     use super::*;
-    use crate::handlers::render::models::{RenderRequest, RenderStats};
     #[allow(unused_imports)]
     use crate::context::ApplicationContext;
+    use crate::handlers::render::models::{RenderRequest, RenderStats};
     use axum::http::StatusCode;
     use riptide_types::{ExtractionMode, OutputFormat};
 

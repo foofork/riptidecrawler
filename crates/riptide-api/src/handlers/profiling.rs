@@ -1,7 +1,7 @@
 //! Performance profiling endpoints (ultra-thin, delegates to ProfilingFacade)
 
-use crate::errors::ApiError;
 use crate::context::ApplicationContext;
+use crate::errors::ApiError;
 use axum::{extract::State, response::Json};
 use riptide_facade::facades::{
     AllocationMetrics, BottleneckAnalysis, CpuMetrics, HeapSnapshot, LeakDetectionResult,
@@ -16,7 +16,9 @@ pub async fn get_memory_profile(
     Ok(Json(metrics))
 }
 
-pub async fn get_cpu_profile(State(_state): State<ApplicationContext>) -> Result<Json<CpuMetrics>, ApiError> {
+pub async fn get_cpu_profile(
+    State(_state): State<ApplicationContext>,
+) -> Result<Json<CpuMetrics>, ApiError> {
     let facade = ProfilingFacade::new(Default::default()).map_err(ApiError::from)?;
     let metrics = facade.get_cpu_metrics().await.map_err(ApiError::from)?;
     Ok(Json(metrics))

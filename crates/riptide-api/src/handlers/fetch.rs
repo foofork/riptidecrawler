@@ -13,7 +13,7 @@
 use axum::{extract::State, Json};
 use riptide_fetch::FetchMetricsResponse;
 
-use crate::{errors::ApiResult, context::ApplicationContext};
+use crate::{context::ApplicationContext, errors::ApiResult};
 
 /// Get fetch engine metrics for all hosts
 ///

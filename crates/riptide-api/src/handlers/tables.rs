@@ -3,7 +3,7 @@
 //! Handlers delegate all business logic to riptide-facade::TableFacade.
 //! Responsible only for HTTP mapping, metrics, and error conversion.
 
-use crate::{dto::tables::*, errors::ApiError, context::ApplicationContext};
+use crate::{context::ApplicationContext, dto::tables::*, errors::ApiError};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,

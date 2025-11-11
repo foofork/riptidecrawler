@@ -1,8 +1,8 @@
 //! Table extraction routes configuration
 
+use crate::context::ApplicationContext;
 #[cfg(feature = "extraction")]
 use crate::handlers::tables;
-use crate::context::ApplicationContext;
 use axum::{
     routing::{get, post},
     Router,

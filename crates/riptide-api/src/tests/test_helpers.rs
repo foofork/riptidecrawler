@@ -4,8 +4,8 @@
 //! of complex types that are difficult to construct manually in tests.
 
 use crate::config::RiptideApiConfig;
-use crate::health::HealthChecker;
 use crate::context::ApplicationContext;
+use crate::health::HealthChecker;
 use crate::state::AppConfig;
 use anyhow::Result;
 use std::sync::Arc;

@@ -2,9 +2,9 @@
 #![allow(dead_code)]
 pub mod spider;
 
+use crate::context::ApplicationContext;
 #[cfg(feature = "spider")]
 use crate::errors::ApiError;
-use crate::context::ApplicationContext;
 
 /// Helper for recording metrics in handlers
 pub struct MetricsRecorder<'a> {

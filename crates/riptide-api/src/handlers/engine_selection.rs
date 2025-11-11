@@ -3,7 +3,7 @@
 //! Phase 3 Sprint 3.1: Refactored to <35 LOC by delegating all business logic to EngineFacade.
 //! Handlers are now pure HTTP mapping layer.
 
-use crate::{dto::engine_selection::*, errors::ApiResult, context::ApplicationContext};
+use crate::{context::ApplicationContext, dto::engine_selection::*, errors::ApiResult};
 use axum::{extract::State, response::Json};
 use riptide_facade::facades::{EngineCapability, EngineConfig, EngineStats};
 
@@ -41,7 +41,9 @@ pub async fn get_engine_capabilities(
 }
 
 /// GET /engine/stats - Get engine statistics (2 LOC)
-pub async fn get_engine_stats(State(state): State<ApplicationContext>) -> ApiResult<Json<EngineStats>> {
+pub async fn get_engine_stats(
+    State(state): State<ApplicationContext>,
+) -> ApiResult<Json<EngineStats>> {
     Ok(Json(state.engine_facade.get_stats().await?))
 }
 

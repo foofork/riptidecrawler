@@ -8,8 +8,8 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::errors::ApiError;
 use crate::context::ApplicationContext;
+use crate::errors::ApiError;
 
 /// Stealth configuration request
 #[derive(Debug, Deserialize)]

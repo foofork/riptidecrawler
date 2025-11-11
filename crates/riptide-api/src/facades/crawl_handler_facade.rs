@@ -9,6 +9,7 @@
 //!
 //! **Purpose**: Reduce handler LOC from 395 to ~60 by moving all business logic here.
 
+use crate::context::ApplicationContext;
 use crate::errors::ApiError;
 use crate::handlers::chunking::apply_content_chunking;
 use crate::models::{
@@ -16,7 +17,6 @@ use crate::models::{
 };
 use crate::pipeline::PipelineOrchestrator;
 use crate::pipeline_enhanced::EnhancedPipelineOrchestrator;
-use crate::context::ApplicationContext;
 use riptide_facade::facades::chunking::ChunkParameters;
 use riptide_types::config::CrawlOptions;
 use riptide_types::ExtractedDoc;

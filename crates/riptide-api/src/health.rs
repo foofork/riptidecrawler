@@ -1,5 +1,5 @@
-use crate::models::{DependencyStatus, HealthResponse, ServiceHealth, SystemMetrics};
 use crate::context::ApplicationContext;
+use crate::models::{DependencyStatus, HealthResponse, ServiceHealth, SystemMetrics};
 // prometheus 0.14 uses protobuf 3.x - no trait import needed
 use serde_json::Value;
 use std::collections::HashMap;

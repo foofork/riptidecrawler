@@ -2,7 +2,7 @@
 //!
 //! This module defines the HTTP routes for PDF processing with progress tracking.
 
-use crate::{handlers::pdf, context::ApplicationContext};
+use crate::{context::ApplicationContext, handlers::pdf};
 use axum::{
     routing::{get, post},
     Router,

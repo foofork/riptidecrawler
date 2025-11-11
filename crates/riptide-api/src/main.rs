@@ -39,12 +39,13 @@ static GLOBAL: Jemalloc = Jemalloc;
 
 use crate::health::HealthChecker;
 // Deprecated metrics - use BusinessMetrics + TransportMetrics instead
+use crate::context::ApplicationContext;
+#[allow(deprecated)]
 use crate::metrics::{create_metrics_layer, RipTideMetrics};
 use crate::middleware::{
     auth_middleware, rate_limit_middleware, request_validation_middleware, PayloadLimitLayer,
 };
 use crate::sessions::middleware::SessionLayer;
-use crate::context::ApplicationContext;
 use crate::state::AppConfig;
 use axum::{
     routing::{get, post},
@@ -123,7 +124,9 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize metrics
     tracing::info!("Initializing Prometheus metrics");
+    #[allow(deprecated)]
     let _metrics = Arc::new(RipTideMetrics::new()?);
+    #[allow(deprecated)]
     let (prometheus_layer, _metric_handle) = create_metrics_layer()?;
     tracing::info!("Prometheus metrics initialized");
 

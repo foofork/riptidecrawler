@@ -3,7 +3,7 @@
 //! All business logic delegated to ProfileFacade.
 //! Handlers are <50 LOC total, focused only on HTTP transport concerns.
 
-use crate::{dto::profiles::*, errors::ApiError, context::ApplicationContext};
+use crate::{context::ApplicationContext, dto::profiles::*, errors::ApiError};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,

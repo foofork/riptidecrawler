@@ -1,7 +1,7 @@
 //! Browser pool management handlers (ultra-thin, delegates to BrowserFacade)
 
-use crate::errors::ApiError;
 use crate::context::ApplicationContext;
+use crate::errors::ApiError;
 use axum::{extract::State, http::StatusCode, Json};
 use serde::{Deserialize, Serialize};
 

@@ -1,7 +1,7 @@
 pub mod adapters; // Sprint 4.3: Transport adapters for streaming
 pub mod composition; // Sprint 1.3: Dependency Injection composition root
-pub mod context; // ApplicationContext type alias - clean replacement for AppState god object
 pub mod config;
+pub mod context; // ApplicationContext type alias - clean replacement for AppState god object
 pub mod dto;
 pub mod errors;
 pub mod facades; // Sprint 3.2: Handler business logic facades
@@ -40,4 +40,5 @@ pub use composition::{ApplicationContext as DiContext, ApplicationContextBuilder
 pub use context::ApplicationContext;
 
 // Also re-export AppState for backward compatibility
+#[allow(deprecated)]
 pub use state::AppState;

@@ -5,7 +5,10 @@
 
 mod common;
 
-use common::{create_test_orchestrators, create_test_pipeline_orchestrator, create_test_state, create_test_strategies_orchestrator};
+use common::{
+    create_test_orchestrators, create_test_pipeline_orchestrator, create_test_state,
+    create_test_strategies_orchestrator,
+};
 use riptide_facade::facades::{CrawlFacade, CrawlMode, CrawlResult};
 use riptide_types::config::CrawlOptions;
 

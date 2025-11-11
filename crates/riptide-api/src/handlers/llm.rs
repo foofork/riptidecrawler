@@ -3,8 +3,8 @@
 //! This module implements LLM provider management endpoints that utilize riptide-intelligence's
 //! multi-provider system for runtime configuration and provider switching.
 
-use crate::errors::{ApiError, ApiResult};
 use crate::context::ApplicationContext;
+use crate::errors::{ApiError, ApiResult};
 use axum::{
     extract::{Query, State},
     http::StatusCode,
@@ -662,7 +662,9 @@ pub async fn update_config(
 ///
 /// This endpoint returns the current LLM configuration including
 /// active provider and configuration summary.
-pub async fn get_config(State(state): State<ApplicationContext>) -> Result<impl IntoResponse, ApiError> {
+pub async fn get_config(
+    State(state): State<ApplicationContext>,
+) -> Result<impl IntoResponse, ApiError> {
     let start_time = Instant::now();
 
     info!("Received get config request");

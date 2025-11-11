@@ -6,8 +6,8 @@
 //! - GET /engine/stats - Get engine usage statistics
 //! - PUT /engine/probe-first - Toggle probe-first mode
 
-use crate::handlers::engine_selection;
 use crate::context::ApplicationContext;
+use crate::handlers::engine_selection;
 use axum::{
     routing::{get, post, put},
     Router,

@@ -1,8 +1,8 @@
 //! Content chunking routes configuration
 
+use crate::context::ApplicationContext;
 #[cfg(feature = "extraction")]
 use crate::handlers::chunking;
-use crate::context::ApplicationContext;
 use axum::{routing::post, Router};
 
 /// Create content chunking routes

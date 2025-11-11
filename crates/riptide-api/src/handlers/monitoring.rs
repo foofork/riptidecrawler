@@ -1,6 +1,6 @@
 //! Monitoring handler - <50 LOC after facade refactoring
-use crate::errors::ApiError;
 use crate::context::ApplicationContext;
+use crate::errors::ApiError;
 use axum::{extract::State, Json};
 use riptide_facade::facades::monitoring::{
     HealthScoreResponse, MonitoringFacade, PerformanceReportResponse,

@@ -201,6 +201,7 @@ pub struct RipTideMetrics {
     pub jemalloc_metadata_ratio: Gauge,  // Metadata overhead ratio
 }
 
+#[allow(deprecated)]
 impl RipTideMetrics {
     /// Initialize metrics with Prometheus registry
     pub fn new() -> anyhow::Result<Self> {
@@ -1670,6 +1671,7 @@ pub struct PhaseTimer {
     url: String,
 }
 
+#[allow(deprecated)]
 impl PhaseTimer {
     /// Start timing a phase
     pub fn start(phase: PhaseType, url: String) -> Self {
@@ -1720,6 +1722,7 @@ impl PhaseTimer {
 }
 
 /// Create Prometheus metric layer for Axum
+#[allow(deprecated)]
 pub fn create_metrics_layer() -> anyhow::Result<(PrometheusMetricLayer<'static>, PrometheusHandle)>
 {
     let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair();

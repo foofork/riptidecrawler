@@ -1,7 +1,7 @@
+use crate::context::ApplicationContext;
 use crate::errors::ApiError;
 use crate::facades::CrawlHandlerFacade;
 use crate::models::{CrawlBody, CrawlResponse};
-use crate::context::ApplicationContext;
 use crate::telemetry_config::extract_trace_context;
 use crate::validation::validate_crawl_request;
 use axum::{extract::State, http::HeaderMap, Json};

@@ -1,11 +1,11 @@
 #![allow(dead_code)]
 
+use crate::context::ApplicationContext;
 /// Enhanced pipeline metrics visualization endpoint
 ///
 /// This module provides endpoints for retrieving and visualizing enhanced pipeline metrics,
 /// including detailed phase timing data, gate decision statistics, and performance trends.
 use crate::errors::ApiError;
-use crate::context::ApplicationContext;
 use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

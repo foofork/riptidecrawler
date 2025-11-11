@@ -1,6 +1,6 @@
 use super::models::RenderRequest;
-use crate::errors::{ApiError, ApiResult};
 use crate::context::ApplicationContext;
+use crate::errors::{ApiError, ApiResult};
 use riptide_facade::facades::RenderStrategyFacade;
 use riptide_headless::dynamic::{DynamicConfig, DynamicRenderResult};
 use riptide_stealth::StealthController;

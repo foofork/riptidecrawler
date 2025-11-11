@@ -1,12 +1,14 @@
-use crate::errors::ApiError;
 use crate::context::ApplicationContext;
+use crate::errors::ApiError;
 use axum::{extract::State, http::StatusCode, response::IntoResponse};
 
 /// Prometheus metrics endpoint.
 ///
 /// Returns metrics in Prometheus exposition format for scraping by monitoring systems.
 /// Includes GlobalStreamingMetrics from the streaming module.
-pub async fn metrics(State(state): State<ApplicationContext>) -> Result<impl IntoResponse, ApiError> {
+pub async fn metrics(
+    State(state): State<ApplicationContext>,
+) -> Result<impl IntoResponse, ApiError> {
     // Update streaming metrics before gathering all metrics
     let streaming_metrics = state.streaming.metrics().await;
     state.update_streaming_metrics(&streaming_metrics);

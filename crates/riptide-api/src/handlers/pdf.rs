@@ -3,7 +3,9 @@
 //! Handlers delegate business logic to riptide-facade::PdfFacade.
 //! Responsible only for HTTP mapping, resource management, and metrics.
 
-use crate::{dto::pdf::*, errors::ApiError, resource_manager::ResourceResult, context::ApplicationContext};
+use crate::{
+    context::ApplicationContext, dto::pdf::*, errors::ApiError, resource_manager::ResourceResult,
+};
 use axum::{
     extract::{Multipart, State},
     response::{sse::Event, Sse},

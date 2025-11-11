@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use crate::context::ApplicationContext;
 /// Enhanced pipeline orchestrator with comprehensive phase timing and metrics.
 ///
 /// This module provides production-ready enhanced pipeline orchestration with:
@@ -17,7 +18,6 @@
 /// - ENHANCED_PIPELINE_RENDER_TIMEOUT: Render phase timeout in seconds
 use crate::errors::ApiResult;
 use crate::pipeline::{PipelineOrchestrator, PipelineResult, PipelineStats};
-use crate::context::ApplicationContext;
 use crate::state::EnhancedPipelineConfig;
 use anyhow::Result;
 use riptide_types::config::CrawlOptions;

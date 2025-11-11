@@ -2,7 +2,7 @@
 //!
 //! This module defines the HTTP routes for stealth configuration, testing, and capabilities.
 
-use crate::{handlers::stealth, context::ApplicationContext};
+use crate::{context::ApplicationContext, handlers::stealth};
 use axum::{
     routing::{get, post},
     Router,

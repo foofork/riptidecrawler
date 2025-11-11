@@ -3,8 +3,8 @@
 //! Phase 3 Sprint 3.1: Refactored to <40 LOC total by delegating to SessionManager.
 //! Handlers are pure HTTP mapping with no business logic.
 
-use crate::{dto::sessions::*, errors::ApiError, sessions::Cookie};
 use crate::context::ApplicationContext;
+use crate::{dto::sessions::*, errors::ApiError, sessions::Cookie};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -24,7 +24,9 @@ fn handle_error(
     })
 }
 
-pub async fn create_session(State(state): State<ApplicationContext>) -> Result<impl IntoResponse, ApiError> {
+pub async fn create_session(
+    State(state): State<ApplicationContext>,
+) -> Result<impl IntoResponse, ApiError> {
     let session = state.session_manager.create_session().await.map_err(|e| {
         state.transport_metrics.record_redis_error();
         ApiError::dependency("session_manager", e.to_string())

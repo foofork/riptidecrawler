@@ -21,8 +21,8 @@ pub mod redis_session_storage;
 pub mod redis_rate_limiter;
 
 // Phase 2: Circuit breaker adapters
-pub mod standard_circuit_breaker;
 pub mod llm_circuit_breaker;
+pub mod standard_circuit_breaker;
 
 // Re-export adapters when features are enabled
 #[cfg(feature = "idempotency")]
@@ -34,5 +34,5 @@ pub use redis_session_storage::RedisSessionStorage;
 pub use redis_rate_limiter::{RedisPerHostRateLimiter, RedisRateLimiter};
 
 // Phase 2: Circuit breaker exports
-pub use standard_circuit_breaker::StandardCircuitBreakerAdapter;
 pub use llm_circuit_breaker::LlmCircuitBreakerAdapter;
+pub use standard_circuit_breaker::StandardCircuitBreakerAdapter;

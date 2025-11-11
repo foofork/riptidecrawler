@@ -785,8 +785,7 @@ mod tests {
 
     #[tokio::test]
     #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
-    
-    
+
     async fn test_launcher_creation_pool_mode() {
         let config = LauncherConfig {
             pool_config: BrowserPoolConfig {
@@ -810,8 +809,7 @@ mod tests {
 
     #[tokio::test]
     #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
-    
-    
+
     async fn test_launcher_creation_hybrid_mode() {
         let config = LauncherConfig {
             hybrid_mode: true,
@@ -832,8 +830,7 @@ mod tests {
 
     #[tokio::test]
     #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
-    
-    
+
     async fn test_page_launch() {
         let launcher = HeadlessLauncher::new().await.unwrap();
 

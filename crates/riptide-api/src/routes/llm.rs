@@ -1,8 +1,8 @@
 //! LLM provider management routes configuration
 
+use crate::context::ApplicationContext;
 #[cfg(feature = "llm")]
 use crate::handlers::llm;
-use crate::context::ApplicationContext;
 use axum::{
     routing::{get, post},
     Router,

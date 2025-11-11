@@ -12,10 +12,12 @@
     since = "0.9.0",
     note = "Use context::ApplicationContext instead. See docs/architecture/ADR-001-appstate-elimination.md"
 )]
+#[allow(dead_code)]
 pub type AppState = crate::context::ApplicationContext;
 
 // Re-export all types from context for backward compatibility
 #[deprecated(since = "0.9.0", note = "Use context::ApplicationContext instead")]
+#[allow(unused_imports)]
 pub use crate::context::ApplicationContext;
 
 #[deprecated(since = "0.9.0", note = "Use context::AppConfig instead")]
@@ -25,9 +27,11 @@ pub use crate::context::AppConfig;
 pub use crate::context::EnhancedPipelineConfig;
 
 #[deprecated(since = "0.9.0", note = "Use context::EngineSelectionConfig instead")]
+#[allow(unused_imports)]
 pub use crate::context::EngineSelectionConfig;
 
 #[deprecated(since = "0.9.0", note = "Use context::CircuitBreakerConfig instead")]
+#[allow(unused_imports)]
 pub use crate::context::CircuitBreakerConfig;
 
 #[deprecated(since = "0.9.0", note = "Use context::HealthStatus instead")]
@@ -37,7 +41,9 @@ pub use crate::context::HealthStatus;
 pub use crate::context::DependencyHealth;
 
 #[deprecated(since = "0.9.0", note = "Use context::MonitoringSystem instead")]
+#[allow(unused_imports)]
 pub use crate::context::MonitoringSystem;
 
 #[deprecated(since = "0.9.0", note = "Use context::PerformanceReport instead")]
+#[allow(unused_imports)]
 pub use crate::context::PerformanceReport;

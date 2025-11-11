@@ -3,9 +3,9 @@
 //! This module provides HTTP handlers for deep crawling operations using
 //! the riptide-facade SpiderFacade for simplified spider engine access.
 #![allow(dead_code)]
+use crate::context::ApplicationContext;
 use crate::errors::ApiError;
 use crate::models::*;
-use crate::context::ApplicationContext;
 use axum::{
     extract::{Query, State},
     response::IntoResponse,

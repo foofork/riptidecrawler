@@ -13,10 +13,10 @@
 //! `#[ignore]` require actual browser/network resources and should be run explicitly.
 
 use crate::config::RiptideApiConfig;
+use crate::context::ApplicationContext;
 #[cfg(feature = "browser")]
 use crate::handlers::browser::CreateSessionRequest;
 use crate::health::HealthChecker;
-use crate::context::ApplicationContext;
 use crate::state::AppConfig;
 use anyhow::Result;
 use axum::{extract::State, Json};
