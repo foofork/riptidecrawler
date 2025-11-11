@@ -7,6 +7,8 @@
 //! - Graceful shutdown via CancellationToken
 //! - Error handling and recovery
 
+#![cfg(feature = "postgres")]
+
 use async_trait::async_trait;
 use riptide_persistence::adapters::{OutboxEventBus, OutboxPublisher};
 use riptide_types::{DomainEvent, EventBus, EventHandler, Result as RiptideResult, SubscriptionId};

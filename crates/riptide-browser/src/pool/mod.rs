@@ -1311,6 +1311,8 @@ mod tests {
     use chromiumoxide::BrowserConfig;
 
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_browser_pool_creation() {
         let config = BrowserPoolConfig {
             initial_pool_size: 2,
@@ -1334,6 +1336,8 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_browser_checkout_checkin() {
         let config = BrowserPoolConfig {
             initial_pool_size: 1,

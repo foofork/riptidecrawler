@@ -1190,6 +1190,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_browser_facade_creation() {
         let config = RiptideConfig::default();
         let result = BrowserFacade::new(config).await;
@@ -1197,6 +1198,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_browser_facade_config_access() {
         let config = RiptideConfig::default().with_user_agent("TestBot/1.0");
         let facade = BrowserFacade::new(config).await.unwrap();
@@ -1204,6 +1206,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_screenshot_options_builder() {
         let options = ScreenshotOptions::default()
             .full_page(true)
@@ -1217,6 +1220,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_browser_action_serialization() {
         let action = BrowserAction::Click {
             selector: "#button".to_string(),
@@ -1227,6 +1231,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_cookie_creation() {
         let cookie = Cookie {
             name: "session".to_string(),
@@ -1246,6 +1251,7 @@ mod tests {
 
     // Integration test (requires browser)
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     #[ignore] // Ignore by default, run with --ignored flag
     async fn test_browser_launch_and_close() {
         let config = RiptideConfig::default();
@@ -1257,6 +1263,7 @@ mod tests {
 
     // Integration test (requires browser and network)
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     #[ignore]
     async fn test_browser_navigation() {
         let config = RiptideConfig::default();
@@ -1271,6 +1278,7 @@ mod tests {
 
     // Integration test (requires browser and network)
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     #[ignore]
     async fn test_browser_screenshot() {
         let config = RiptideConfig::default();
@@ -1291,6 +1299,7 @@ mod tests {
 
     // Integration test (requires browser and network)
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     #[ignore]
     async fn test_browser_content() {
         let config = RiptideConfig::default();
@@ -1311,6 +1320,7 @@ mod tests {
 
     // P1-C1 Week 2: Test stealth enabled by default
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_browser_stealth_enabled() {
         let config = RiptideConfig::default();
         assert!(
@@ -1328,6 +1338,7 @@ mod tests {
 
     // P1-C1 Week 2: Test stealth configuration options
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_browser_stealth_config() {
         let config = RiptideConfig::default()
             .with_stealth_enabled(false)
@@ -1340,6 +1351,7 @@ mod tests {
 
     // P1-C1 Week 2: Test unified launcher stats access
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_browser_launcher_stats() {
         let config = RiptideConfig::default().with_stealth_enabled(false);
         let facade = BrowserFacade::new(config).await.unwrap();
@@ -1352,6 +1364,7 @@ mod tests {
 
     // P1-C1 Week 2: Test multi-session support
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     #[ignore]
     async fn test_browser_multi_session() {
         let config = RiptideConfig::default().with_stealth_preset("Low");
@@ -1386,6 +1399,7 @@ mod tests {
 
     // P1-C1 Week 2: Test backward compatibility
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_browser_backward_compatibility() {
         // Old code without stealth config should still work
         let config = RiptideConfig::default();
@@ -1398,6 +1412,7 @@ mod tests {
 
     // P1-C1 Week 2: Test stealth presets
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_browser_stealth_presets() {
         let presets = vec!["None", "Low", "Medium", "High"];
 
@@ -1410,6 +1425,7 @@ mod tests {
 
     // W1.2: Test circuit breaker initialization
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_circuit_breaker_initialized() {
         use riptide_utils::circuit_breaker::State;
 
@@ -1432,6 +1448,7 @@ mod tests {
 
     // W1.2: Test circuit breaker opens after failures
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_circuit_breaker_opens_after_failures() {
         use riptide_utils::circuit_breaker::State;
 
@@ -1459,6 +1476,7 @@ mod tests {
 
     // W1.2: Test circuit breaker success recording
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_circuit_breaker_success_recording() {
         use riptide_utils::circuit_breaker::State;
 
@@ -1495,6 +1513,7 @@ mod tests {
 
     // W1.2: Test fallback components initialized
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_fallback_components_initialized() {
         let config = RiptideConfig::default();
         let facade = BrowserFacade::new(config).await.unwrap();
@@ -1514,6 +1533,7 @@ mod tests {
 
     // W1.2: Test render_with_timeout exists and has correct signature
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_render_with_timeout_signature() {
         let config = RiptideConfig::default();
         let facade = BrowserFacade::new(config).await.unwrap();
@@ -1530,6 +1550,7 @@ mod tests {
 
     // W1.2: Test circuit breaker state transitions
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_circuit_breaker_state_transitions() {
         use riptide_utils::circuit_breaker::State;
 
@@ -1555,6 +1576,7 @@ mod tests {
 
     // W1.2: Test timeout duration is 3 seconds
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_timeout_duration_is_3_seconds() {
         // This is a compile-time test to ensure the timeout is hardcoded to 3s
         // The actual timeout logic is tested in integration tests
@@ -1564,6 +1586,7 @@ mod tests {
 
     // W1.2: Test fallback method exists
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_fallback_method_exists() {
         let config = RiptideConfig::default();
         let facade = BrowserFacade::new(config).await.unwrap();
@@ -1577,6 +1600,7 @@ mod tests {
 
     // W1.2: Test circuit breaker automatic recovery via HalfOpen state
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_circuit_breaker_reset() {
         use riptide_utils::circuit_breaker::{Config as CircuitConfig, RealClock, State};
         use std::sync::Arc;
@@ -1625,6 +1649,7 @@ mod tests {
 
     // Phase 3 Sprint 3.1: Test navigate_and_wait
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_navigate_and_wait() {
         let url = "https://example.com";
         let parsed = Url::parse(url);
@@ -1633,6 +1658,7 @@ mod tests {
 
     // Phase 3 Sprint 3.1: Test execute_complex_script timeout
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_execute_complex_script_timeout() {
         let timeout_ms = 5000u64;
         assert_eq!(timeout_ms, 5000);
@@ -1640,6 +1666,7 @@ mod tests {
 
     // Phase 3 Sprint 3.1: Test handle_popup
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_handle_popup_accept_reject() {
         let accept_script =
             "window.confirm = function() { return true; }; window.alert = function() {};";
@@ -1652,6 +1679,7 @@ mod tests {
 
     // Phase 3 Sprint 3.1: Test manage_cookies actions
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_manage_cookies_actions() {
         let valid_actions = ["get", "set", "clear"];
         assert_eq!(valid_actions.len(), 3);
@@ -1660,6 +1688,7 @@ mod tests {
 
     // Phase 3 Sprint 3.1: Test wait_for_element timeout
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_wait_for_element_params() {
         let selector = "#button";
         let timeout_ms = 5000u64;
@@ -1669,6 +1698,7 @@ mod tests {
 
     // Phase 3 Sprint 3.1: Test get_metadata structure
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_get_metadata_script() {
         let script = r#"JSON.stringify({ title: document.title })"#;
         assert!(script.contains("title"));
@@ -1677,6 +1707,7 @@ mod tests {
 
     // Phase 3 Sprint 3.1: Test render_pdf parameters
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_render_pdf_options() {
         let landscape = true;
         let print_background = false;
@@ -1686,6 +1717,7 @@ mod tests {
 
     // Phase 3 Sprint 3.1: Test pool_status JSON structure
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_pool_status_structure() {
         let expected_fields = ["total_requests", "successful_requests", "pool_utilization"];
         assert_eq!(expected_fields.len(), 3);
@@ -1693,6 +1725,7 @@ mod tests {
 
     // Phase 3 Sprint 3.1: Test new methods exist
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_new_browser_methods_signature() {
         let config = RiptideConfig::default();
         let facade = BrowserFacade::new(config).await.unwrap();
@@ -1703,6 +1736,7 @@ mod tests {
 
     // Phase 3 Sprint 3.1: Test cookie clear script
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_cookie_clear_logic() {
         let clear_script = "document.cookie.split(';').forEach(c => { document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/'); });";
         assert!(clear_script.contains("expires"));

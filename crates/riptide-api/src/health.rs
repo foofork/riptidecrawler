@@ -802,6 +802,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Redis - run with: cargo test -- --ignored"]
     async fn test_health_check_basic() {
         let state = AppState::new_test_minimal().await;
         let checker = HealthChecker::new();
@@ -817,6 +818,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Redis - run with: cargo test -- --ignored"]
     async fn test_health_check_dependencies() {
         let state = AppState::new_test_minimal().await;
         let checker = HealthChecker::new();
@@ -833,6 +835,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Redis - run with: cargo test -- --ignored"]
     async fn test_system_metrics_collection() {
         let state = AppState::new_test_minimal().await;
         let checker = HealthChecker::new();
@@ -848,6 +851,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Redis - run with: cargo test -- --ignored"]
     async fn test_spider_health_check_not_configured() {
         let state = AppState::new_test_minimal().await;
         let checker = HealthChecker::new();
@@ -859,6 +863,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Redis - run with: cargo test -- --ignored"]
     async fn test_redis_health_check() {
         let state = AppState::new_test_minimal().await;
         let checker = HealthChecker::new();
@@ -876,6 +881,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Redis - run with: cargo test -- --ignored"]
     async fn test_worker_service_health_check() {
         let state = AppState::new_test_minimal().await;
         let checker = HealthChecker::new();
@@ -893,6 +899,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Redis - run with: cargo test -- --ignored"]
     async fn test_health_check_performance() {
         let state = AppState::new_test_minimal().await;
         let checker = HealthChecker::new();
@@ -915,6 +922,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Redis - run with: cargo test -- --ignored"]
     async fn test_metrics_collection_performance() {
         let state = AppState::new_test_minimal().await;
         let checker = HealthChecker::new();
@@ -933,6 +941,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Redis - run with: cargo test -- --ignored"]
     async fn test_spider_timeout_protection() {
         // This test verifies the timeout mechanism exists
         let state = AppState::new_test_minimal().await;

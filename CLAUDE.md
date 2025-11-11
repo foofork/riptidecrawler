@@ -20,7 +20,7 @@ cargo clippy -p [affected-crate] -- -D warnings
 # 3. Cargo check OK
 cargo check -p [affected-crate]
 
-# 4. Full workspace build at phase end ONLY (run `cargo clean` first for space + deterministic rebuild)
+# 4. Full workspace build at phase end ONLY (run `scripts/quality_gate.sh` first for space + deterministic rebuild)
 ```
 
 **Commit Rules**
@@ -43,9 +43,7 @@ cargo check -p [affected-crate]
 * **Security:** Least privilege, externalized secrets, validated inputs, in-app authorization, auditable multi-tenancy.
 * **Docs:** Each crate declares role, public APIs, examples; architecture diagrams co-versioned with code.
 
----
-
-# Claude Code Configuration - SPARC Development Environment
+---# Claude Code Configuration - SPARC Development Environment
 
 ## 🚨 CRITICAL: CONCURRENT EXECUTION & FILE MANAGEMENT
 

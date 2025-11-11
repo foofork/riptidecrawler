@@ -1246,6 +1246,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     #[serial]
     async fn test_batch_execute_empty() {
         let config = CdpPoolConfig::default();
@@ -1277,6 +1278,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     async fn test_batch_execute_with_commands() {
         let config = CdpPoolConfig::default();
         let pool = CdpConnectionPool::new(config);
@@ -1338,6 +1340,7 @@ mod tests {
         let _ = browser.close().await;
     }
 
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     #[tokio::test]
     #[serial]
     async fn test_batch_config_disabled() {
@@ -1433,6 +1436,7 @@ mod tests {
         assert!((reuse_rate - 0.666).abs() < 0.01); // ~66.67%
     }
 
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     #[tokio::test]
     #[serial]
     async fn test_pooled_connection_mark_used() {
@@ -1463,7 +1467,7 @@ mod tests {
 
         let _ = browser.close().await;
     }
-
+    #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
     #[tokio::test]
     #[serial]
     async fn test_connection_latency_recording() {
