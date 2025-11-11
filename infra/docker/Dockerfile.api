@@ -27,7 +27,6 @@ COPY Cargo.toml Cargo.lock ./
 # Copy all crate Cargo.toml files preserving structure
 RUN mkdir -p crates wasm
 COPY crates/riptide-api/Cargo.toml crates/riptide-api/
-COPY crates/riptide-browser-abstraction/Cargo.toml crates/riptide-browser-abstraction/
 COPY crates/riptide-browser/Cargo.toml crates/riptide-browser/
 COPY crates/riptide-cache/Cargo.toml crates/riptide-cache/
 COPY crates/riptide-cli/Cargo.toml crates/riptide-cli/
@@ -44,6 +43,7 @@ COPY crates/riptide-performance/Cargo.toml crates/riptide-performance/
 COPY crates/riptide-persistence/Cargo.toml crates/riptide-persistence/
 COPY crates/riptide-pool/Cargo.toml crates/riptide-pool/
 COPY crates/riptide-reliability/Cargo.toml crates/riptide-reliability/
+COPY crates/riptide-schemas/Cargo.toml crates/riptide-schemas/
 COPY crates/riptide-search/Cargo.toml crates/riptide-search/
 COPY crates/riptide-security/Cargo.toml crates/riptide-security/
 COPY crates/riptide-spider/Cargo.toml crates/riptide-spider/
@@ -51,28 +51,32 @@ COPY crates/riptide-stealth/Cargo.toml crates/riptide-stealth/
 COPY crates/riptide-streaming/Cargo.toml crates/riptide-streaming/
 COPY crates/riptide-test-utils/Cargo.toml crates/riptide-test-utils/
 COPY crates/riptide-types/Cargo.toml crates/riptide-types/
+COPY crates/riptide-utils/Cargo.toml crates/riptide-utils/
 COPY crates/riptide-workers/Cargo.toml crates/riptide-workers/
 COPY wasm/riptide-extractor-wasm/Cargo.toml wasm/riptide-extractor-wasm/
 
 # Remove benchmark and example configurations
 RUN sed -i '/\[\[bench\]\]/,/required-features/d' crates/riptide-performance/Cargo.toml || true && \
     sed -i '/\[\[bench\]\]/,/required-features/d' crates/riptide-persistence/Cargo.toml || true && \
+    sed -i '/\[\[bench\]\]/,/harness = false/d' crates/riptide-extraction/Cargo.toml || true && \
+    sed -i '/\[\[bench\]\]/,/harness = false/d' crates/riptide-pool/Cargo.toml || true && \
+    sed -i '/\[\[bench\]\]/,/harness = false/d' crates/riptide-spider/Cargo.toml || true && \
     sed -i '/\[\[example\]\]/,/^$/d' crates/riptide-extraction/Cargo.toml || true && \
     sed -i '/\[\[example\]\]/,/^$/d' crates/riptide-intelligence/Cargo.toml || true
 
 # Create stub source files for dependency caching
-RUN mkdir -p crates/riptide-api/src crates/riptide-browser-abstraction/src \
-    crates/riptide-browser/src crates/riptide-cache/src crates/riptide-cli/src \
+RUN mkdir -p crates/riptide-api/src crates/riptide-browser/src \
+    crates/riptide-cache/src crates/riptide-cli/src \
     crates/riptide-config/src crates/riptide-events/src crates/riptide-extraction/src \
     crates/riptide-facade/src crates/riptide-fetch/src crates/riptide-headless/src \
     crates/riptide-intelligence/src crates/riptide-monitoring/src crates/riptide-pdf/src \
     crates/riptide-performance/src crates/riptide-persistence/src crates/riptide-pool/src \
-    crates/riptide-reliability/src crates/riptide-search/src crates/riptide-security/src \
-    crates/riptide-spider/src crates/riptide-stealth/src crates/riptide-streaming/src \
-    crates/riptide-test-utils/src crates/riptide-types/src crates/riptide-workers/src wasm/riptide-extractor-wasm/src && \
+    crates/riptide-reliability/src crates/riptide-schemas/src crates/riptide-search/src \
+    crates/riptide-security/src crates/riptide-spider/src crates/riptide-stealth/src \
+    crates/riptide-streaming/src crates/riptide-test-utils/src crates/riptide-types/src \
+    crates/riptide-utils/src crates/riptide-workers/src wasm/riptide-extractor-wasm/src && \
     echo "fn main() {}" > crates/riptide-api/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-api/src/main.rs && \
-    echo "fn main() {}" > crates/riptide-browser-abstraction/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-browser/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-cache/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-cli/src/lib.rs && \
@@ -89,6 +93,7 @@ RUN mkdir -p crates/riptide-api/src crates/riptide-browser-abstraction/src \
     echo "fn main() {}" > crates/riptide-persistence/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-pool/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-reliability/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-schemas/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-search/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-security/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-spider/src/lib.rs && \
@@ -96,6 +101,7 @@ RUN mkdir -p crates/riptide-api/src crates/riptide-browser-abstraction/src \
     echo "fn main() {}" > crates/riptide-streaming/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-test-utils/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-types/src/lib.rs && \
+    echo "fn main() {}" > crates/riptide-utils/src/lib.rs && \
     echo "fn main() {}" > crates/riptide-workers/src/lib.rs && \
     echo "fn main() {}" > wasm/riptide-extractor-wasm/src/lib.rs
 
