@@ -1,12 +1,9 @@
 use crate::context::ApplicationContext;
 use crate::errors::{ApiError, ApiResult};
 use async_trait::async_trait;
-use reqwest::Response;
 use riptide_extraction::strategies::{
     ExtractionStrategyType, PerformanceMetrics, ProcessedContent, StrategyConfig, StrategyManager,
 };
-#[cfg(feature = "fetch")]
-use riptide_fetch as fetch;
 use riptide_pdf::{self as pdf, utils as pdf_utils};
 use riptide_reliability::gate::{decide, score, Decision, GateFeatures};
 use riptide_types::config::CrawlOptions;
@@ -153,7 +150,7 @@ impl StrategiesPipelineOrchestrator {
         // Step 2: Fetch content
         debug!(url = %url, "Cache miss, fetching content");
         let (response, content_bytes, content_type) = self.fetch_content_with_type(url).await?;
-        let http_status = response.status().as_u16();
+        let http_status = response.status;
 
         // Step 3: Check for PDF content
         if pdf_utils::is_pdf_content(content_type.as_deref(), &content_bytes)
@@ -346,35 +343,20 @@ impl StrategiesPipelineOrchestrator {
     async fn fetch_content_with_type(
         &self,
         url: &str,
-    ) -> ApiResult<(Response, Vec<u8>, Option<String>)> {
+    ) -> ApiResult<(riptide_types::ports::HttpResponse, Vec<u8>, Option<String>)> {
         let fetch_timeout = Duration::from_secs(15);
-        let response = timeout(fetch_timeout, fetch::get(&self.state.http_client, url))
+        let http_response = timeout(fetch_timeout, self.state.http_client.get(url))
             .await
             .map_err(|_| ApiError::timeout("content_fetch", format!("Timeout fetching {}", url)))?
             .map_err(|e| ApiError::fetch(url, e.to_string()))?;
 
-        let content_type = response
-            .headers()
-            .get("content-type")
-            .and_then(|ct| ct.to_str().ok())
+        let content_type = http_response
+            .header("content-type")
             .map(|s| s.to_string());
 
-        let content_bytes = timeout(fetch_timeout, response.bytes())
-            .await
-            .map_err(|_| {
-                ApiError::timeout(
-                    "content_read",
-                    format!("Timeout reading content from {}", url),
-                )
-            })?
-            .map_err(|e| ApiError::fetch(url, format!("Failed to read response body: {}", e)))?
-            .to_vec();
+        let content_bytes = http_response.body.clone();
 
-        let response = fetch::get(&self.state.http_client, url)
-            .await
-            .map_err(|e| ApiError::fetch(url, e.to_string()))?;
-
-        Ok((response, content_bytes, content_type))
+        Ok((http_response, content_bytes, content_type))
     }
 
     /// Analyze content for gate features
@@ -455,25 +437,26 @@ impl StrategiesPipelineOrchestrator {
                     "scroll_steps": self.options.scroll_steps
                 });
 
+                // Serialize the JSON request body
+                let body_json = serde_json::to_vec(&render_request)
+                    .map_err(|e| ApiError::dependency("headless_service", format!("JSON serialization failed: {}", e)))?;
+
                 let response = self
                     .state
                     .http_client
-                    .post(format!("{}/render", headless_url))
-                    .json(&render_request)
-                    .send()
+                    .post(&format!("{}/render", headless_url), &body_json)
                     .await
                     .map_err(|e| ApiError::dependency("headless_service", e.to_string()))?;
 
-                if !response.status().is_success() {
+                if !response.is_success() {
                     return Err(ApiError::dependency(
                         "headless_service",
-                        format!("Render request failed: {}", response.status()),
+                        format!("Render request failed: {}", response.status),
                     ));
                 }
 
                 response
                     .text()
-                    .await
                     .map_err(|e| ApiError::dependency("headless_service", e.to_string()))
             }
             None => Err(ApiError::dependency(
@@ -489,12 +472,19 @@ impl StrategiesPipelineOrchestrator {
             return Ok(None);
         }
 
-        let mut cache = self.state.cache.lock().await;
-        cache
-            .get::<ProcessedContent>(cache_key)
+        let cache_data = self.state.cache
+            .get(cache_key)
             .await
-            .map_err(|e| ApiError::cache(format!("Cache read failed: {}", e)))
-            .map(|entry| entry.map(|e| e.data))
+            .map_err(|e| ApiError::cache(format!("Cache read failed: {}", e)))?;
+
+        match cache_data {
+            Some(bytes) => {
+                let content: ProcessedContent = serde_json::from_slice(&bytes)
+                    .map_err(|e| ApiError::cache(format!("Cache deserialization failed: {}", e)))?;
+                Ok(Some(content))
+            }
+            None => Ok(None),
+        }
     }
 
     /// Store processed content in cache
@@ -503,9 +493,11 @@ impl StrategiesPipelineOrchestrator {
             return Ok(());
         }
 
-        let mut cache = self.state.cache.lock().await;
-        cache
-            .set_simple(cache_key, content, self.state.config.cache_ttl)
+        let content_bytes = serde_json::to_vec(content)
+            .map_err(|e| ApiError::cache(format!("Cache serialization failed: {}", e)))?;
+
+        self.state.cache
+            .set(cache_key, &content_bytes, Some(Duration::from_secs(self.state.config.cache_ttl)))
             .await
             .map_err(|e| ApiError::cache(format!("Cache write failed: {}", e)))
     }

@@ -29,6 +29,7 @@ riptide-stealth = { path = "../riptide-stealth" }
 
 # Temp directory management
 tempfile = { workspace = true }
+riptide-types = { version = "0.9.0", path = "../riptide-types" }
 
 [features]
 default = []

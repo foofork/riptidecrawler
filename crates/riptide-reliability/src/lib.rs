@@ -177,7 +177,8 @@ pub use buffer::{
     BufferResult, BufferStats, DynamicBuffer,
 };
 pub use circuit_breaker_pool::{
-    record_extraction_result, CircuitBreakerState, ExtractionResult as CircuitExtractionResult,
+    record_extraction_result, CircuitBreakerAdapter, CircuitBreakerState,
+    ExtractionResult as CircuitExtractionResult,
 };
 pub use engine_selection::{
     analyze_content, calculate_content_ratio, decide_engine, decide_engine_with_flags,

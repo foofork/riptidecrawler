@@ -35,6 +35,7 @@ uuid = { workspace = true }
 chrono = { workspace = true }
 url = "2.5"
 dirs = "5.0"
+async-trait.workspace = true
 
 [dev-dependencies]
 tokio-test = "0.4"

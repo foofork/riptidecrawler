@@ -63,6 +63,7 @@ pub mod session;
 
 // Phase 2 ports
 pub mod circuit_breaker;
+pub mod extractor;
 
 // Sprint 1.5 ports
 pub mod health;
@@ -78,6 +79,15 @@ pub mod streaming;
 // Sprint 4.4 ports
 pub mod rate_limit;
 
+// Sprint 4.8 ports (trait migration)
+pub mod worker;
+pub mod resource;
+pub mod monitoring;
+
+// Spider port
+#[cfg(feature = "spider")]
+pub mod spider;
+
 // Re-export all ports for convenience
 pub use cache::{CacheStats, CacheStorage};
 pub use circuit_breaker::{
@@ -85,6 +95,9 @@ pub use circuit_breaker::{
     CircuitBreakerStats, CircuitState,
 };
 pub use events::{DomainEvent, EventBus, EventHandler, SubscriptionId};
+pub use extractor::{
+    ContentExtractor, ExtractionResult, ReliabilityStats, ReliableContentExtractor,
+};
 pub use features::{
     BrowserDriver, BrowserSession, PdfMetadata, PdfProcessor, ScriptResult, SearchDocument,
     SearchEngine, SearchQuery, SearchResult,
@@ -106,4 +119,18 @@ pub use streaming::{
     StreamConfig, StreamErrorData, StreamEvent, StreamLifecycle, StreamMetadata, StreamMetrics,
     StreamProcessor, StreamProgress, StreamResult, StreamResultData, StreamState, StreamSummary,
     StreamingTransport,
+};
+
+#[cfg(feature = "spider")]
+pub use spider::{CrawlResults, CrawlState, PerformanceMetrics, SpiderEngine};
+
+// Worker service re-exports
+pub use worker::{WorkerHealth, WorkerService};
+
+// Resource management re-exports
+pub use resource::{ResourceManager, ResourceStatus};
+
+// Monitoring and observability re-exports
+pub use monitoring::{
+    CombinedMetricsCollector, MonitoringSystem, PdfMetrics, PerformanceTracker, TransportMetrics,
 };

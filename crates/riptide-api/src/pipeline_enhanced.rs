@@ -420,10 +420,10 @@ impl EnhancedPipelineOrchestrator {
 
     /// Fetch content from URL
     async fn fetch_content(&self, url: &str) -> Result<(String, u16)> {
-        // Simplified implementation - integrate with actual fetch logic
-        let response = self.state.http_client.get(url).send().await?;
-        let status = response.status().as_u16();
-        let content = response.text().await?;
+        // Use trait-based HTTP client
+        let response = self.state.http_client.get(url).await?;
+        let status = response.status;
+        let content = response.text()?;
         Ok((content, status))
     }
 

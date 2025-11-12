@@ -26,7 +26,7 @@ impl ReqwestHttpClient {
             .pool_idle_timeout(Duration::from_secs(90))
             .timeout(Duration::from_secs(30))
             .build()
-            .map_err(|e| RiptideError::NetworkError(format!("Failed to create HTTP client: {}", e)))?;
+            .map_err(|e| RiptideError::Network(format!("Failed to create HTTP client: {}", e)))?;
 
         Ok(Self { client })
     }
@@ -42,7 +42,7 @@ impl ReqwestHttpClient {
             .pool_idle_timeout(idle_timeout)
             .timeout(timeout)
             .build()
-            .map_err(|e| RiptideError::NetworkError(format!("Failed to create HTTP client: {}", e)))?;
+            .map_err(|e| RiptideError::Network(format!("Failed to create HTTP client: {}", e)))?;
 
         Ok(Self { client })
     }
@@ -63,7 +63,7 @@ impl ReqwestHttpClient {
         let body = resp
             .bytes()
             .await
-            .map_err(|e| RiptideError::NetworkError(format!("Failed to read response body: {}", e)))?
+            .map_err(|e| RiptideError::Network(format!("Failed to read response body: {}", e)))?
             .to_vec();
 
         Ok(HttpResponse::new(status, headers, body))
@@ -72,7 +72,7 @@ impl ReqwestHttpClient {
     /// Converts HttpRequest to reqwest::Request (anti-corruption layer)
     fn build_request(&self, req: HttpRequest) -> Result<reqwest::Request> {
         let method = reqwest::Method::from_bytes(req.method.as_bytes())
-            .map_err(|e| RiptideError::InvalidData(format!("Invalid HTTP method: {}", e)))?;
+            .map_err(|e| RiptideError::ValidationError(format!("Invalid HTTP method: {}", e)))?;
 
         let mut builder = self.client.request(method, &req.url);
 
@@ -93,7 +93,7 @@ impl ReqwestHttpClient {
 
         builder
             .build()
-            .map_err(|e| RiptideError::NetworkError(format!("Failed to build request: {}", e)))
+            .map_err(|e| RiptideError::Network(format!("Failed to build request: {}", e)))
     }
 }
 
@@ -111,7 +111,7 @@ impl HttpClient for ReqwestHttpClient {
             .get(url)
             .send()
             .await
-            .map_err(|e| RiptideError::NetworkError(format!("GET request failed: {}", e)))?;
+            .map_err(|e| RiptideError::Network(format!("GET request failed: {}", e)))?;
 
         Self::convert_response(resp).await
     }
@@ -123,7 +123,7 @@ impl HttpClient for ReqwestHttpClient {
             .body(body.to_vec())
             .send()
             .await
-            .map_err(|e| RiptideError::NetworkError(format!("POST request failed: {}", e)))?;
+            .map_err(|e| RiptideError::Network(format!("POST request failed: {}", e)))?;
 
         Self::convert_response(resp).await
     }
@@ -135,7 +135,7 @@ impl HttpClient for ReqwestHttpClient {
             .client
             .execute(request)
             .await
-            .map_err(|e| RiptideError::NetworkError(format!("Request execution failed: {}", e)))?;
+            .map_err(|e| RiptideError::Network(format!("Request execution failed: {}", e)))?;
 
         Self::convert_response(resp).await
     }

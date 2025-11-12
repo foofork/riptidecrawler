@@ -3,7 +3,7 @@ use crate::models::{DependencyStatus, HealthResponse, ServiceHealth, SystemMetri
 // prometheus 0.14 uses protobuf 3.x - no trait import needed
 use serde_json::Value;
 use std::collections::HashMap;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use sysinfo::ProcessesToUpdate;
 use tracing::{debug, error, info};
 
@@ -226,36 +226,39 @@ impl HealthChecker {
 
     /// Test Redis operations including connectivity and performance
     async fn test_redis_operations(&self, context: &ApplicationContext) -> anyhow::Result<()> {
-        let mut cache = context.cache.lock().await;
-
         // Test basic set/get operations
         let test_key = "health_check_test";
         let test_value = "health_check_value";
+        let test_value_bytes = test_value.as_bytes();
 
-        cache.set_simple(test_key, &test_value, 5).await?;
-        let retrieved = cache.get::<String>(test_key).await?;
+        context.cache.set(test_key, test_value_bytes, Some(Duration::from_secs(5))).await?;
+        let retrieved = context.cache.get(test_key).await?;
 
-        match retrieved.as_ref() {
-            Some(cached_value) if cached_value.data == test_value => {
-                // Value matches, continue
+        match retrieved {
+            Some(bytes) => {
+                let retrieved_str = String::from_utf8(bytes)
+                    .map_err(|e| anyhow::anyhow!("Invalid UTF-8 in cached value: {}", e))?;
+                if retrieved_str != test_value {
+                    return Err(anyhow::anyhow!("Redis value mismatch"));
+                }
             }
-            _ => {
-                return Err(anyhow::anyhow!("Redis value mismatch"));
+            None => {
+                return Err(anyhow::anyhow!("Redis value not found"));
             }
         }
 
-        cache.delete(test_key).await?;
+        context.cache.delete(test_key).await?;
 
         // Test performance with batch operations
         let batch_keys: Vec<String> = (0..10).map(|i| format!("perf_test_{}", i)).collect();
-        let batch_value = "performance_test";
+        let batch_value = "performance_test".as_bytes();
 
         for key in &batch_keys {
-            cache.set_simple(key, &batch_value, 1).await?;
+            context.cache.set(key, batch_value, Some(Duration::from_secs(1))).await?;
         }
 
         for key in &batch_keys {
-            cache.delete(key).await?;
+            context.cache.delete(key).await?;
         }
 
         Ok(())
@@ -287,12 +290,12 @@ impl HealthChecker {
         let mut last_error = None;
 
         for endpoint in &test_endpoints {
-            match context.http_client.head(*endpoint).send().await {
-                Ok(response) if response.status().is_success() => {
+            match context.http_client.get(endpoint).await {
+                Ok(response) if response.is_success() => {
                     successful_tests += 1;
                 }
                 Ok(response) => {
-                    last_error = Some(format!("HTTP {} from {}", response.status(), endpoint));
+                    last_error = Some(format!("HTTP {} from {}", response.status, endpoint));
                 }
                 Err(e) => {
                     last_error = Some(format!("Request error to {}: {}", endpoint, e));
@@ -355,14 +358,14 @@ impl HealthChecker {
     pub async fn check_headless_health(&self, context: &ApplicationContext) -> ServiceHealth {
         if let Some(headless_url) = &context.config.headless_url {
             let start_time = Instant::now();
+            let health_url = format!("{}/healthz", headless_url);
 
             match context
                 .http_client
-                .get(format!("{}/healthz", headless_url))
-                .send()
+                .get(&health_url)
                 .await
             {
-                Ok(response) if response.status().is_success() => {
+                Ok(response) if response.is_success() => {
                     let response_time = start_time.elapsed().as_millis() as u64;
                     ServiceHealth {
                         status: "healthy".to_string(),
@@ -373,7 +376,7 @@ impl HealthChecker {
                 }
                 Ok(response) => ServiceHealth {
                     status: "unhealthy".to_string(),
-                    message: Some(format!("Headless service returned {}", response.status())),
+                    message: Some(format!("Headless service returned {}", response.status)),
                     response_time_ms: None,
                     last_check: chrono::Utc::now().to_rfc3339(),
                 },

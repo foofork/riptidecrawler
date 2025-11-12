@@ -1,10 +1,8 @@
 use crate::context::ApplicationContext;
 use crate::errors::{ApiError, ApiResult};
 use async_trait::async_trait;
-use reqwest::Response;
 use riptide_events::{BaseEvent, EventSeverity};
-#[cfg(feature = "fetch")]
-use riptide_fetch as fetch;
+use riptide_types::ports::HttpResponse;
 #[cfg(feature = "llm")]
 use riptide_intelligence::smart_retry::{RetryConfig, SmartRetry, SmartRetryStrategy};
 use riptide_pdf::{self as pdf, utils as pdf_utils};
@@ -280,7 +278,7 @@ impl PipelineOrchestrator {
         debug!(url = %url, "Cache miss, fetching content");
         let fetch_start = Instant::now();
         let (response, content_bytes, content_type) = self.fetch_content_with_type(url).await?;
-        let http_status = response.status().as_u16();
+        let http_status = response.status;
         let fetch_duration = fetch_start.elapsed().as_secs_f64();
         self.state.record_phase_timing("fetch", fetch_duration);
 
@@ -613,7 +611,7 @@ impl PipelineOrchestrator {
     async fn fetch_content_with_type(
         &self,
         url: &str,
-    ) -> ApiResult<(Response, Vec<u8>, Option<String>)> {
+    ) -> ApiResult<(HttpResponse, Vec<u8>, Option<String>)> {
         // Clone url for closure
         let url_clone = url.to_string();
         let state_clone = self.state.clone();
@@ -623,7 +621,7 @@ impl PipelineOrchestrator {
         let fetch_operation = || async {
             let response = timeout(
                 fetch_timeout,
-                fetch::get(&state_clone.http_client, &url_clone),
+                state_clone.http_client.get(&url_clone),
             )
             .await
             .map_err(|_| riptide_intelligence::IntelligenceError::Timeout {
@@ -633,32 +631,11 @@ impl PipelineOrchestrator {
                 riptide_intelligence::IntelligenceError::Network(format!("Fetch failed: {}", e))
             })?;
 
-            // Extract content type before consuming response
-            let content_type = response
-                .headers()
-                .get("content-type")
-                .and_then(|ct| ct.to_str().ok())
-                .map(|s| s.to_string());
+            // Extract content type from response headers
+            let content_type = response.header("content-type").map(|s| s.to_string());
 
-            let content_bytes = timeout(fetch_timeout, response.bytes())
-                .await
-                .map_err(|_| riptide_intelligence::IntelligenceError::Timeout {
-                    timeout_ms: fetch_timeout.as_millis() as u64,
-                })?
-                .map_err(|e| {
-                    riptide_intelligence::IntelligenceError::Network(format!(
-                        "Failed to read response: {}",
-                        e
-                    ))
-                })?
-                .to_vec();
-
-            // Recreate response for status code (since we consumed it for bytes)
-            let response = fetch::get(&state_clone.http_client, &url_clone)
-                .await
-                .map_err(|e| {
-                    riptide_intelligence::IntelligenceError::Network(format!("Fetch failed: {}", e))
-                })?;
+            // Get the body bytes (HttpResponse already has the full body)
+            let content_bytes = response.body.clone();
 
             Ok((response, content_bytes, content_type))
         };
@@ -680,36 +657,19 @@ impl PipelineOrchestrator {
     async fn fetch_content_with_type(
         &self,
         url: &str,
-    ) -> ApiResult<(Response, Vec<u8>, Option<String>)> {
+    ) -> ApiResult<(HttpResponse, Vec<u8>, Option<String>)> {
         let fetch_timeout = Duration::from_secs(15);
 
-        let response = timeout(fetch_timeout, fetch::get(&self.state.http_client, url))
+        let response = timeout(fetch_timeout, self.state.http_client.get(url))
             .await
             .map_err(|_| ApiError::timeout("content_fetch", format!("Timeout fetching {}", url)))?
             .map_err(|e| ApiError::fetch(url, format!("Fetch failed: {}", e)))?;
 
-        // Extract content type before consuming response
-        let content_type = response
-            .headers()
-            .get("content-type")
-            .and_then(|ct| ct.to_str().ok())
-            .map(|s| s.to_string());
+        // Extract content type from response headers
+        let content_type = response.header("content-type").map(|s| s.to_string());
 
-        let content_bytes = timeout(fetch_timeout, response.bytes())
-            .await
-            .map_err(|_| {
-                ApiError::timeout(
-                    "content_fetch",
-                    format!("Timeout reading response from {}", url),
-                )
-            })?
-            .map_err(|e| ApiError::fetch(url, format!("Failed to read response: {}", e)))?
-            .to_vec();
-
-        // Recreate response for status code (since we consumed it for bytes)
-        let response = fetch::get(&self.state.http_client, url)
-            .await
-            .map_err(|e| ApiError::fetch(url, format!("Fetch failed: {}", e)))?;
+        // Get the body bytes (HttpResponse already has the full body)
+        let content_bytes = response.body.clone();
 
         Ok((response, content_bytes, content_type))
     }
@@ -955,7 +915,7 @@ impl PipelineOrchestrator {
         })?;
 
         // Emit success event with strategy information
-        let strategy = self.state.extractor.strategy_name();
+        let strategy = self.state.extractor.extractor_type();
         let mut event = riptide_events::BaseEvent::new(
             "pipeline.extraction.success",
             "pipeline_orchestrator",
@@ -965,14 +925,32 @@ impl PipelineOrchestrator {
         event.add_metadata("strategy", strategy);
         event.add_metadata(
             "content_length",
-            &extracted_content.content.len().to_string(),
+            &extracted_content.text.len().to_string(),
         );
         if let Err(e) = self.state.event_bus.emit(event).await {
             warn!(error = %e, "Failed to emit extraction success event");
         }
 
-        // Convert ExtractedContent to ExtractedDoc
-        Ok(convert_extracted_content(extracted_content, url))
+        // Convert ExtractionResult to ExtractedDoc
+        Ok(ExtractedDoc {
+            url: url.to_string(),
+            title: extracted_content.metadata.get("title").cloned(),
+            text: extracted_content.text,
+            quality_score: Some((extracted_content.quality_score * 100.0) as u8),
+            links: vec![],
+            byline: extracted_content.metadata.get("author").cloned(),
+            published_iso: extracted_content.metadata.get("published").cloned(),
+            markdown: None,
+            media: vec![],
+            language: extracted_content.metadata.get("lang").cloned(),
+            reading_time: None,
+            word_count: None,
+            categories: vec![],
+            site_name: extracted_content.metadata.get("site_name").cloned(),
+            description: extracted_content.metadata.get("description").cloned(),
+            html: None,
+            parser_metadata: None,
+        })
     }
 
     /// Check cache for existing content.
@@ -981,15 +959,22 @@ impl PipelineOrchestrator {
             return Ok(None);
         }
 
-        let mut cache = self.state.cache.lock().await;
-        cache
-            .get::<ExtractedDoc>(cache_key)
-            .await
-            .map_err(|e| {
+        match self.state.cache.get(cache_key).await {
+            Ok(Some(bytes)) => {
+                match serde_json::from_slice::<ExtractedDoc>(&bytes) {
+                    Ok(doc) => Ok(Some(doc)),
+                    Err(e) => {
+                        warn!("Cache deserialization failed for key {}: {}", cache_key, e);
+                        Ok(None)
+                    }
+                }
+            }
+            Ok(None) => Ok(None),
+            Err(e) => {
                 self.state.transport_metrics.record_redis_error();
-                ApiError::cache(format!("Cache read failed: {}", e))
-            })
-            .map(|entry| entry.map(|e| e.data))
+                Err(ApiError::cache(format!("Cache read failed: {}", e)))
+            }
+        }
     }
 
     /// Store content in cache.
@@ -998,9 +983,11 @@ impl PipelineOrchestrator {
             return Ok(());
         }
 
-        let mut cache = self.state.cache.lock().await;
-        cache
-            .set_simple(cache_key, document, self.state.config.cache_ttl)
+        let doc_bytes = serde_json::to_vec(document)
+            .map_err(|e| ApiError::cache(format!("Cache serialization failed: {}", e)))?;
+
+        self.state.cache
+            .set(cache_key, &doc_bytes, Some(Duration::from_secs(self.state.config.cache_ttl)))
             .await
             .map_err(|e| {
                 self.state.transport_metrics.record_redis_error();

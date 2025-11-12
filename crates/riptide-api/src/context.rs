@@ -21,15 +21,15 @@ use crate::resource_manager::ResourceManager;
 use crate::sessions::{SessionConfig, SessionManager};
 use crate::streaming::StreamingModule;
 use anyhow::{Context, Result};
-use reqwest::Client;
-use riptide_cache::CacheManager;
 use riptide_facade::metrics::BusinessMetrics;
+use riptide_types::ports::cache::CacheStorage;
+use riptide_types::ports::http::HttpClient;
 // CacheWarmingConfig requires wasm-pool feature which is not available in riptide-api
 // #[cfg(feature = "wasm-pool")]
 // use riptide_cache::CacheWarmingConfig;
 use riptide_events::{EventBus, EventBusConfig, EventSeverity};
 #[cfg(feature = "fetch")]
-use riptide_fetch::{http_client, FetchEngine};
+use riptide_fetch::FetchEngine;
 use riptide_pdf::PdfMetricsCollector;
 use riptide_reliability::CircuitBreakerState;
 use riptide_reliability::{ReliabilityConfig, ReliableExtractor};
@@ -61,6 +61,7 @@ use riptide_performance::PerformanceManager;
 use riptide_workers::{WorkerService, WorkerServiceConfig};
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::Mutex;
 use tracing::info;
 
 use crate::middleware::AuthConfig;
@@ -72,21 +73,22 @@ use crate::middleware::AuthConfig;
 /// is wrapped in Arc for efficient sharing across async handlers.
 #[derive(Clone)]
 pub struct ApplicationContext {
-    /// HTTP client for fetching web content
-    pub http_client: Client,
+    /// HTTP client for fetching web content (trait-based abstraction)
+    pub http_client: Arc<dyn HttpClient>,
 
-    /// Redis cache manager for storing and retrieving cached content
-    pub cache: Arc<tokio::sync::Mutex<CacheManager>>,
+    /// Cache storage for storing and retrieving cached content (trait-based abstraction)
+    pub cache: Arc<dyn CacheStorage>,
 
     /// Unified extractor for content processing (WASM or native)
-    /// TODO: Future wiring for learned extractor patterns
+    /// Trait-based for dependency inversion and testability
     #[cfg(feature = "extraction")]
     #[allow(dead_code)]
-    pub extractor: Arc<UnifiedExtractor>,
+    pub extractor: Arc<dyn riptide_types::ports::ContentExtractor>,
 
     /// Reliable extractor wrapper with retry and circuit breaker logic
+    /// Trait-based for dependency inversion and testability
     #[allow(dead_code)]
-    pub reliable_extractor: Arc<ReliableExtractor>,
+    pub reliable_extractor: Arc<dyn riptide_types::ports::ReliableContentExtractor>,
 
     /// Configuration settings
     pub config: AppConfig,
@@ -124,7 +126,7 @@ pub struct ApplicationContext {
 
     /// Spider engine for deep crawling
     #[cfg(feature = "spider")]
-    pub spider: Option<Arc<Spider>>,
+    pub spider: Option<Arc<dyn riptide_types::ports::SpiderEngine>>,
 
     /// PDF metrics collector for monitoring PDF processing
     #[allow(dead_code)] // Public API - used via metrics.update_pdf_metrics_from_collector
@@ -132,13 +134,14 @@ pub struct ApplicationContext {
 
     /// Worker service for background job processing
     #[cfg(feature = "workers")]
-    pub worker_service: Arc<WorkerService>,
+    pub worker_service: Arc<dyn riptide_types::ports::WorkerService>,
 
     /// Event bus for centralized event coordination
     pub event_bus: Arc<EventBus>,
 
     /// Circuit breaker for resilience and fault tolerance
-    pub circuit_breaker: Arc<tokio::sync::Mutex<CircuitBreakerState>>,
+    /// Trait-based for dependency inversion and testability
+    pub circuit_breaker: Arc<dyn riptide_types::ports::CircuitBreaker>,
 
     /// Performance metrics for circuit breaker tracking
     #[allow(dead_code)] // Public API - used for circuit breaker performance tracking
@@ -165,7 +168,7 @@ pub struct ApplicationContext {
 
     /// Headless browser launcher with connection pooling and stealth support
     #[cfg(feature = "browser")]
-    pub browser_launcher: Option<Arc<HeadlessLauncher>>,
+    pub browser_launcher: Option<Arc<dyn riptide_types::ports::BrowserDriver>>,
 
     /// Browser facade for simplified browser automation
     /// Only available when using local Chrome mode (headless_url not configured)
@@ -713,47 +716,57 @@ impl ApplicationContext {
             "Combined metrics collector created - business + transport registries merged for /metrics endpoint"
         );
 
-        // Initialize HTTP client with optimized settings
+        // Initialize HTTP client with trait-based abstraction
         #[cfg(feature = "fetch")]
-        let http_client = http_client()?;
+        let http_client: Arc<dyn HttpClient> = {
+            use riptide_fetch::adapters::ReqwestHttpClient;
+            Arc::new(ReqwestHttpClient::new().context("Failed to create HTTP client adapter")?)
+        };
         #[cfg(not(feature = "fetch"))]
-        let http_client = Client::new();
-        tracing::debug!("HTTP client initialized");
+        let http_client: Arc<dyn HttpClient> = {
+            use riptide_fetch::adapters::ReqwestHttpClient;
+            Arc::new(ReqwestHttpClient::new().context("Failed to create HTTP client adapter")?)
+        };
+        tracing::debug!("HTTP client initialized with trait-based abstraction");
 
-        // Establish Redis connection
-        let cache_manager = CacheManager::new(&config.redis_url).await?;
-        let cache = Arc::new(tokio::sync::Mutex::new(cache_manager));
-        tracing::info!("Redis connection established: {}", config.redis_url);
+        // Establish Redis connection with trait-based abstraction
+        let cache: Arc<dyn CacheStorage> = Arc::new(
+            riptide_cache::RedisStorage::new(&config.redis_url)
+                .await
+                .context("Failed to create Redis storage adapter")?,
+        );
+        tracing::info!("Redis cache storage established: {}", config.redis_url);
 
         // Initialize unified extractor with automatic fallback
         #[cfg(feature = "extraction")]
         let extractor = {
             let wasm_path = std::env::var("WASM_EXTRACTOR_PATH").ok();
-            let ext = Arc::new(
-                UnifiedExtractor::new(wasm_path.as_deref())
-                    .await
-                    .context("Failed to initialize content extractor")?,
-            );
+            let ext = UnifiedExtractor::new(wasm_path.as_deref())
+                .await
+                .context("Failed to initialize content extractor")?;
             tracing::info!(
                 extractor_type = ext.extractor_type(),
                 wasm_available = UnifiedExtractor::wasm_available(),
                 "Content extractor initialized"
             );
-            ext
+            // Cast to trait object
+            Arc::new(ext) as Arc<dyn riptide_types::ports::ContentExtractor>
         };
 
         // Initialize ReliableExtractor with retry and circuit breaker logic
-        let reliable_extractor = Arc::new(
-            ReliableExtractor::new(config.reliability_config.clone())
-                .map_err(|e| anyhow::anyhow!("Failed to initialize ReliableExtractor: {}", e))?,
-        );
-        tracing::info!(
-            max_retries = config.reliability_config.http_retry.max_attempts,
-            timeout_secs = config.reliability_config.headless_timeout.as_secs(),
-            graceful_degradation = config.reliability_config.enable_graceful_degradation,
-            quality_threshold = config.reliability_config.fast_extraction_quality_threshold,
-            "ReliableExtractor initialized with retry and circuit breaker patterns"
-        );
+        let reliable_extractor = {
+            let ext = ReliableExtractor::new(config.reliability_config.clone())
+                .map_err(|e| anyhow::anyhow!("Failed to initialize ReliableExtractor: {}", e))?;
+            tracing::info!(
+                max_retries = config.reliability_config.http_retry.max_attempts,
+                timeout_secs = config.reliability_config.headless_timeout.as_secs(),
+                graceful_degradation = config.reliability_config.enable_graceful_degradation,
+                quality_threshold = config.reliability_config.fast_extraction_quality_threshold,
+                "ReliableExtractor initialized with retry and circuit breaker patterns"
+            );
+            // Cast to trait object
+            Arc::new(ext) as Arc<dyn riptide_types::ports::ReliableContentExtractor>
+        };
 
         // Initialize session manager
         let session_manager = SessionManager::new(config.session_config.clone()).await?;
@@ -778,7 +791,7 @@ impl ApplicationContext {
 
         // Initialize Spider if enabled
         #[cfg(feature = "spider")]
-        let spider = if let Some(ref spider_config) = config.spider_config {
+        let _spider = if let Some(ref spider_config) = config.spider_config {
             tracing::info!("Initializing Spider engine for deep crawling");
 
             let spider_config = spider_config.clone();
@@ -850,7 +863,7 @@ impl ApplicationContext {
             let ws = WorkerService::new(config.worker_config.clone())
                 .await
                 .map_err(|e| anyhow::anyhow!("Failed to initialize worker service: {}", e))?;
-            let ws = Arc::new(ws);
+            let ws: Arc<dyn riptide_types::ports::WorkerService> = Arc::new(ws);
             tracing::info!("Worker service initialized successfully");
             ws
         };
@@ -912,7 +925,12 @@ impl ApplicationContext {
             timeout_ms = config.circuit_breaker_config.timeout_ms,
             "Initializing circuit breaker for resilience"
         );
-        let circuit_breaker = Arc::new(tokio::sync::Mutex::new(CircuitBreakerState::default()));
+        // Create circuit breaker adapter with trait implementation
+        let circuit_breaker = {
+            use riptide_reliability::CircuitBreakerAdapter;
+            let adapter = CircuitBreakerAdapter::new(CircuitBreakerState::default());
+            Arc::new(adapter) as Arc<dyn riptide_types::ports::CircuitBreaker>
+        };
 
         // Initialize performance metrics for circuit breaker tracking
         let performance_metrics = Arc::new(tokio::sync::Mutex::new(PerformanceMetrics::default()));
@@ -1011,14 +1029,13 @@ impl ApplicationContext {
                     hybrid_mode: false,
                 };
 
-                Some(Arc::new(
-                    HeadlessLauncher::with_config(browser_launcher_config)
-                        .await
-                        .map_err(|e| {
-                            tracing::error!(error = %e, "Failed to initialize browser launcher");
-                            anyhow::anyhow!("Failed to initialize browser launcher: {}", e)
-                        })?,
-                ))
+                let launcher = HeadlessLauncher::with_config(browser_launcher_config)
+                    .await
+                    .map_err(|e| {
+                        tracing::error!(error = %e, "Failed to initialize browser launcher");
+                        anyhow::anyhow!("Failed to initialize browser launcher: {}", e)
+                    })?;
+                Some(Arc::new(launcher) as Arc<dyn riptide_types::ports::BrowserDriver>)
             }
         } else {
             tracing::info!(
@@ -1048,14 +1065,13 @@ impl ApplicationContext {
                 hybrid_mode: false,
             };
 
-            let launcher = Arc::new(
-                HeadlessLauncher::with_config(browser_launcher_config)
-                    .await
-                    .map_err(|e| {
-                        tracing::error!(error = %e, "Failed to initialize browser launcher");
-                        anyhow::anyhow!("Failed to initialize browser launcher: {}", e)
-                    })?,
-            );
+            let launcher_concrete = HeadlessLauncher::with_config(browser_launcher_config)
+                .await
+                .map_err(|e| {
+                    tracing::error!(error = %e, "Failed to initialize browser launcher");
+                    anyhow::anyhow!("Failed to initialize browser launcher: {}", e)
+                })?;
+            let launcher: Arc<dyn riptide_types::ports::BrowserDriver> = Arc::new(launcher_concrete);
 
             tracing::info!(
                 pool_size = api_config.headless.max_pool_size,
@@ -1343,7 +1359,7 @@ impl ApplicationContext {
             streaming,
             telemetry,
             #[cfg(feature = "spider")]
-            spider,
+            spider: None, // TODO: Wrap Spider in SpiderEngine adapter
             pdf_metrics,
             #[cfg(feature = "workers")]
             worker_service,
@@ -1655,18 +1671,21 @@ impl ApplicationContext {
             health.worker_service = DependencyHealth::Healthy;
         }
 
-        // Check circuit breaker health
+        // Check circuit breaker health using trait methods
         health.circuit_breaker = {
-            let cb_state = self.circuit_breaker.lock().await;
-            if cb_state.is_open() {
-                health.healthy = false;
-                DependencyHealth::Unhealthy(
-                    "Circuit breaker is open - too many failures".to_string(),
-                )
-            } else if cb_state.is_half_open() {
-                DependencyHealth::Unhealthy("Circuit breaker is testing recovery".to_string())
-            } else {
-                DependencyHealth::Healthy
+            use riptide_types::ports::CircuitState;
+            let cb_state = self.circuit_breaker.state().await;
+            match cb_state {
+                CircuitState::Open => {
+                    health.healthy = false;
+                    DependencyHealth::Unhealthy(
+                        "Circuit breaker is open - too many failures".to_string(),
+                    )
+                }
+                CircuitState::HalfOpen => {
+                    DependencyHealth::Unhealthy("Circuit breaker is testing recovery".to_string())
+                }
+                CircuitState::Closed => DependencyHealth::Healthy,
             }
         };
 
@@ -1675,9 +1694,11 @@ impl ApplicationContext {
 
     /// Test Redis connection by performing a simple operation.
     async fn check_redis(&self) -> Result<()> {
-        let mut cache = self.cache.lock().await;
-        cache.set_simple("health_check", &"ok", 1).await?;
-        cache.delete("health_check").await?;
+        use std::time::Duration;
+        self.cache
+            .set("health_check", b"ok", Some(Duration::from_secs(1)))
+            .await?;
+        self.cache.delete("health_check").await?;
         Ok(())
     }
 
@@ -1694,16 +1715,16 @@ impl ApplicationContext {
         // Optionally test against localhost if a test endpoint is available
         // This keeps the health check internal to the system
         if let Ok(port) = std::env::var("HEALTH_CHECK_PORT") {
+            let url = format!("http://127.0.0.1:{}/health", port);
             if let Ok(response) = self
                 .http_client
-                .head(format!("http://127.0.0.1:{}/health", port))
-                .send()
+                .get(&url)
                 .await
             {
-                if !response.status().is_success() {
+                if !response.is_success() {
                     return Err(anyhow::anyhow!(
                         "Internal health check failed: {}",
-                        response.status()
+                        response.status
                     ));
                 }
             }
@@ -1722,33 +1743,32 @@ impl ApplicationContext {
     #[allow(dead_code)]
     pub async fn new_test_minimal() -> Self {
         use std::sync::Arc;
-        use tokio::sync::Mutex;
-        #[cfg(feature = "fetch")]
-        let http_client = http_client().expect("Failed to create HTTP client");
-        #[cfg(not(feature = "fetch"))]
-        let http_client = Client::new();
+
+        // Initialize HTTP client with trait-based abstraction
+        let http_client: Arc<dyn HttpClient> = {
+            use riptide_fetch::adapters::ReqwestHttpClient;
+            Arc::new(ReqwestHttpClient::new().expect("Failed to create HTTP client"))
+        };
 
         // Use Redis URL from env or default (tests should skip Redis-dependent features)
         let redis_url =
             std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
 
-        // Create a mock cache manager for tests when Redis is unavailable
-        // This allows tests to run without requiring a Redis instance
-        let cache = if std::env::var("SKIP_REDIS_TESTS").is_ok() {
+        // Create cache storage with trait-based abstraction
+        let cache: Arc<dyn CacheStorage> = if std::env::var("SKIP_REDIS_TESTS").is_ok() {
             eprintln!("⚠️  SKIP_REDIS_TESTS is set - using mock cache for tests");
-            // Create a mock cache by using a dummy connection attempt
-            // The cache operations will fail, but non-cache tests can still run
-            match CacheManager::new(&redis_url).await {
-                Ok(cm) => Arc::new(Mutex::new(cm)),
+            // Try to create real cache, panic with helpful message if it fails
+            match riptide_cache::RedisStorage::new(&redis_url).await {
+                Ok(storage) => Arc::new(storage),
                 Err(e) => {
                     eprintln!("Using mock cache (Redis unavailable: {})", e);
                     panic!("Mock cache not implemented - Redis is required for tests. Start Redis with: docker run -d -p 6379:6379 redis")
                 }
             }
         } else {
-            // Try to create real cache manager
-            match CacheManager::new(&redis_url).await {
-                Ok(cm) => Arc::new(Mutex::new(cm)),
+            // Try to create real cache storage
+            match riptide_cache::RedisStorage::new(&redis_url).await {
+                Ok(storage) => Arc::new(storage),
                 Err(e) => {
                     eprintln!("Warning: Redis not available for tests ({})", e);
                     eprintln!("\n⚠️  Redis connection failed");
@@ -1822,7 +1842,9 @@ impl ApplicationContext {
 
         let event_bus = Arc::new(EventBus::new());
 
-        let circuit_breaker = Arc::new(Mutex::new(CircuitBreakerState::default()));
+        let circuit_breaker = riptide_cache::adapters::StandardCircuitBreakerAdapter::new(
+            riptide_types::ports::CircuitBreakerConfig::default()
+        ) as Arc<dyn riptide_types::ports::CircuitBreaker>;
         let performance_metrics = Arc::new(Mutex::new(PerformanceMetrics::default()));
 
         let monitoring_system = Arc::new(MonitoringSystem::new());

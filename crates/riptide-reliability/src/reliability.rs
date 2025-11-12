@@ -1,4 +1,5 @@
 use anyhow::Result;
+use async_trait::async_trait;
 use riptide_fetch::ReliableHttpClient;
 /// Enhanced reliability patterns for RipTide Phase-2 Lite
 ///
@@ -636,6 +637,72 @@ pub trait WasmExtractor: Send + Sync {
 pub trait ReliabilityMetricsRecorder: Send + Sync + std::fmt::Debug {
     /// Record extraction fallback event
     fn record_extraction_fallback(&self, from_mode: &str, to_mode: &str, reason: &str);
+}
+
+// Implement the port trait ReliableContentExtractor from riptide-types
+#[async_trait]
+impl riptide_types::ports::ReliableContentExtractor for ReliableExtractor {
+    async fn extract_with_retry(&self, html: &str, url: &str) -> riptide_types::error::Result<riptide_types::ports::ExtractionResult> {
+        // Create a simple HTML parser wrapper
+        struct SimpleHtmlParser;
+        impl HtmlParser for SimpleHtmlParser {
+            fn parse_html(&self, html: &str, url: &str) -> Result<riptide_types::BasicExtractedDoc> {
+                // Simple parsing - convert to BasicExtractedDoc
+                Ok(riptide_types::BasicExtractedDoc {
+                    url: url.to_string(),
+                    title: None,
+                    text: html.to_string(),
+                    quality_score: Some(50),
+                    links: Vec::new(),
+                    byline: None,
+                    published_iso: None,
+                    markdown: None,
+                    media: Vec::new(),
+                    language: None,
+                    reading_time: None,
+                    word_count: None,
+                    categories: Vec::new(),
+                    site_name: None,
+                    description: None,
+                    html: None,
+                    parser_metadata: None,
+                })
+            }
+        }
+
+        // Simple implementation - just return parsed HTML
+        // In a real implementation, this would use the full extraction pipeline
+        let parser = SimpleHtmlParser;
+        let basic_doc = parser.parse_html(html, url).map_err(|e| {
+            riptide_types::error::RiptideError::Extraction(format!("Parsing failed: {}", e))
+        })?;
+
+        // Convert BasicExtractedDoc to ExtractionResult
+        let mut metadata = std::collections::HashMap::new();
+        if let Some(title) = basic_doc.title {
+            metadata.insert("title".to_string(), title);
+        }
+        metadata.insert("url".to_string(), basic_doc.url.clone());
+
+        let quality = basic_doc.quality_score.unwrap_or(50) as f64 / 100.0;
+
+        Ok(riptide_types::ports::ExtractionResult {
+            text: basic_doc.text,
+            metadata,
+            quality_score: quality,
+        })
+    }
+
+    async fn stats(&self) -> riptide_types::ports::ReliabilityStats {
+        // Return default stats - real implementation would track metrics
+        riptide_types::ports::ReliabilityStats {
+            total_attempts: 0,
+            successes: 0,
+            failures: 0,
+            avg_retries: 0.0,
+            circuit_breaker_trips: 0,
+        }
+    }
 }
 
 #[cfg(test)]
