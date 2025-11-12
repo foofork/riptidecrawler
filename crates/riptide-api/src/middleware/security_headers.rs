@@ -5,7 +5,8 @@
 
 use axum::{
     body::Body,
-    http::{Request, Response},
+    extract::State,
+    http::{header::HeaderName, HeaderValue, Request, Response},
     middleware::Next,
 };
 use riptide_security::SecurityMiddleware;
@@ -14,24 +15,74 @@ use tracing::{debug, warn};
 
 /// Middleware that applies security headers to responses
 pub async fn security_headers_middleware(
-    security: Arc<SecurityMiddleware>,
+    State(_security): State<Arc<SecurityMiddleware>>,
     req: Request<Body>,
     next: Next,
 ) -> Response<Body> {
     // Process the request
     let mut response = next.run(req).await;
 
-    // Apply security headers to the response
-    match security.apply_security_headers(response.headers_mut()) {
-        Ok(_) => {
-            debug!("Security headers applied successfully");
-        }
-        Err(e) => {
-            warn!(error = ?e, "Failed to apply security headers");
-        }
+    // Apply security headers directly to the http::HeaderMap
+    // Note: SecurityMiddleware::apply_security_headers expects reqwest::HeaderMap,
+    // so we apply headers directly here for axum::http::HeaderMap
+    let headers = response.headers_mut();
+
+    // Apply security headers directly
+    if let Err(e) = apply_axum_security_headers(headers) {
+        warn!(error = ?e, "Failed to apply security headers");
+    } else {
+        debug!("Security headers applied successfully");
     }
 
     response
+}
+
+/// Apply security headers to axum's http::HeaderMap
+fn apply_axum_security_headers(headers: &mut axum::http::HeaderMap) -> Result<(), String> {
+    // XSS Protection
+    headers.insert(
+        HeaderName::from_static("x-xss-protection"),
+        HeaderValue::from_static("1; mode=block"),
+    );
+
+    // Content Type Protection
+    headers.insert(
+        HeaderName::from_static("x-content-type-options"),
+        HeaderValue::from_static("nosniff"),
+    );
+
+    // Frame Protection
+    headers.insert(
+        HeaderName::from_static("x-frame-options"),
+        HeaderValue::from_static("DENY"),
+    );
+
+    // Content Security Policy
+    headers.insert(
+        HeaderName::from_static("content-security-policy"),
+        HeaderValue::from_static("frame-ancestors 'none'"),
+    );
+
+    // Strict Transport Security (HSTS)
+    headers.insert(
+        HeaderName::from_static("strict-transport-security"),
+        HeaderValue::from_static("max-age=31536000; includeSubDomains"),
+    );
+
+    // Referrer Policy
+    headers.insert(
+        HeaderName::from_static("referrer-policy"),
+        HeaderValue::from_static("strict-origin-when-cross-origin"),
+    );
+
+    // Permissions Policy
+    headers.insert(
+        HeaderName::from_static("permissions-policy"),
+        HeaderValue::from_static("geolocation=(), microphone=(), camera=()"),
+    );
+
+    debug!("Applied security headers to response");
+    Ok(())
 }
 
 #[cfg(test)]
@@ -43,7 +94,6 @@ mod tests {
         routing::get,
         Router,
     };
-    use riptide_security::SecurityConfig;
     use tower::ServiceExt;
 
     async fn test_handler() -> &'static str {
@@ -52,8 +102,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_security_headers_applied() {
-        let config = SecurityConfig::default();
-        let security = Arc::new(SecurityMiddleware::new(config).unwrap());
+        let security = Arc::new(SecurityMiddleware::with_defaults().unwrap());
 
         let app = Router::new()
             .route("/test", get(test_handler))
