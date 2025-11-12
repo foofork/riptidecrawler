@@ -1,89 +1,177 @@
-# RipTide API
+# 🚪 RipTide API - HTTP Entry Point & Composition Root
 
-A high-performance REST API server for web crawling, content extraction, and intelligent data processing built with Rust and Axum.
+> **Layer**: API (Entry Points & Composition Root)
+> **Role**: HTTP API server, dependency injection, request/response handling
+> **Architecture**: Hexagonal (Ports & Adapters)
 
-## Overview
+The REST API server for RipTide web crawler. This is where all application dependencies are wired together through the **ApplicationContext** composition root.
 
-RipTide API provides a comprehensive suite of 59 REST endpoints for web scraping, content extraction, search integration, PDF processing, and system monitoring. Built on async Rust with the Axum web framework, it delivers sub-3-second render times, intelligent rate limiting, and production-ready resource management.
+---
 
-### Key Capabilities
+## 📋 Quick Overview
 
-- **Web Crawling & Extraction**: Multi-strategy crawling with headless browser support
-- **Real-time Streaming**: NDJSON, Server-Sent Events (SSE), and WebSocket streaming
-- **PDF Processing**: OCR, table extraction, and text extraction with progress tracking
-- **Search Integration**: Deep search with Serper, SearxNG, or URL-based providers
-- **Session Management**: Stateful crawling with cookie management and session persistence
-- **Worker Queue**: Background job processing with scheduling and priority management
-- **Resource Monitoring**: Comprehensive metrics with Prometheus integration
-- **Memory Profiling**: jemalloc-based profiling with leak detection and bottleneck analysis
+RipTide API is the HTTP entry point that exposes 59+ REST endpoints for web crawling, content extraction, and system monitoring. It follows hexagonal architecture principles with a clean separation between handlers (API layer), facades (application layer), and domain logic.
 
-## API Endpoint Categories
+**Key Responsibilities:**
+- ✅ HTTP request handling via Axum framework
+- ✅ Dependency injection through ApplicationContext
+- ✅ Request validation and authentication
+- ✅ Rate limiting and resource management
+- ✅ Metrics collection and health monitoring
 
-The API provides 59 fully documented endpoints organized into 13 categories:
+---
 
-| Category | Endpoints | Description |
-|----------|-----------|-------------|
-| **Health** | 5 | System health checks, component health, and detailed diagnostics |
-| **Crawling** | 6 | Web crawling with streaming support (NDJSON, SSE, WebSocket) |
-| **Extraction** | 2 | Content extraction from HTML/JavaScript with WASM support |
-| **Search** | 2 | Search engine integration and deep search capabilities |
-| **Streaming** | 3 | Real-time data streaming endpoints |
-| **Spider** | 3 | Deep crawling with status monitoring and control |
-| **Strategies** | 2 | Advanced extraction strategies and pipeline information |
-| **PDF** | 4 | PDF processing, OCR, table extraction, and progress tracking |
-| **Stealth** | 3 | Anti-bot detection configuration and testing |
-| **Tables** | 2 | HTML table extraction and processing |
-| **LLM** | 3 | LLM provider management and integration |
-| **Sessions** | 12 | Session lifecycle, cookie management, and statistics |
-| **Workers** | 9 | Job submission, scheduling, metrics, and queue management |
-| **Monitoring** | 8 | Health scores, performance reports, alerts, and profiling |
-| **Resources** | 6 | Resource status monitoring (browser pool, memory, rate limiter) |
-| **Browser** | 4 | Browser session management and action execution |
-| **Telemetry** | 3 | Distributed tracing and telemetry visualization |
-| **Admin** | 13 | Tenant management, cache control, and state management (feature-gated) |
+## 🎯 Composition Root Pattern
+
+### What is ApplicationContext?
+
+The `ApplicationContext` struct is the **Composition Root** - the single place where all application dependencies are created and wired together. This pattern follows Dependency Injection principles and makes testing easier.
+
+```rust
+// ApplicationContext contains ALL dependencies
+pub struct ApplicationContext {
+    pub http_client: Client,
+    pub cache: Arc<Mutex<CacheManager>>,
+    pub extractor: Arc<UnifiedExtractor>,
+    pub resource_manager: Arc<ResourceManager>,
+    pub session_manager: Arc<SessionManager>,
+    pub extraction_facade: Arc<ExtractionFacade>,
+    pub scraper_facade: Arc<ScraperFacade>,
+    // ... 20+ more dependencies
+}
+```
+
+### Initialization Flow
+
+```rust
+// 1. Load configuration from environment
+let config = AppConfig::default();
+let health_checker = Arc::new(HealthChecker::new());
+
+// 2. Initialize ApplicationContext (composition root)
+let app_context = ApplicationContext::new(config, health_checker).await?;
+
+// 3. Build router with handlers
+let app = Router::new()
+    .route("/crawl", post(handlers::crawl))
+    .route("/extract", post(handlers::extract))
+    .with_state(app_context); // Inject dependencies into all handlers
+
+// 4. Start server
+axum::serve(listener, app).await?;
+```
+
+### Why This Matters
+
+**Before (God Object Anti-Pattern):**
+```rust
+// ❌ Bad: Handlers directly access global state
+async fn extract(State(state): State<Arc<AppState>>) {
+    state.http_client.get(...);  // Tight coupling
+    state.cache.lock().await;     // Hard to test
+    state.extractor.extract(...);  // No abstraction
+}
+```
+
+**After (Composition Root Pattern):**
+```rust
+// ✅ Good: Handlers receive dependencies through state
+async fn extract(State(ctx): State<ApplicationContext>) {
+    // Use high-level facades instead of low-level components
+    ctx.extraction_facade.extract_content(url).await?;
+}
+```
+
+**Benefits:**
+- **Testability**: Easy to mock dependencies for unit tests
+- **Flexibility**: Swap implementations without changing handlers
+- **Clarity**: Single source of truth for dependency graph
+- **Type Safety**: Compiler enforces correct wiring
+
+---
+
+## 🔌 API Endpoints
+
+### Core Endpoints (18 routes)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/healthz` | GET | Basic health check |
+| `/api/health/detailed` | GET | Detailed health with components |
+| `/health/:component` | GET | Component-specific health |
+| `/metrics` | GET | Prometheus metrics |
+| `/crawl` | POST | Start web crawl |
+| `/crawl/stream` | POST | Streaming crawl (NDJSON) |
+| `/extract` | POST | Extract content from URL |
+| `/search` | GET | Web search (feature-gated) |
+| `/deepsearch` | POST | Deep search with crawling |
+| `/render` | POST | Headless browser rendering |
+| `/spider/crawl` | POST | Deep crawl with frontier |
+| `/spider/status` | POST | Spider crawl status |
+| `/spider/control` | POST | Control spider crawl |
+| `/sessions` | POST/GET | Session management |
+| `/resources/status` | GET | Resource monitoring |
+| `/monitoring/health-score` | GET | System health score |
+| `/api/profiling/memory` | GET | Memory profiling |
+| `/api/telemetry/status` | GET | Telemetry status |
+
+### Feature-Gated Endpoints
+
+| Feature | Endpoints | Count |
+|---------|-----------|-------|
+| `browser` | Browser pool, session management | 4 |
+| `workers` | Job queue, scheduling | 9 |
+| `search` | Search integration | 3 |
+| `spider` | Deep crawling | 3 |
+| `persistence` | Multi-tenancy, admin | 13 |
 
 **Total**: 59+ production-ready endpoints
 
-## Quick Start
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- Rust 1.75+ (2021 edition)
-- Redis (for caching and session storage)
-- Chromium/Chrome (for headless rendering)
-- Optional: WASM runtime for advanced extraction
+```bash
+# Required
+rust >= 1.75
+redis-server  # For caching and sessions
 
-### Basic Setup
+# Optional (for full features)
+chromium      # For headless rendering
+docker        # For containerized deployment
+```
+
+### Quick Start (3 steps)
 
 ```bash
-# Install dependencies
-cargo build --release
+# 1. Start Redis
+docker run -d -p 6379:6379 redis
 
-# Set required environment variables
+# 2. Set environment variables
 export REDIS_URL="redis://localhost:6379"
-export WASM_PATH="./wasm/extractor.wasm"
+export WASM_EXTRACTOR_PATH="./target/wasm32-wasip2/release/riptide_extractor_wasm.wasm"
 
-# Start the server
-cargo run --release -- --bind 0.0.0.0:8080
+# 3. Run the server
+cargo run --release -p riptide-api -- --bind 0.0.0.0:8080
 ```
 
-### Docker Deployment
-
-```bash
-# Build Docker image
-docker build -t riptide-api .
-
-# Run with Docker Compose
-docker-compose up -d
-```
-
-### Example API Call
+### First Request
 
 ```bash
 # Health check
 curl http://localhost:8080/healthz
 
-# Crawl a website
+# Extract content
+curl -X POST http://localhost:8080/extract \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com",
+    "strategy": "auto"
+  }'
+
+# Crawl website
 curl -X POST http://localhost:8080/crawl \
   -H "Content-Type: application/json" \
   -d '{
@@ -91,80 +179,158 @@ curl -X POST http://localhost:8080/crawl \
     "max_depth": 2,
     "respect_robots": true
   }'
-
-# Extract content
-curl -X POST http://localhost:8080/api/v1/extract \
-  -H "Content-Type: application/json" \
-  -d '{
-    "url": "https://example.com",
-    "selector": "article",
-    "wait_for": ".content-loaded"
-  }'
 ```
 
-## Configuration
+---
+
+## 📦 Request/Response Models
+
+### DTOs (Data Transfer Objects)
+
+All request/response models are in `/src/dto/`:
+
+```rust
+// Request DTO
+#[derive(Deserialize)]
+pub struct ExtractRequest {
+    pub url: String,
+    pub strategy: Option<String>,
+    pub quality_threshold: Option<f64>,
+}
+
+// Response DTO
+#[derive(Serialize)]
+pub struct ExtractResponse {
+    pub content: String,
+    pub quality_score: f64,
+    pub strategy_used: String,
+    pub metadata: ExtractionMetadata,
+}
+```
+
+### Validation
+
+All DTOs implement validation:
+
+```rust
+use validator::Validate;
+
+#[derive(Deserialize, Validate)]
+pub struct CrawlRequest {
+    #[validate(url)]
+    pub url: String,
+
+    #[validate(range(min = 1, max = 10))]
+    pub max_depth: Option<u32>,
+
+    #[validate(range(min = 1, max = 1000))]
+    pub max_pages: Option<u32>,
+}
+
+// Validated in middleware
+async fn request_validation_middleware(
+    req: Request<Body>,
+    next: Next<Body>,
+) -> Result<Response, StatusCode> {
+    // Extract and validate DTO
+    // Return 400 Bad Request if invalid
+}
+```
+
+### Error Responses
+
+Consistent error format across all endpoints:
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid URL format",
+    "status": 400,
+    "details": {
+      "field": "url",
+      "reason": "Must be a valid HTTP/HTTPS URL"
+    }
+  }
+}
+```
+
+---
+
+## 🔧 Configuration
 
 ### Environment Variables
 
 #### Core Settings
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `REDIS_URL` | `redis://localhost:6379` | Redis connection URL for caching |
-| `WASM_PATH` | `./wasm/extractor.wasm` | Path to WASM extraction module |
-| `HEADLESS_URL` | `http://localhost:9222` | Chromium DevTools Protocol endpoint |
-| `MAX_CONCURRENCY` | `10` | Maximum concurrent requests |
-| `CACHE_TTL` | `3600` | Cache TTL in seconds |
+```bash
+# Redis (required)
+REDIS_URL="redis://localhost:6379"
 
-#### Resource Management
+# WASM Extractor (optional)
+WASM_EXTRACTOR_PATH="./target/wasm32-wasip2/release/riptide_extractor_wasm.wasm"
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `RIPTIDE_MAX_CONCURRENT_RENDERS` | `10` | Maximum concurrent render operations |
-| `RIPTIDE_MAX_CONCURRENT_PDF` | `2` | Maximum concurrent PDF operations |
-| `RIPTIDE_HEADLESS_POOL_SIZE` | `3` | Browser pool size cap |
-| `RIPTIDE_RENDER_TIMEOUT` | `3` | Hard timeout for renders (seconds) |
-| `RIPTIDE_RATE_LIMIT_RPS` | `1.5` | Requests per second per host |
-| `RIPTIDE_RATE_LIMIT_JITTER` | `0.1` | Jitter factor (0.0-1.0) |
-| `RIPTIDE_MEMORY_LIMIT_MB` | `2048` | Global memory limit (MB) |
+# Server Binding
+BIND_ADDRESS="0.0.0.0:8080"
 
-#### Search Provider
+# Logging
+RUST_LOG="info,riptide_api=debug"
+```
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SEARCH_BACKEND` | `serper` | Search provider: `serper`, `searxng`, or `none` |
-| `SEARCH_TIMEOUT` | `30` | Search operation timeout (seconds) |
-| `SEARCH_ENABLE_URL_PARSING` | `true` | Enable URL parsing for `none` provider |
-| `SERPER_API_KEY` | - | Serper.dev API key (required for Serper) |
+#### Resource Limits
 
-#### Telemetry (Optional)
+```bash
+# Browser Pool
+RIPTIDE_HEADLESS_POOL_SIZE=3
+RIPTIDE_MAX_CONCURRENT_RENDERS=10
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `OTEL_ENDPOINT` | - | OpenTelemetry collector endpoint |
-| `RUST_LOG` | `info` | Log level: `trace`, `debug`, `info`, `warn`, `error` |
+# PDF Processing
+RIPTIDE_MAX_CONCURRENT_PDF=2
 
-#### Authentication (Optional)
+# Rate Limiting
+RIPTIDE_RATE_LIMIT_RPS=1.5          # Requests per second per host
+RIPTIDE_RATE_LIMIT_JITTER=0.1       # Random jitter (0.0-1.0)
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `API_KEY` | - | API key for authentication (optional) |
+# Memory
+RIPTIDE_MEMORY_LIMIT_MB=2048         # Global memory limit
+
+# Timeouts
+RIPTIDE_RENDER_TIMEOUT=3             # Headless render timeout (seconds)
+```
+
+#### Feature Flags
+
+```bash
+# Search Backend
+SEARCH_BACKEND=serper                 # serper, searxng, or none
+SERPER_API_KEY=your_key_here         # Required for Serper
+
+# Spider
+SPIDER_ENABLE=true
+SPIDER_MAX_DEPTH=5
+SPIDER_MAX_PAGES=1000
+
+# Workers
+WORKER_POOL_SIZE=4
+WORKER_ENABLE_SCHEDULER=true
+
+# Telemetry
+OTEL_ENDPOINT="http://jaeger:4317"   # OpenTelemetry collector
+```
 
 ### Configuration File
 
-Create `config/application/riptide.yml` for advanced configuration:
+Optional YAML configuration in `config/application/riptide.yml`:
 
 ```yaml
 resources:
   max_concurrent_renders: 10
   max_concurrent_pdf: 2
-  max_concurrent_wasm: 4
   global_timeout_secs: 30
 
 performance:
   render_timeout_secs: 3
   pdf_timeout_secs: 10
-  wasm_timeout_secs: 5
 
 rate_limiting:
   enabled: true
@@ -183,54 +349,218 @@ memory:
   auto_gc: true
 ```
 
-## Feature Flags
+---
 
-RipTide API uses Cargo features for optional functionality:
+## 🧪 Testing
 
-| Feature | Description | Status |
-|---------|-------------|--------|
-| `default` | Minimal feature set | ✅ Stable |
-| `events` | Event emitter and result transformers | 🚧 WIP |
-| `sessions` | Session management system | ✅ Stable |
-| `streaming` | SSE/WebSocket/NDJSON streaming | ✅ Stable |
-| `telemetry` | OpenTelemetry integration | ✅ Stable |
-| `persistence` | Multi-tenancy and advanced caching | ✅ Stable |
-| `jemalloc` | Memory profiling with jemalloc allocator | ✅ Stable |
-| `profiling-full` | Full profiling with flamegraphs | 🔬 Dev Only |
-| `full` | All production features enabled | ✅ Stable |
-
-### Building with Features
+### Running Tests
 
 ```bash
-# Minimal build (default)
-cargo build --release
+# All tests
+cargo test -p riptide-api
 
-# With session management
-cargo build --release --features sessions
+# With output
+cargo test -p riptide-api -- --nocapture
 
-# With streaming support
-cargo build --release --features streaming
+# Specific test module
+cargo test -p riptide-api handlers::crawl
 
-# Full production build
-cargo build --release --features full
+# Integration tests only
+cargo test -p riptide-api --test '*'
 
-# Development with full profiling
-cargo build --features profiling-full
+# With all features
+cargo test -p riptide-api --features full
 ```
 
-## Deployment Options
+### Integration Tests
 
-### Standalone Binary
+Located in `/tests/integration/`:
 
-```bash
-# Build optimized binary
-cargo build --release --features full
+```rust
+use riptide_api::ApplicationContext;
+use riptide_api::context::AppConfig;
 
-# Run with custom configuration
-./target/release/riptide-api \
-  --config config/application/riptide.yml \
-  --bind 0.0.0.0:8080
+#[tokio::test]
+async fn test_extract_endpoint() {
+    // 1. Create test context
+    let ctx = ApplicationContext::new_test_minimal().await;
+
+    // 2. Build router with test state
+    let app = Router::new()
+        .route("/extract", post(handlers::extract))
+        .with_state(ctx);
+
+    // 3. Make request
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/extract")
+                .method("POST")
+                .header("content-type", "application/json")
+                .body(Body::from(r#"{"url":"https://example.com"}"#))
+                .unwrap()
+        )
+        .await
+        .unwrap();
+
+    // 4. Assert
+    assert_eq!(response.status(), StatusCode::OK);
+}
 ```
+
+### Mock Context for Testing
+
+```rust
+// Create minimal test context
+let ctx = ApplicationContext::new_test_minimal().await;
+
+// Or create with custom config
+let config = AppConfig {
+    redis_url: "redis://localhost:6379".to_string(),
+    max_concurrency: 5,
+    ..Default::default()
+};
+let ctx = ApplicationContext::new(config, health_checker).await?;
+```
+
+---
+
+## 🏗️ Extension Points
+
+### Adding a New Endpoint
+
+**1. Create Handler**
+
+```rust
+// src/handlers/my_feature.rs
+use axum::{extract::State, Json};
+use crate::context::ApplicationContext;
+use crate::dto::{MyRequest, MyResponse};
+
+pub async fn my_handler(
+    State(ctx): State<ApplicationContext>,
+    Json(req): Json<MyRequest>,
+) -> Result<Json<MyResponse>, StatusCode> {
+    // Use facades from context
+    let result = ctx.extraction_facade
+        .extract_content(&req.url)
+        .await?;
+
+    Ok(Json(MyResponse { result }))
+}
+```
+
+**2. Register Route**
+
+```rust
+// src/main.rs
+let app = Router::new()
+    .route("/my-feature", post(handlers::my_handler))
+    .with_state(app_context);
+```
+
+**3. Add DTO Models**
+
+```rust
+// src/dto/my_feature.rs
+use serde::{Deserialize, Serialize};
+use validator::Validate;
+
+#[derive(Deserialize, Validate)]
+pub struct MyRequest {
+    #[validate(url)]
+    pub url: String,
+}
+
+#[derive(Serialize)]
+pub struct MyResponse {
+    pub result: String,
+}
+```
+
+### Implementing a New Facade
+
+If you need a new facade (application service):
+
+```rust
+// In riptide-facade crate
+pub struct MyFacade {
+    extractor: Arc<UnifiedExtractor>,
+    cache: Arc<CacheManager>,
+}
+
+impl MyFacade {
+    pub async fn new(config: RiptideConfig) -> Result<Self> {
+        Ok(Self {
+            extractor: Arc::new(UnifiedExtractor::new(None).await?),
+            cache: Arc::new(CacheManager::new(&config.redis_url).await?),
+        })
+    }
+
+    pub async fn my_operation(&self, input: String) -> Result<String> {
+        // Business logic here
+        Ok(input)
+    }
+}
+```
+
+Then wire it into ApplicationContext:
+
+```rust
+// src/context.rs
+pub struct ApplicationContext {
+    // ... existing fields
+    pub my_facade: Arc<MyFacade>,
+}
+
+impl ApplicationContext {
+    pub async fn new(...) -> Result<Self> {
+        // ... existing initialization
+
+        let my_facade = Arc::new(
+            MyFacade::new(facade_config.clone()).await?
+        );
+
+        Ok(Self {
+            // ... existing fields
+            my_facade,
+        })
+    }
+}
+```
+
+### Wiring New Dependencies
+
+All dependency wiring happens in `ApplicationContext::new()`:
+
+```rust
+impl ApplicationContext {
+    pub async fn new(config: AppConfig, health_checker: Arc<HealthChecker>) -> Result<Self> {
+        // 1. Initialize infrastructure
+        let http_client = Client::new();
+        let cache = CacheManager::new(&config.redis_url).await?;
+
+        // 2. Initialize domain services
+        let extractor = UnifiedExtractor::new(Some(&config.wasm_path)).await?;
+
+        // 3. Initialize facades (application layer)
+        let extraction_facade = ExtractionFacade::new(facade_config).await?;
+
+        // 4. Wire everything together
+        Ok(Self {
+            http_client,
+            cache: Arc::new(Mutex::new(cache)),
+            extractor: Arc::new(extractor),
+            extraction_facade: Arc::new(extraction_facade),
+            // ... all other dependencies
+        })
+    }
+}
+```
+
+---
+
+## 🐳 Deployment
 
 ### Docker
 
@@ -238,18 +568,63 @@ cargo build --release --features full
 FROM rust:1.75-slim as builder
 WORKDIR /app
 COPY . .
-RUN cargo build --release --features full
+RUN cargo build --release -p riptide-api --features full
 
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y \
     chromium \
-    redis-tools \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/target/release/riptide-api /usr/local/bin/
 EXPOSE 8080
 CMD ["riptide-api", "--bind", "0.0.0.0:8080"]
+```
+
+```bash
+# Build
+docker build -t riptide-api:latest .
+
+# Run
+docker run -d \
+  -p 8080:8080 \
+  -e REDIS_URL=redis://redis:6379 \
+  -e RUST_LOG=info \
+  --name riptide-api \
+  riptide-api:latest
+```
+
+### Docker Compose
+
+```yaml
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - RUST_LOG=info
+      - RIPTIDE_MAX_CONCURRENT_RENDERS=10
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+volumes:
+  redis-data:
 ```
 
 ### Kubernetes
@@ -300,502 +675,93 @@ spec:
           periodSeconds: 10
 ```
 
-### Kong Gateway Integration
+---
 
-RipTide API is Kong Gateway ready with built-in support for:
+## 📊 Monitoring
 
-- API key authentication
-- Rate limiting per host
-- Request/response transformations
-- Load balancing
-- Circuit breakers
-
-Example Kong configuration:
-
-```yaml
-services:
-- name: riptide-api
-  url: http://riptide-api:8080
-  routes:
-  - name: crawl
-    paths:
-    - /crawl
-    methods:
-    - POST
-    plugins:
-    - name: rate-limiting
-      config:
-        minute: 90
-        policy: redis
-    - name: key-auth
-      config:
-        key_names:
-        - apikey
-```
-
-## Monitoring and Metrics
-
-### Prometheus Integration
-
-RipTide API exposes Prometheus metrics at `/metrics`:
+### Prometheus Metrics
 
 ```bash
+# Scrape metrics
 curl http://localhost:8080/metrics
-```
 
-**Available Metrics:**
-
-- **Request Metrics**: `http_requests_total`, `http_request_duration_seconds`
-- **Resource Metrics**: `browser_pool_size`, `pdf_semaphore_available`
-- **Memory Metrics**: `memory_allocated_bytes`, `memory_pressure_ratio`
-- **Worker Metrics**: `worker_jobs_pending`, `worker_jobs_completed`
-- **Rate Limiting**: `rate_limit_permits_available`, `rate_limit_delays_total`
-
-### Health Monitoring
-
-```bash
-# Basic health check
-curl http://localhost:8080/healthz
-
-# Detailed health with component status
-curl http://localhost:8080/api/health/detailed
-
-# Component-specific health
-curl http://localhost:8080/health/redis
-curl http://localhost:8080/health/browser
-curl http://localhost:8080/health/workers
-
-# Health metrics
-curl http://localhost:8080/health/metrics
-```
-
-### Performance Profiling
-
-```bash
-# Memory profiling (requires jemalloc feature)
-curl http://localhost:8080/api/profiling/memory
-
-# CPU profiling
-curl http://localhost:8080/api/profiling/cpu
-
-# Bottleneck analysis
-curl http://localhost:8080/api/profiling/bottlenecks
-
-# Allocation metrics
-curl http://localhost:8080/api/profiling/allocations
-
-# Trigger leak detection
-curl -X POST http://localhost:8080/api/profiling/leak-detection
-
-# Create heap snapshot
-curl -X POST http://localhost:8080/api/profiling/snapshot
-```
-
-### Resource Monitoring
-
-```bash
-# Overall resource status
-curl http://localhost:8080/resources/status
-
-# Browser pool status
-curl http://localhost:8080/resources/browser-pool
-
-# Rate limiter status
-curl http://localhost:8080/resources/rate-limiter
-
-# Memory status
-curl http://localhost:8080/resources/memory
-
-# Performance metrics
-curl http://localhost:8080/resources/performance
-
-# PDF semaphore status
-curl http://localhost:8080/resources/pdf/semaphore
-```
-
-### OpenTelemetry Tracing
-
-Enable distributed tracing with OpenTelemetry:
-
-```bash
-export OTEL_ENDPOINT="http://jaeger:4317"
-cargo run --release --features telemetry
-```
-
-View traces:
-
-```bash
-# Telemetry status
-curl http://localhost:8080/api/telemetry/status
-
-# List traces
-curl http://localhost:8080/api/telemetry/traces
-
-# Get trace tree
-curl http://localhost:8080/api/telemetry/traces/{trace_id}
-```
-
-## Testing
-
-### Unit Tests
-
-```bash
-# Run all tests
-cargo test
-
-# Run tests with output
-cargo test -- --nocapture
-
-# Run specific test module
-cargo test handlers::crawl
-
-# Run with features
-cargo test --features full
-```
-
-### Integration Tests
-
-```bash
-# Run integration tests
-cargo test --test '*'
-
-# Test with Redis and browser
-docker-compose up -d redis chromium
-cargo test --features full -- --test-threads=1
-```
-
-### Load Testing
-
-```bash
-# Using Apache Bench
-ab -n 1000 -c 10 \
-  -H "Content-Type: application/json" \
-  -p request.json \
-  http://localhost:8080/crawl
-
-# Using wrk
-wrk -t4 -c100 -d30s \
-  -s post.lua \
-  http://localhost:8080/api/v1/extract
+# Key metrics
+http_requests_total{method="POST",endpoint="/extract",status="200"} 1234
+http_request_duration_seconds{method="POST",endpoint="/extract"} 0.123
+extraction_quality_score{strategy="wasm"} 0.95
+cache_hit_rate 0.87
+browser_pool_size 3
+memory_allocated_bytes 524288000
 ```
 
 ### Health Checks
 
 ```bash
-# Automated health check script
-#!/bin/bash
-while true; do
-  curl -f http://localhost:8080/healthz || exit 1
-  sleep 30
-done
+# Basic health
+curl http://localhost:8080/healthz
+
+# Detailed health
+curl http://localhost:8080/api/health/detailed
+
+# Component health
+curl http://localhost:8080/health/redis
+curl http://localhost:8080/health/browser
+curl http://localhost:8080/health/workers
 ```
 
-## OpenAPI Documentation
-
-RipTide API provides comprehensive OpenAPI 3.0 documentation:
-
-### Viewing Documentation
-
-1. **Swagger UI** (if enabled):
-   ```
-   http://localhost:8080/swagger-ui
-   ```
-
-2. **OpenAPI JSON Spec**:
-   ```
-   http://localhost:8080/openapi.json
-   ```
-
-3. **ReDoc** (alternative UI):
-   ```
-   http://localhost:8080/redoc
-   ```
-
-### Generating Client SDKs
-
-Use the OpenAPI spec to generate client libraries:
+### OpenTelemetry Integration
 
 ```bash
-# Install OpenAPI Generator
-npm install -g @openapitools/openapi-generator-cli
+# Enable telemetry
+export OTEL_ENDPOINT="http://jaeger:4317"
+cargo run --release -p riptide-api --features telemetry
 
-# Generate TypeScript client
-openapi-generator-cli generate \
-  -i http://localhost:8080/openapi.json \
-  -g typescript-axios \
-  -o ./clients/typescript
-
-# Generate Python client
-openapi-generator-cli generate \
-  -i http://localhost:8080/openapi.json \
-  -g python \
-  -o ./clients/python
-
-# Generate Go client
-openapi-generator-cli generate \
-  -i http://localhost:8080/openapi.json \
-  -g go \
-  -o ./clients/go
+# View traces
+curl http://localhost:8080/api/telemetry/traces
+curl http://localhost:8080/api/telemetry/traces/{trace_id}
 ```
 
-## Integration Examples
+---
 
-### Basic Web Scraping
-
-```python
-import requests
-
-# Initialize session
-session_response = requests.post(
-    "http://localhost:8080/sessions",
-    json={"ttl_seconds": 3600}
-)
-session_id = session_response.json()["session_id"]
-
-# Crawl with session
-crawl_response = requests.post(
-    "http://localhost:8080/crawl",
-    json={
-        "url": "https://example.com",
-        "max_depth": 2,
-        "respect_robots": true
-    },
-    headers={"X-Session-ID": session_id}
-)
-
-print(crawl_response.json())
-```
-
-### Streaming Extraction
-
-```javascript
-// Using Server-Sent Events
-const eventSource = new EventSource(
-  'http://localhost:8080/crawl/sse',
-  {
-    method: 'POST',
-    body: JSON.stringify({
-      url: 'https://example.com',
-      max_depth: 3
-    })
-  }
-);
-
-eventSource.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  console.log('Received:', data);
-};
-
-eventSource.onerror = (error) => {
-  console.error('Stream error:', error);
-  eventSource.close();
-};
-```
-
-### PDF Processing
-
-```bash
-# Extract text from PDF
-curl -X POST http://localhost:8080/pdf/extract \
-  -F "file=@document.pdf" \
-  -F "options={\"ocr\":true,\"language\":\"eng\"}"
-
-# Extract tables from PDF
-curl -X POST http://localhost:8080/api/v1/tables/extract \
-  -F "file=@report.pdf" \
-  -F "format=json"
-```
-
-### Worker Queue
-
-```go
-package main
-
-import (
-    "bytes"
-    "encoding/json"
-    "net/http"
-)
-
-func main() {
-    // Submit background job
-    job := map[string]interface{}{
-        "type": "crawl",
-        "payload": map[string]string{
-            "url": "https://example.com",
-            "depth": "5",
-        },
-        "priority": "high",
-    }
-
-    body, _ := json.Marshal(job)
-    resp, _ := http.Post(
-        "http://localhost:8080/workers/jobs",
-        "application/json",
-        bytes.NewBuffer(body),
-    )
-
-    var result map[string]string
-    json.NewDecoder(resp.Body).Decode(&result)
-    jobID := result["job_id"]
-
-    // Check job status
-    statusResp, _ := http.Get(
-        "http://localhost:8080/workers/jobs/" + jobID,
-    )
-
-    // Get job result when complete
-    resultResp, _ := http.Get(
-        "http://localhost:8080/workers/jobs/" + jobID + "/result",
-    )
-}
-```
-
-### Deep Search Integration
-
-```typescript
-interface DeepSearchRequest {
-  query: string;
-  num_results?: number;
-  search_backend?: 'serper' | 'searxng' | 'none';
-  max_depth?: number;
-}
-
-async function deepSearch(query: string): Promise<any> {
-  const response = await fetch('http://localhost:8080/deepsearch', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      query,
-      num_results: 10,
-      search_backend: 'serper',
-      max_depth: 2
-    } as DeepSearchRequest)
-  });
-
-  return await response.json();
-}
-
-// Usage
-deepSearch('rust web scraping').then(results => {
-  console.log('Search results:', results);
-});
-```
-
-## Architecture
-
-### Core Components
-
-- **Handlers**: Request processing and business logic
-- **State Management**: Shared application state with Arc<AppState>
-- **Resource Manager**: Semaphores and guards for resource control
-- **Pipeline System**: Multi-stage processing with transformations
-- **Streaming Engine**: Real-time data delivery (NDJSON, SSE, WebSocket)
-- **Session Manager**: Stateful crawling with cookie persistence
-- **Worker Service**: Background job queue with Redis backend
-- **Metrics System**: Prometheus integration with custom metrics
-
-### Request Flow
-
-```
-Client Request
-    ↓
-Auth Middleware (API key validation)
-    ↓
-Rate Limit Middleware (per-host limiting)
-    ↓
-Payload Limit Layer (50MB cap)
-    ↓
-Session Layer (optional)
-    ↓
-Handler (business logic)
-    ↓
-Resource Guards (semaphores)
-    ↓
-Pipeline Processing
-    ↓
-Response (JSON/Stream)
-```
-
-### Technology Stack
-
-- **Web Framework**: Axum (async/await with Tokio)
-- **Serialization**: Serde JSON
-- **Browser Automation**: chromiumoxide (Chrome DevTools Protocol)
-- **PDF Processing**: riptide-pdf (OCR with Tesseract)
-- **Search**: riptide-search (Serper/SearxNG integration)
-- **Memory Allocator**: jemalloc (optional, for profiling)
-- **Metrics**: Prometheus with axum-prometheus
-- **Tracing**: OpenTelemetry with tracing-opentelemetry
-- **Caching**: Redis with connection pooling
-- **WASM Runtime**: Wasmtime for extraction modules
-
-## Performance Characteristics
-
-### Benchmarks
-
-- **Render Time**: < 3 seconds (hard timeout enforced)
-- **Rate Limiting**: 1.5 RPS per host with ±10% jitter
-- **Throughput**: 100+ requests/second (with proper resource tuning)
-- **Memory**: < 2GB under normal load
-- **Browser Pool**: Maximum 3 concurrent browser instances
-- **PDF Semaphore**: 2 concurrent operations maximum
-
-### Optimization Tips
-
-1. **Enable jemalloc**: Reduces memory fragmentation
-   ```bash
-   cargo build --release --features jemalloc
-   ```
-
-2. **Tune resource limits**: Adjust based on available hardware
-   ```bash
-   export RIPTIDE_MAX_CONCURRENT_RENDERS=20
-   export RIPTIDE_HEADLESS_POOL_SIZE=5
-   ```
-
-3. **Use connection pooling**: Reuse Redis connections
-4. **Enable compression**: Reduce bandwidth with gzip/brotli
-5. **Configure rate limiting**: Balance speed vs. politeness
-6. **Monitor memory pressure**: Enable auto-GC for long-running instances
-
-## Troubleshooting
+## 🔍 Troubleshooting
 
 ### Common Issues
 
-**Browser won't start:**
+**Redis Connection Failed**
 ```bash
-# Check Chromium is installed
-which chromium-browser
-
-# Test browser connectivity
-curl http://localhost:9222/json/version
-```
-
-**Redis connection fails:**
-```bash
-# Verify Redis is running
+# Check Redis is running
 redis-cli ping
+# Should return: PONG
 
 # Check connection string
 echo $REDIS_URL
 ```
 
-**High memory usage:**
+**Browser Pool Exhausted**
 ```bash
-# Enable jemalloc profiling
-cargo build --features jemalloc
+# Increase pool size
+export RIPTIDE_HEADLESS_POOL_SIZE=5
+
+# Check pool status
+curl http://localhost:8080/resources/browser-pool
+```
+
+**High Memory Usage**
+```bash
+# Enable memory profiling
+cargo run --features jemalloc
 
 # Check memory metrics
 curl http://localhost:8080/resources/memory
+curl http://localhost:8080/api/profiling/memory
 ```
 
-**Rate limiting too aggressive:**
+**Rate Limiting Too Aggressive**
 ```bash
-# Increase RPS limit
+# Increase rate limit
 export RIPTIDE_RATE_LIMIT_RPS=5.0
 
-# Disable rate limiting temporarily
+# Or disable temporarily
 export RIPTIDE_RATE_LIMITING_ENABLED=false
 ```
 
@@ -803,31 +769,107 @@ export RIPTIDE_RATE_LIMITING_ENABLED=false
 
 ```bash
 # Enable verbose logging
-export RUST_LOG=riptide_api=debug,riptide_core=debug
+export RUST_LOG=riptide_api=debug,riptide_facade=debug,riptide_core=debug
 
-# Run with backtrace
+# With backtraces
 export RUST_BACKTRACE=full
-cargo run
+
+# Run
+cargo run -p riptide-api
 ```
 
-## License
+---
+
+## 🏛️ Architecture Notes
+
+### Hexagonal Architecture
+
+```
+┌─────────────────────────────────────────┐
+│         API Layer (riptide-api)         │
+│  ┌─────────────────────────────────┐   │
+│  │   HTTP Handlers (Adapters)      │   │
+│  │   - Request validation          │   │
+│  │   - DTO transformation          │   │
+│  │   - Error handling              │   │
+│  └──────────┬──────────────────────┘   │
+│             │ Uses                      │
+│  ┌──────────▼──────────────────────┐   │
+│  │  Application Context (DI Root)  │   │
+│  │  - Wires all dependencies       │   │
+│  │  - Provides facades to handlers │   │
+│  └──────────┬──────────────────────┘   │
+└─────────────┼─────────────────────────┘
+              │ Delegates to
+┌─────────────▼─────────────────────────┐
+│    Application Layer (riptide-facade) │
+│  - ExtractionFacade                    │
+│  - ScraperFacade                       │
+│  - SpiderFacade                        │
+│  - SearchFacade                        │
+└─────────────┬─────────────────────────┘
+              │ Orchestrates
+┌─────────────▼─────────────────────────┐
+│      Domain Layer (riptide-core)      │
+│  - Business logic                      │
+│  - Domain models                       │
+│  - Pure functions                      │
+└─────────────┬─────────────────────────┘
+              │ Uses
+┌─────────────▼─────────────────────────┐
+│   Infrastructure (riptide-*)           │
+│  - HTTP clients                        │
+│  - Cache (Redis)                       │
+│  - Browser automation                  │
+│  - Search engines                      │
+└───────────────────────────────────────┘
+```
+
+### Dependency Flow
+
+```
+main.rs
+  → ApplicationContext::new()  (Composition Root)
+    → Initialize infrastructure (Redis, HTTP, Browser)
+    → Initialize domain services (Extractor, Spider)
+    → Initialize facades (Extraction, Scraper, Search)
+    → Wire everything with Arc<> for thread safety
+  → Router::new()
+    → Register handlers
+    → Inject ApplicationContext via .with_state()
+  → axum::serve()
+```
+
+---
+
+## 📚 Related Crates
+
+| Crate | Purpose | Used By |
+|-------|---------|---------|
+| `riptide-cli` | CLI interface | Alternative entry point |
+| `riptide-facade` | Application services | Handlers |
+| `riptide-core` | Domain logic | Facades |
+| `riptide-extraction` | Content extraction | Core |
+| `riptide-spider` | Web crawling | Core |
+| `riptide-search` | Search integration | Facades |
+| `riptide-cache` | Redis caching | Infrastructure |
+| `riptide-headless` | Browser automation | Infrastructure |
+
+---
+
+## 🤝 Contributing
+
+See main project `CONTRIBUTING.md` for guidelines.
+
+**Before adding features:**
+1. Read architecture docs in `/docs/hexa-analysis.md`
+2. Understand hexagonal architecture principles
+3. Keep handlers thin - business logic belongs in facades
+4. All dependencies must be wired through ApplicationContext
+5. Write integration tests in `/tests/integration/`
+
+---
+
+## 📄 License
 
 Apache-2.0
-
-## Contributing
-
-Contributions are welcome! Please see the main EventMesh repository for contribution guidelines.
-
-## Related Crates
-
-- **riptide-core**: Core crawling and extraction engine
-- **riptide-pdf**: PDF processing with OCR
-- **riptide-search**: Search engine integration
-- **riptide-stealth**: Anti-bot detection evasion
-- **riptide-workers**: Background job processing
-- **riptide-persistence**: Multi-tenant data persistence
-- **riptide-performance**: Memory profiling and bottleneck analysis
-
-## Support
-
-For issues, questions, or feature requests, please file an issue in the EventMesh repository.
