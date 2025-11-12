@@ -11,7 +11,9 @@ use riptide_persistence::{
     config::StateConfig,
     state::{SessionMetadata, SessionStatus, StateManager},
 };
+use riptide_cache::adapters::RedisSessionStorage;
 use std::collections::HashMap;
+use std::sync::Arc;
 use tempfile::TempDir;
 use tokio::time::{sleep, Duration};
 use tracing::info;
@@ -46,7 +48,10 @@ async fn create_test_state_manager(
     let redis_url =
         std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
 
-    StateManager::new(&redis_url, config)
+    // Create Redis session storage adapter
+    let session_storage = Arc::new(RedisSessionStorage::new(&redis_url)?);
+
+    StateManager::new(session_storage, config)
         .await
         .map_err(Into::into)
 }

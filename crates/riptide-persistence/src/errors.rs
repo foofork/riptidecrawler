@@ -1,4 +1,5 @@
 use thiserror::Error;
+use riptide_types::error::RiptideError;
 
 /// Result type for persistence operations
 pub type PersistenceResult<T> = Result<T, PersistenceError>;
@@ -37,6 +38,10 @@ pub enum PersistenceError {
     /// Synchronization errors
     #[error("Sync error: {0}")]
     Sync(String),
+
+    /// Distributed coordination errors
+    #[error("Coordination error: {0}")]
+    Coordination(String),
 
     /// Performance threshold violations
     #[error("Performance error: {0}")]
@@ -81,6 +86,16 @@ pub enum PersistenceError {
     /// Generic errors
     #[error("Generic error: {0}")]
     Generic(#[from] anyhow::Error),
+
+    /// RiptideError from riptide-types (for CacheStorage trait compatibility)
+    #[error("Riptide error: {0}")]
+    Riptide(String),
+}
+
+impl From<RiptideError> for PersistenceError {
+    fn from(err: RiptideError) -> Self {
+        PersistenceError::Riptide(err.to_string())
+    }
 }
 
 impl PersistenceError {
@@ -102,6 +117,11 @@ impl PersistenceError {
     /// Create a new sync error
     pub fn sync(msg: impl Into<String>) -> Self {
         Self::Sync(msg.into())
+    }
+
+    /// Create a new coordination error
+    pub fn coordination(msg: impl Into<String>) -> Self {
+        Self::Coordination(msg.into())
     }
 
     /// Create a new performance error
@@ -156,6 +176,7 @@ impl PersistenceError {
             PersistenceError::Redis(_) => true,
             PersistenceError::Timeout { .. } => true,
             PersistenceError::Sync(_) => true,
+            PersistenceError::Coordination(_) => true,
             PersistenceError::Performance(_) => false,
             PersistenceError::Security(_) => false,
             PersistenceError::QuotaExceeded { .. } => false,
@@ -177,6 +198,7 @@ impl PersistenceError {
             PersistenceError::State(_) => "state",
             PersistenceError::Tenant(_) => "tenant",
             PersistenceError::Sync(_) => "sync",
+            PersistenceError::Coordination(_) => "coordination",
             PersistenceError::Performance(_) => "performance",
             PersistenceError::Security(_) => "security",
             PersistenceError::QuotaExceeded { .. } => "quota",
@@ -187,6 +209,7 @@ impl PersistenceError {
             PersistenceError::Watch(_) => "watch",
             PersistenceError::Metrics(_) => "metrics",
             PersistenceError::Generic(_) => "generic",
+            PersistenceError::Riptide(_) => "riptide",
         }
     }
 }

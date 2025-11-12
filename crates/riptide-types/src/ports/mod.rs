@@ -84,6 +84,9 @@ pub mod monitoring;
 pub mod resource;
 pub mod worker;
 
+// Coordination port (Redis-optional refactoring)
+pub mod coordination;
+
 // Spider port
 #[cfg(feature = "spider")]
 pub mod spider;
@@ -94,6 +97,7 @@ pub use circuit_breaker::{
     with_circuit_breaker, CircuitBreaker, CircuitBreakerConfig, CircuitBreakerPermit,
     CircuitBreakerStats, CircuitState,
 };
+pub use coordination::{CoordinationResult, DistributedCoordination, Subscriber, SubscriberMessage};
 pub use events::{DomainEvent, EventBus, EventHandler, SubscriptionId};
 pub use extractor::{
     ContentExtractor, ExtractionResult, ReliabilityStats, ReliableContentExtractor,

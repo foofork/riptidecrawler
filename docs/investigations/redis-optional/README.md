@@ -62,6 +62,28 @@ Level 1: MINIMAL          Level 2: ENHANCED         Level 3: DISTRIBUTED
 
 ## Documents in This Investigation
 
+### 📋 Phase 0 Compliance Review (NEW - 2025-11-12)
+
+⭐ **[PHASE0-COMPLIANCE-SUMMARY.md](./PHASE0-COMPLIANCE-SUMMARY.md)** - START HERE
+   - Executive summary of architecture compliance review
+   - Critical violations found (11+ issues)
+   - Detailed refactoring workflow (21-30 hours)
+   - Success criteria and sign-off requirements
+
+**[phase0-review-checklist.md](./phase0-review-checklist.md)**
+   - File-by-file compliance verification
+   - Line-by-line violation analysis with fixes
+   - Port trait implementation examples
+   - Quality gate requirements
+
+**[phase0-validation-report.md](./phase0-validation-report.md)**
+   - Baseline measurements and validation results
+   - Compilation error details
+   - Test coverage analysis
+   - Before/after metrics framework
+
+### 📚 Original Investigation Documents
+
 1. **[Architecture Violations](./01-architecture-violations.md)**
    - Details of hexagonal architecture violations
    - File-by-file analysis of Redis usage

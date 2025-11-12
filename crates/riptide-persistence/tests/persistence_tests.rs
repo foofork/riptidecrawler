@@ -9,6 +9,9 @@
 //! These tests serve as documentation for desired future features.
 
 use riptide_persistence::*;
+use riptide_cache::adapters::RedisSessionStorage;
+use riptide_cache::RedisStorage;
+use std::sync::Arc;
 
 #[cfg(test)]
 mod state_manager_tests {
@@ -19,7 +22,14 @@ mod state_manager_tests {
     #[ignore = "requires Redis instance"]
     async fn test_state_manager_creation() {
         let config = StateConfig::default();
-        let result = StateManager::new("redis://localhost:6379", config).await;
+        let session_storage = match RedisSessionStorage::new("redis://localhost:6379") {
+            Ok(s) => Arc::new(s),
+            Err(_) => {
+                println!("Skipping test: Redis not available");
+                return;
+            }
+        };
+        let result = StateManager::new(session_storage, config).await;
 
         // This will fail if Redis is not available
         if result.is_err() {
@@ -60,10 +70,18 @@ mod cache_manager_tests {
     #[ignore = "requires Redis instance"]
     async fn test_cache_operations() {
         let config = CacheConfig::default();
-        let result = PersistentCacheManager::new("redis://localhost:6379", config).await;
+        let storage = match RedisStorage::new("redis://localhost:6379").await {
+            Ok(s) => Arc::new(s),
+            Err(_) => {
+                println!("Skipping test: Redis not available");
+                return;
+            }
+        };
+
+        let result = PersistentCacheManager::new(storage, config);
 
         if result.is_err() {
-            println!("Skipping test: Redis not available");
+            println!("Skipping test: Creation failed");
             return;
         }
 

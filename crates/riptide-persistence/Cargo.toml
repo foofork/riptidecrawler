@@ -43,6 +43,7 @@ serde_yaml = "0.9"
 prometheus = { version = "0.14", features = ["process"], optional = true }  # Updated to fix protobuf RUSTSEC-2024-0437
 
 [dev-dependencies]
+riptide-cache = { path = "../riptide-cache" }
 tokio-test = "0.4"
 tempfile = "3.8"
 criterion = { version = "0.5", features = ["html_reports"] }

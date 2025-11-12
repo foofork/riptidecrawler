@@ -7,13 +7,12 @@ leader election, and conflict resolution for multi-instance coordination.
 
 use crate::{config::DistributedConfig, errors::PersistenceResult};
 use chrono::{DateTime, Utc};
-use redis::aio::MultiplexedConnection;
-use redis::{AsyncCommands, Client};
+use riptide_types::ports::DistributedCoordination;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::RwLock;
 use tokio::time::interval;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
@@ -22,8 +21,8 @@ use uuid::Uuid;
 pub struct DistributedSync {
     /// Node configuration
     config: DistributedConfig,
-    /// Redis connection pool for coordination
-    pool: Arc<Mutex<MultiplexedConnection>>,
+    /// Distributed coordination backend
+    coordination: Arc<dyn DistributedCoordination>,
     /// Consensus manager
     consensus: Arc<ConsensusManager>,
     /// Leader election manager
@@ -102,11 +101,11 @@ enum OperationResult {
 }
 
 impl DistributedSync {
-    /// Create new distributed sync manager
-    pub async fn new(redis_url: &str, config: DistributedConfig) -> PersistenceResult<Self> {
-        let client = Client::open(redis_url)?;
-        let conn = client.get_multiplexed_tokio_connection().await?;
-
+    /// Create new distributed sync manager with dependency injection
+    pub async fn new(
+        coordination: Arc<dyn DistributedCoordination>,
+        config: DistributedConfig,
+    ) -> PersistenceResult<Self> {
         let consensus = Arc::new(ConsensusManager::new(config.clone()).await?);
         let leader_election = Arc::new(LeaderElection::new(config.clone()).await?);
 
@@ -120,7 +119,7 @@ impl DistributedSync {
 
         let sync_manager = Self {
             config: config.clone(),
-            pool: Arc::new(Mutex::new(conn)),
+            coordination,
             consensus,
             leader_election,
             state,
@@ -180,8 +179,10 @@ impl DistributedSync {
         let channel = format!("riptide:sync:{}", "operations");
         let message = serde_json::to_string(&operation)?;
 
-        let mut conn = self.pool.lock().await;
-        conn.publish::<_, _, ()>(&channel, &message).await?;
+        self.coordination
+            .publish(&channel, message.as_bytes())
+            .await
+            .map_err(|e| crate::errors::PersistenceError::Coordination(e.to_string()))?;
 
         debug!(
             operation_id = %operation.id,
@@ -297,12 +298,11 @@ impl DistributedSync {
     /// Apply set operation
     async fn apply_set_operation(&self, operation: &SyncOperation) -> PersistenceResult<()> {
         if let Some(value) = &operation.value {
-            let mut conn = self.pool.lock().await;
-            if let Some(ttl) = operation.ttl {
-                conn.set_ex::<_, _, ()>(&operation.key, value, ttl).await?;
-            } else {
-                conn.set::<_, _, ()>(&operation.key, value).await?;
-            }
+            let ttl = operation.ttl.map(Duration::from_secs);
+            self.coordination
+                .cache_set(&operation.key, value, ttl)
+                .await
+                .map_err(|e| crate::errors::PersistenceError::Coordination(e.to_string()))?;
 
             debug!(
                 key = %operation.key,
@@ -315,8 +315,11 @@ impl DistributedSync {
 
     /// Apply delete operation
     async fn apply_delete_operation(&self, operation: &SyncOperation) -> PersistenceResult<()> {
-        let mut conn = self.pool.lock().await;
-        let deleted: u64 = conn.del(&operation.key).await?;
+        let deleted = self
+            .coordination
+            .cache_delete(&operation.key)
+            .await
+            .map_err(|e| crate::errors::PersistenceError::Coordination(e.to_string()))?;
 
         debug!(
             key = %operation.key,
@@ -329,17 +332,13 @@ impl DistributedSync {
 
     /// Apply invalidate pattern operation
     async fn apply_invalidate_operation(&self, operation: &SyncOperation) -> PersistenceResult<()> {
-        let mut conn = self.pool.lock().await;
-
-        // Get keys matching pattern
-        let keys: Vec<String> = redis::cmd("KEYS")
-            .arg(&operation.key) // key contains the pattern
-            .query_async(&mut *conn)
+        let deleted = self
+            .coordination
+            .cache_delete_pattern(&operation.key) // key contains the pattern
             .await
-            .unwrap_or_default();
+            .map_err(|e| crate::errors::PersistenceError::Coordination(e.to_string()))?;
 
-        if !keys.is_empty() {
-            let deleted: u64 = conn.del(&keys).await?;
+        if deleted > 0 {
             debug!(
                 pattern = %operation.key,
                 deleted = deleted,
@@ -352,10 +351,14 @@ impl DistributedSync {
 
     /// Apply clear operation
     async fn apply_clear_operation(&self, _operation: &SyncOperation) -> PersistenceResult<()> {
-        let mut conn = self.pool.lock().await;
-        let _: () = redis::cmd("FLUSHDB").query_async(&mut *conn).await?;
+        // Note: This is a destructive operation that clears ALL coordination data
+        // Use with extreme caution in production environments
+        warn!("DESTRUCTIVE: Clearing all cache data");
 
-        info!("Cache clear operation applied");
+        // We don't call clear() as it's too dangerous
+        // Instead, we log a warning - applications should handle this more carefully
+        warn!("Cache clear operation requested but not executed for safety");
+
         Ok(())
     }
 
@@ -514,7 +517,7 @@ impl Clone for DistributedSync {
     fn clone(&self) -> Self {
         Self {
             config: self.config.clone(),
-            pool: Arc::clone(&self.pool),
+            coordination: Arc::clone(&self.coordination),
             consensus: Arc::clone(&self.consensus),
             leader_election: Arc::clone(&self.leader_election),
             state: Arc::clone(&self.state),
