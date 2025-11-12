@@ -9,6 +9,7 @@
 //! - `redis_session_storage`: Redis implementation of `SessionStorage`
 //! - `redis_rate_limiter`: Redis implementation of rate limiting
 //! - `redis_coordination`: Redis implementation of `DistributedCoordination`
+//! - `memory_coordination`: In-memory implementation of `DistributedCoordination` (single-process only)
 //! - `standard_circuit_breaker`: Standard lock-free circuit breaker adapter
 //! - `llm_circuit_breaker`: LLM-specific circuit breaker adapter
 
@@ -21,8 +22,9 @@ pub mod redis_session_storage;
 // Sprint 4.4: Rate limiting adapter
 pub mod redis_rate_limiter;
 
-// Distributed coordination adapter
+// Distributed coordination adapters
 pub mod redis_coordination;
+pub mod memory_coordination;
 
 // Phase 2: Circuit breaker adapters
 pub mod llm_circuit_breaker;
@@ -37,8 +39,9 @@ pub use redis_session_storage::RedisSessionStorage;
 
 pub use redis_rate_limiter::{RedisPerHostRateLimiter, RedisRateLimiter};
 
-// Distributed coordination export
+// Distributed coordination exports
 pub use redis_coordination::RedisCoordination;
+pub use memory_coordination::MemoryCoordination;
 
 // Phase 2: Circuit breaker exports
 pub use llm_circuit_breaker::LlmCircuitBreakerAdapter;

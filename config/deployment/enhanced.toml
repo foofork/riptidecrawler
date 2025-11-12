@@ -1,0 +1,374 @@
+# ============================================================================
+# RipTide Enhanced Configuration - Redis Cache
+# ============================================================================
+# Perfect for:
+#   - Production single-instance deployment
+#   - Persistent cache across restarts
+#   - Session management (24h TTL)
+#   - Medium-traffic applications
+#
+# Features:
+#   ✅ Everything in Minimal mode
+#   ✅ Persistent cache across restarts
+#   ✅ Session persistence (24h TTL)
+#   ✅ Better performance for repeated requests
+#   ✅ Redis-backed state management
+#   ⚠️ Single-instance only (no horizontal scaling)
+#   ⚠️ Jobs execute synchronously
+#   ⚠️ Requires Redis server
+#
+# Quick Start:
+#   # 1. Start Redis
+#   docker run -d -p 6379:6379 redis:7-alpine
+#
+#   # 2. Start RipTide
+#   cargo run --config config/deployment/enhanced.toml
+#
+#   # Or with Docker:
+#   docker-compose -f docker-compose.simple.yml up
+#
+# Resource Requirements:
+#   - Memory: ~700MB (API + Redis)
+#   - CPU: 1.0-2.0 cores
+#   - Disk: Redis persistence (~1GB)
+#   - Network: Redis connection (localhost)
+# ============================================================================
+
+# -----------------------------------------------------------------------------
+# Cache Configuration
+# -----------------------------------------------------------------------------
+[cache]
+# Use Redis cache (requires Redis server)
+backend = "redis"
+
+# Redis connection URL
+# Format: redis://[username:password@]host:port[/database]
+# Override with: REDIS_URL environment variable
+redis_url = "redis://localhost:6379/0"
+
+# Memory cache settings (ignored when backend = redis)
+# These are only used with backend = "memory"
+# memory_ttl = 3600
+# max_memory_entries = 10000
+
+# Redis connection pool settings
+redis_pool_size = 10
+redis_timeout_ms = 5000
+redis_max_retries = 3
+
+
+# -----------------------------------------------------------------------------
+# Worker Configuration
+# -----------------------------------------------------------------------------
+[workers]
+# Disable workers in enhanced mode (still single-process)
+# For distributed mode with workers, use config/deployment/distributed.toml
+enabled = false
+
+# Worker settings (unused in enhanced mode)
+# Enable these for distributed mode:
+# redis_url = "redis://localhost:6379/1"
+# worker_count = 8
+# job_timeout = 300
+# max_retries = 3
+
+
+# -----------------------------------------------------------------------------
+# Server Configuration
+# -----------------------------------------------------------------------------
+[server]
+# Bind address (0.0.0.0 = all interfaces)
+host = "0.0.0.0"
+
+# HTTP port
+port = 8080
+
+# Request timeout in milliseconds (higher with Redis)
+request_timeout_ms = 45000
+
+# Maximum concurrent requests (higher with Redis)
+max_concurrent_requests = 100
+
+# Server worker threads (0 = number of CPU cores)
+worker_threads = 0
+
+
+# -----------------------------------------------------------------------------
+# Extraction Configuration
+# -----------------------------------------------------------------------------
+[extraction]
+# Extraction timeout in milliseconds
+timeout_ms = 30000
+
+# Maximum content size in bytes (20MB with Redis)
+max_content_size = 20971520
+
+# Enable WASM extractor
+wasm_enabled = true
+
+# WASM extractor path
+wasm_path = "extractor/extractor.wasm"
+
+# Retry configuration
+max_retries = 3
+retry_delay_ms = 1000
+
+
+# -----------------------------------------------------------------------------
+# Spider Configuration
+# -----------------------------------------------------------------------------
+[spider]
+# Enable spider crawling (enhanced with Redis cache)
+enabled = true
+
+# Maximum crawl depth (higher with persistent cache)
+max_depth = 5
+
+# Maximum pages to crawl per job
+max_pages = 500
+
+# Concurrent crawl workers (higher with Redis)
+concurrency = 8
+
+# Respect robots.txt
+respect_robots = true
+
+# User agent for crawling
+user_agent = "RipTide/2.0 (Spider; +https://github.com/ruvnet/riptide)"
+
+# Cache crawl results in Redis
+cache_enabled = true
+cache_ttl = 86400  # 24 hours
+
+
+# -----------------------------------------------------------------------------
+# Session Configuration
+# -----------------------------------------------------------------------------
+[session]
+# Session TTL in seconds (24 hours, persisted in Redis)
+ttl = 86400
+
+# Maximum concurrent sessions
+max_sessions = 200
+
+# Session cleanup interval in seconds
+cleanup_interval = 600
+
+# Session persistence enabled (Redis required)
+persistent = true
+
+
+# -----------------------------------------------------------------------------
+# Rate Limiting
+# -----------------------------------------------------------------------------
+[rate_limit]
+# Enable rate limiting (Redis-backed)
+enabled = true
+
+# Requests per minute per API key
+requests_per_minute = 500
+
+# Burst allowance (short-term burst)
+burst_size = 100
+
+# Rate limit storage (redis = distributed, memory = per-instance)
+storage = "redis"
+
+
+# -----------------------------------------------------------------------------
+# Logging Configuration
+# -----------------------------------------------------------------------------
+[logging]
+# Log level: trace, debug, info, warn, error
+level = "info"
+
+# Log format: json, pretty
+format = "json"  # JSON for production parsing
+
+# Log to file
+file = "/var/log/riptide/api.log"
+
+# Log rotation
+rotation = "daily"
+max_size_mb = 100
+max_files = 30
+
+
+# -----------------------------------------------------------------------------
+# Headless Browser Configuration
+# -----------------------------------------------------------------------------
+[headless]
+# External headless service URL (optional)
+url = "http://localhost:9123"
+
+# Enable Chrome/Chromium for JavaScript rendering
+enabled = true
+
+# Browser pool size (higher with Redis cache)
+pool_size = 5
+
+# Browser timeout in milliseconds
+timeout_ms = 30000
+
+# Browser context persistence (stored in Redis)
+persistent_contexts = true
+context_ttl = 3600  # 1 hour
+
+
+# -----------------------------------------------------------------------------
+# Search Configuration
+# -----------------------------------------------------------------------------
+[search]
+# Search backend: serper, serpapi, none
+backend = "serper"
+
+# API keys (set via environment variables)
+# serper_api_key = "${SERPER_API_KEY}"
+# serpapi_api_key = "${SERPAPI_API_KEY}"
+
+# Cache search results in Redis
+cache_enabled = true
+cache_ttl = 3600  # 1 hour
+
+
+# -----------------------------------------------------------------------------
+# LLM Configuration
+# -----------------------------------------------------------------------------
+[llm]
+# LLM provider: openai, anthropic, none
+provider = "openai"
+
+# API keys (set via environment variables)
+# openai_api_key = "${OPENAI_API_KEY}"
+# anthropic_api_key = "${ANTHROPIC_API_KEY}"
+
+# Model settings
+model = "gpt-4-turbo-preview"
+max_tokens = 4096
+temperature = 0.1
+
+# Cache LLM responses in Redis
+cache_enabled = true
+cache_ttl = 86400  # 24 hours
+
+
+# -----------------------------------------------------------------------------
+# Metrics & Monitoring
+# -----------------------------------------------------------------------------
+[metrics]
+# Enable Prometheus metrics endpoint
+enabled = true
+
+# Metrics endpoint path
+endpoint = "/metrics"
+
+# Collect detailed metrics
+detailed = true
+
+# Store metrics in Redis for persistence
+storage = "redis"
+
+# Metrics retention in seconds (7 days)
+retention = 604800
+
+
+# -----------------------------------------------------------------------------
+# Security
+# -----------------------------------------------------------------------------
+[security]
+# Require API key authentication
+require_auth = true
+
+# API key (set via environment variable)
+# api_key = "${RIPTIDE_API_KEY}"
+
+# CORS allowed origins (comma-separated, * = all)
+cors_origins = "https://yourdomain.com,https://app.yourdomain.com"
+
+# Maximum request body size in bytes (20MB)
+max_body_size = 20971520
+
+# Rate limiting per IP
+ip_rate_limit = 1000  # requests per minute
+
+# Enable request signing
+request_signing = true
+
+
+# -----------------------------------------------------------------------------
+# Health Checks
+# -----------------------------------------------------------------------------
+[health]
+# Health check interval in seconds
+interval = 30
+
+# Include component health in responses
+detailed = true
+
+# Check external services (Redis, headless)
+check_external = true
+
+
+# -----------------------------------------------------------------------------
+# Redis Specific Settings
+# -----------------------------------------------------------------------------
+[redis]
+# Connection pool size
+pool_size = 20
+
+# Connection timeout in milliseconds
+connect_timeout_ms = 5000
+
+# Command timeout in milliseconds
+command_timeout_ms = 3000
+
+# Retry strategy
+max_retries = 3
+retry_delay_ms = 100
+
+# Enable Redis persistence (AOF)
+persistence = true
+
+# Redis max memory policy
+max_memory_policy = "allkeys-lru"
+max_memory_mb = 512
+
+
+# -----------------------------------------------------------------------------
+# Feature Flags
+# -----------------------------------------------------------------------------
+[features]
+# Enable experimental features
+experimental = false
+
+# Enable debug endpoints (disable in production)
+debug_endpoints = false
+
+# Enable response compression
+compression = true
+
+# Enable request caching (Redis-backed)
+request_cache = true
+request_cache_ttl = 300  # 5 minutes
+
+
+# -----------------------------------------------------------------------------
+# Environment Variable Overrides
+# -----------------------------------------------------------------------------
+# All settings can be overridden with environment variables:
+#
+# CACHE_BACKEND=redis
+# REDIS_URL=redis://localhost:6379/0
+# WORKERS_ENABLED=false
+# RIPTIDE_API_HOST=0.0.0.0
+# RIPTIDE_API_PORT=8080
+# RIPTIDE_API_KEY=your-secret-key
+# SERPER_API_KEY=your-serper-key
+# OPENAI_API_KEY=your-openai-key
+# RUST_LOG=info
+#
+# Example:
+#   REDIS_URL=redis://prod-redis:6379/0 \
+#   RIPTIDE_API_KEY=secret \
+#   cargo run --config config/deployment/enhanced.toml
+# ============================================================================

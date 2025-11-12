@@ -1,4 +1,5 @@
 pub mod adapters; // Sprint 4.3: Transport adapters for streaming
+pub mod capabilities; // System capabilities detection for deployment mode reporting
 pub mod composition; // Sprint 1.3: Dependency Injection composition root
 pub mod config;
 pub mod context; // ApplicationContext type alias - clean replacement for AppState god object

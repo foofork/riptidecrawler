@@ -58,6 +58,8 @@ pub mod events;
 pub mod features;
 pub mod idempotency;
 pub mod infrastructure;
+pub mod memory_idempotency;
+pub mod memory_session;
 pub mod repository;
 pub mod session;
 
@@ -113,6 +115,8 @@ pub use infrastructure::{
     Clock, DeterministicEntropy, Entropy, FakeClock, SystemClock, SystemEntropy,
 };
 pub use memory_cache::InMemoryCache;
+pub use memory_idempotency::InMemoryIdempotencyStore;
+pub use memory_session::InMemorySessionStorage;
 pub use metrics::{BusinessMetrics, MetricsCollector, MetricsRegistry};
 pub use pool::{Pool, PoolError, PoolHealth, PoolStats, PooledResource};
 pub use rate_limit::{HostStats, PerHostRateLimiter, RateLimitStats, RateLimiter};

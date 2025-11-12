@@ -142,6 +142,15 @@ services:
           cpus: '0.5'
           memory: 512M
 
+    labels:
+      - "description=RipTide Distributed - Full production deployment"
+      - "use_case=Production, high-volume workloads, JavaScript rendering"
+      - "deployment_mode=distributed"
+      - "cache=redis"
+      - "workers=enabled"
+      - "browser=chrome-pool"
+      - "scaling=horizontal"
+
 
   # =========================================================================
   # Redis - Caching and session storage

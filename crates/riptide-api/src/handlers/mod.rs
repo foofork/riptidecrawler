@@ -54,7 +54,9 @@ pub use crawl::crawl;
 pub use deepsearch::handle_deep_search;
 #[cfg(feature = "extraction")]
 pub use extract::extract;
-pub use health::{health, health_detailed, init_startup_time, START_TIME};
+pub use health::{
+    health, health_capabilities, health_detailed, init_startup_time, START_TIME,
+};
 pub use pipeline_phases::get_pipeline_phases;
 #[cfg(feature = "browser")]
 pub use render::render;

@@ -9,9 +9,13 @@
 //! - **HTTP Conditional Requests**: ETag and Last-Modified support
 //! - **Cache Warming**: Intelligent preloading for performance optimization
 //! - **Version-Aware**: Built-in cache invalidation via versioning
+//! - **Backend Flexibility**: Support for Redis and in-memory caching
+//! - **Automatic Fallback**: Graceful degradation when Redis is unavailable
 //!
 //! ## Modules
 //!
+//! - [`config`]: Cache configuration and backend selection
+//! - [`factory`]: Cache factory for creating storage backends
 //! - [`manager`]: Redis-based cache manager with conditional request support
 //! - [`key`]: Deterministic cache key generation with SHA256 hashing
 //!
@@ -24,27 +28,48 @@
 //! #[tokio::main]
 //! async fn main() -> anyhow::Result<()> {
 //!     let mut cache = CacheManager::new("redis://localhost:6379").await?;
-//!     
+//!
 //!     // Generate cache key
 //!     let key = cache.generate_cache_key(
 //!         "https://example.com",
 //!         "v1.0.0",
 //!         &HashMap::new()
 //!     );
-//!     
+//!
 //!     // Store data
 //!     cache.set_simple(&key, &"data", 3600).await?;
-//!     
+//!
 //!     // Retrieve data
 //!     if let Some(data) = cache.get_simple::<String>(&key).await? {
 //!         println!("Cached: {}", data);
 //!     }
-//!     
+//!
+//!     Ok(())
+//! }
+//! ```
+//!
+//! ## Using the Factory Pattern
+//!
+//! ```rust,no_run
+//! use riptide_cache::factory::CacheFactory;
+//! use riptide_cache::storage_config::StorageConfig;
+//!
+//! #[tokio::main]
+//! async fn main() -> anyhow::Result<()> {
+//!     // Create cache with automatic fallback to in-memory if Redis unavailable
+//!     let config = StorageConfig::redis_with_fallback("redis://localhost:6379");
+//!     let cache = CacheFactory::create_with_fallback(&config).await;
+//!
+//!     // Use cache through trait interface
+//!     cache.set("key", b"value", None).await?;
+//!
 //!     Ok(())
 //! }
 //! ```
 
 pub mod connection_pool;
+pub mod factory;
+pub mod storage_config;
 pub mod key;
 pub mod pool; // Redis connection pooling
 pub mod redis; // Contains both CacheManager and RedisManager
@@ -60,15 +85,14 @@ pub mod adapters;
 
 // Re-exports for convenience
 pub use connection_pool::{PoolStats, RedisConnectionPool};
+pub use factory::CacheFactory;
+pub use storage_config::{CacheBackend, StorageConfig};
 pub use key::{
     generate_fetch_cache_key, generate_strategies_cache_key, generate_wasm_cache_key,
     CacheKeyBuilder, CacheKeyParams,
 };
 pub use pool::{RedisConfig, RedisPool};
-pub use redis::{
-    CacheConfig, CacheEntry, CacheManager, CacheMetadata, CacheStats, ConditionalResult,
-    RedisManager,
-};
+pub use redis::{CacheEntry, CacheManager, CacheMetadata, ConditionalResult, RedisManager};
 pub use redis_storage::RedisStorage; // Port adapter for CacheStorage trait // Shared connection pool
                                      // pub use integrated::{
                                      //     CachedContent, CacheCheckResult, IntegratedCacheConfig, IntegratedCacheManager,
@@ -95,11 +119,14 @@ pub use wasm::{
 
 /// Prelude module for convenient imports
 pub mod prelude {
+    pub use crate::factory::CacheFactory;
     pub use crate::key::{CacheKeyBuilder, CacheKeyParams};
     pub use crate::redis::{
-        CacheConfig, CacheEntry, CacheManager, CacheMetadata, CacheStats, ConditionalResult,
-        RedisManager,
+        CacheEntry, CacheManager, CacheMetadata, ConditionalResult, RedisManager,
     };
+    pub use crate::storage_config::{CacheBackend, StorageConfig};
+    pub use riptide_types::ports::cache::{CacheStats, CacheStorage};
+    pub use riptide_types::ports::memory_cache::InMemoryCache;
     // pub use crate::integrated::{IntegratedCacheManager, IntegratedCacheConfig};
     #[cfg(feature = "wasm-pool")]
     pub use crate::warming::{CacheWarmingConfig, CacheWarmingManager};

@@ -423,3 +423,39 @@ pub async fn health_metrics_check(
 
     Ok(Json(metrics))
 }
+
+/// System capabilities endpoint
+///
+/// Returns information about the deployment configuration including:
+/// - Cache backend (memory or redis)
+/// - Whether async jobs/workers are enabled
+/// - Whether the system is distributed (multi-instance capable)
+/// - Cache and session persistence capabilities
+/// - Overall deployment mode (minimal, enhanced, or distributed)
+///
+/// This endpoint helps users understand their system configuration.
+#[tracing::instrument(
+    name = "health_capabilities_check",
+    skip(state),
+    fields(
+        http.method = "GET",
+        http.route = "/health/capabilities",
+        otel.status_code
+    )
+)]
+pub async fn health_capabilities(
+    State(state): State<ApplicationContext>,
+) -> Result<impl IntoResponse, ApiError> {
+    debug!("Retrieving system capabilities");
+
+    let capabilities = state.capabilities.clone();
+
+    info!(
+        deployment_mode = %capabilities.deployment_mode,
+        cache_backend = %capabilities.cache_backend,
+        "System capabilities retrieved"
+    );
+
+    Ok(Json(capabilities))
+}
+

@@ -1,0 +1,269 @@
+# ============================================================================
+# RipTide Minimal Configuration - No Redis Required
+# ============================================================================
+# Perfect for:
+#   - Local development and testing
+#   - CI/CD integration tests
+#   - Simple extraction tasks (1-100 URLs)
+#   - Learning and experimentation
+#
+# Features:
+#   ✅ Fast extraction and crawling
+#   ✅ In-memory cache (3600s TTL)
+#   ✅ Single-process synchronous execution
+#   ✅ Zero external dependencies
+#   ⚠️ Cache clears on restart
+#   ⚠️ No persistent sessions
+#   ⚠️ No async job queue
+#
+# Quick Start:
+#   cargo run --config config/deployment/minimal.toml
+#   # Or with Docker:
+#   docker-compose -f docker-compose.minimal.yml up
+#
+# Resource Requirements:
+#   - Memory: ~440MB
+#   - CPU: 0.5-2.0 cores
+#   - Disk: None required
+#   - Network: None required
+# ============================================================================
+
+# -----------------------------------------------------------------------------
+# Cache Configuration
+# -----------------------------------------------------------------------------
+[cache]
+# Use in-memory cache (no Redis required)
+backend = "memory"
+
+# Cache entry TTL in seconds (default: 3600 = 1 hour)
+# Entries expire after this duration
+memory_ttl = 3600
+
+# Maximum cache entries before LRU eviction (default: 10000)
+# Tune based on available memory:
+#   - 10,000 entries ≈ 50-100MB RAM
+#   - 50,000 entries ≈ 250-500MB RAM
+max_memory_entries = 10000
+
+# Redis URL not used in minimal mode
+# redis_url is only required when backend = "redis"
+
+
+# -----------------------------------------------------------------------------
+# Worker Configuration
+# -----------------------------------------------------------------------------
+[workers]
+# Disable background workers (minimal mode runs synchronously)
+enabled = false
+
+# Worker settings ignored when disabled
+# Uncomment for distributed mode:
+# redis_url = "redis://localhost:6379/1"
+# worker_count = 4
+# job_timeout = 300
+# max_retries = 3
+
+
+# -----------------------------------------------------------------------------
+# Server Configuration
+# -----------------------------------------------------------------------------
+[server]
+# Bind address (0.0.0.0 = all interfaces)
+host = "0.0.0.0"
+
+# HTTP port
+port = 8080
+
+# Request timeout in milliseconds
+request_timeout_ms = 30000
+
+# Maximum concurrent requests
+max_concurrent_requests = 50
+
+
+# -----------------------------------------------------------------------------
+# Extraction Configuration
+# -----------------------------------------------------------------------------
+[extraction]
+# Extraction timeout in milliseconds
+timeout_ms = 30000
+
+# Maximum content size in bytes (10MB)
+max_content_size = 10485760
+
+# Enable WASM extractor for fast static content extraction
+wasm_enabled = true
+
+# WASM extractor path (relative to binary or absolute)
+wasm_path = "extractor/extractor.wasm"
+
+# Retry configuration
+max_retries = 3
+retry_delay_ms = 1000
+
+
+# -----------------------------------------------------------------------------
+# Spider Configuration
+# -----------------------------------------------------------------------------
+[spider]
+# Enable spider crawling (works without Redis)
+enabled = true
+
+# Maximum crawl depth (how many links to follow)
+max_depth = 3
+
+# Maximum pages to crawl per job
+max_pages = 100
+
+# Concurrent crawl workers
+concurrency = 4
+
+# Respect robots.txt
+respect_robots = true
+
+# User agent for crawling
+user_agent = "RipTide/2.0 (Spider; +https://github.com/ruvnet/riptide)"
+
+
+# -----------------------------------------------------------------------------
+# Session Configuration
+# -----------------------------------------------------------------------------
+[session]
+# Session TTL in seconds (sessions stored in memory, cleared on restart)
+ttl = 3600
+
+# Maximum concurrent sessions
+max_sessions = 50
+
+# Session cleanup interval in seconds
+cleanup_interval = 300
+
+
+# -----------------------------------------------------------------------------
+# Rate Limiting
+# -----------------------------------------------------------------------------
+[rate_limit]
+# Enable rate limiting
+enabled = true
+
+# Requests per minute per API key
+requests_per_minute = 100
+
+# Burst allowance (short-term burst)
+burst_size = 20
+
+
+# -----------------------------------------------------------------------------
+# Logging Configuration
+# -----------------------------------------------------------------------------
+[logging]
+# Log level: trace, debug, info, warn, error
+level = "info"
+
+# Log format: json, pretty
+format = "pretty"
+
+# Log to file (optional)
+# file = "/var/log/riptide/api.log"
+
+
+# -----------------------------------------------------------------------------
+# Headless Browser Configuration (Optional)
+# -----------------------------------------------------------------------------
+[headless]
+# External headless service URL (optional)
+# Leave empty to use WASM-only extraction
+# url = "http://localhost:9123"
+
+# Enable Chrome/Chromium for JavaScript rendering
+enabled = false
+
+# Browser pool size (if headless.enabled = true)
+pool_size = 2
+
+# Browser timeout in milliseconds
+timeout_ms = 30000
+
+
+# -----------------------------------------------------------------------------
+# Search Configuration (Optional)
+# -----------------------------------------------------------------------------
+[search]
+# Search backend: serper, serpapi, none
+backend = "none"
+
+# API keys (set via environment variables recommended)
+# serper_api_key = "${SERPER_API_KEY}"
+# serpapi_api_key = "${SERPAPI_API_KEY}"
+
+
+# -----------------------------------------------------------------------------
+# LLM Configuration (Optional)
+# -----------------------------------------------------------------------------
+[llm]
+# LLM provider: openai, anthropic, none
+provider = "none"
+
+# API keys (set via environment variables recommended)
+# openai_api_key = "${OPENAI_API_KEY}"
+# anthropic_api_key = "${ANTHROPIC_API_KEY}"
+
+
+# -----------------------------------------------------------------------------
+# Metrics & Monitoring
+# -----------------------------------------------------------------------------
+[metrics]
+# Enable Prometheus metrics endpoint
+enabled = true
+
+# Metrics endpoint path
+endpoint = "/metrics"
+
+# Collect detailed metrics (may impact performance)
+detailed = false
+
+
+# -----------------------------------------------------------------------------
+# Security
+# -----------------------------------------------------------------------------
+[security]
+# Require API key authentication
+require_auth = false
+
+# API key (set via environment variable recommended)
+# api_key = "${RIPTIDE_API_KEY}"
+
+# CORS allowed origins (comma-separated)
+cors_origins = "*"
+
+# Maximum request body size in bytes (10MB)
+max_body_size = 10485760
+
+
+# -----------------------------------------------------------------------------
+# Feature Flags
+# -----------------------------------------------------------------------------
+[features]
+# Enable experimental features
+experimental = false
+
+# Enable debug endpoints (only for development)
+debug_endpoints = false
+
+
+# -----------------------------------------------------------------------------
+# Environment Variable Overrides
+# -----------------------------------------------------------------------------
+# All settings can be overridden with environment variables:
+#
+# CACHE_BACKEND=memory
+# CACHE_MEMORY_TTL=3600
+# CACHE_MAX_ENTRIES=10000
+# WORKERS_ENABLED=false
+# RIPTIDE_API_HOST=0.0.0.0
+# RIPTIDE_API_PORT=8080
+# RUST_LOG=info
+#
+# Example:
+#   CACHE_MEMORY_TTL=7200 cargo run --config config/deployment/minimal.toml
+# ============================================================================

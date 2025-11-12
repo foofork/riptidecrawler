@@ -48,6 +48,9 @@ serde_bytes = "0.11"
 # Base64 encoding for binary data in JSON
 base64 = "0.22"
 
+# Concurrent hash map for thread-safe storage
+dashmap = { workspace = true }
+
 [features]
 default = []
 spider = []
