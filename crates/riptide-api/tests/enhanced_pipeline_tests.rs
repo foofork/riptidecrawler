@@ -16,9 +16,9 @@ mod enhanced_pipeline_tests {
     use super::*;
 
     /// Helper function to create test app state
-    fn create_test_state() -> AppState {
+    fn create_test_state() -> ApplicationContext {
         // This is a simplified mock - in production tests, use proper test fixtures
-        todo!("Implement test state creation - requires full AppState initialization")
+        todo!("Implement test state creation - requires full ApplicationContext initialization")
     }
 
     #[tokio::test]

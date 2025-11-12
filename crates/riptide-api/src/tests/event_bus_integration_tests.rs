@@ -13,7 +13,7 @@ mod tests {
     #[tokio::test]
     #[ignore = "Requires Redis connection"]
     async fn test_event_bus_initialization() {
-        use crate::tests::test_helpers::ApplicationContextBuilder;
+        use crate::tests::test_helpers::AppStateBuilder;
 
         // Use test builder to construct AppState with defaults
         match AppStateBuilder::new().build().await {

@@ -12,15 +12,15 @@ use std::sync::Arc;
 use tower::ServiceExt;
 use tower_http::cors::CorsLayer;
 
-/// Create a test AppState with full dependencies
+/// Create a test ApplicationContext with full dependencies
 ///
-/// This function creates a fully initialized AppState with all dependencies,
+/// This function creates a fully initialized ApplicationContext with all dependencies,
 /// enabling comprehensive integration testing.
 ///
 /// Note: This function will attempt to connect to Redis and other services.
 /// Returns Result to allow tests to handle missing dependencies gracefully.
 #[allow(dead_code)]
-pub async fn create_test_state() -> AppState {
+pub async fn create_test_state() -> ApplicationContext {
     // Initialize test config using AppConfig::default() with test overrides
     let mut config = riptide_api::state::AppConfig::default();
 
@@ -38,9 +38,9 @@ pub async fn create_test_state() -> AppState {
 
     // Create test app state
     // Note: This may fail if dependencies are not available
-    AppState::new(config, health_checker)
+    ApplicationContext::new(config, health_checker)
         .await
-        .expect("Failed to create test AppState - check dependencies")
+        .expect("Failed to create test ApplicationContext - check dependencies")
 }
 
 /// Create a test application with full dependencies
@@ -68,7 +68,7 @@ pub async fn create_test_app() -> Router {
 
     // Create test app state
     // Note: This may fail if dependencies are not available
-    match AppState::new(config, health_checker).await {
+    match ApplicationContext::new(config, health_checker).await {
         Ok(app_state) => create_test_router(app_state),
         Err(e) => {
             eprintln!("Warning: Failed to create full test app state: {}", e);
@@ -79,7 +79,7 @@ pub async fn create_test_app() -> Router {
 }
 
 /// Create router with all routes configured
-pub fn create_test_router(state: AppState) -> Router {
+pub fn create_test_router(state: ApplicationContext) -> Router {
     use riptide_api::routes;
 
     #[allow(unused_mut)] // Conditionally mutable when search feature is enabled
