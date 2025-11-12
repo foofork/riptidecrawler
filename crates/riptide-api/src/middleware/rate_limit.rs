@@ -94,18 +94,27 @@ pub async fn rate_limit_middleware(
     Ok(response)
 }
 
-/// Extract client ID from request headers
+/// Extract client ID from request headers for rate limiting.
+///
+/// **Rate Limiting Strategy: API Key First**
+///
+/// This function extracts the client identifier with the following priority:
+/// 1. **X-API-Key header** - Primary identifier (per-customer rate limiting)
+/// 2. **Authorization: Bearer token** - Alternative API key format
+/// 3. **IP address (X-Forwarded-For or X-Real-IP)** - Fallback for public endpoints
+///
+/// ## Why API Key First?
+///
+/// - **Fairer**: Shared IPs (corporate proxies, NAT) won't be unfairly limited
+/// - **Better abuse prevention**: Tracks by customer, not IP
+/// - **Accurate attribution**: Each customer gets their own quota
+///
+/// ## Security Note
+///
+/// - **Removed X-Client-ID**: Clients should not be able to override their identifier
+///   (this was a potential security issue allowing quota bypass)
 fn extract_client_id(request: &Request) -> Option<String> {
-    // Try X-Client-ID header first
-    if let Some(client_id) = request
-        .headers()
-        .get("X-Client-ID")
-        .and_then(|h| h.to_str().ok())
-    {
-        return Some(client_id.to_string());
-    }
-
-    // Try X-API-Key header
+    // PRIORITY 1: X-API-Key header (most common)
     if let Some(api_key) = request
         .headers()
         .get("X-API-Key")
@@ -114,13 +123,25 @@ fn extract_client_id(request: &Request) -> Option<String> {
         return Some(api_key.to_string());
     }
 
-    // Fall back to X-Forwarded-For or X-Real-IP
+    // PRIORITY 2: Authorization: Bearer token (alternative format)
+    if let Some(auth_header) = request
+        .headers()
+        .get("Authorization")
+        .and_then(|h| h.to_str().ok())
+    {
+        if let Some(token) = auth_header.strip_prefix("Bearer ") {
+            return Some(token.to_string());
+        }
+    }
+
+    // PRIORITY 3: IP address fallback (for public endpoints only)
+    // Note: By the time rate limiting runs, most requests should have an API key
     if let Some(forwarded_for) = request
         .headers()
         .get("X-Forwarded-For")
         .and_then(|h| h.to_str().ok())
     {
-        // Take the first IP in the list
+        // Take the first IP in the list (client IP)
         return Some(
             forwarded_for
                 .split(',')
@@ -139,7 +160,8 @@ fn extract_client_id(request: &Request) -> Option<String> {
         return Some(real_ip.to_string());
     }
 
-    // No client identification available
+    // No client identification available - this should be rare
+    // (only for misconfigured clients or public endpoints)
     None
 }
 
@@ -150,28 +172,65 @@ mod tests {
 
     #[test]
     fn test_extract_client_id_from_headers() {
-        // Test X-Client-ID
-        let request = Request::builder()
-            .header("X-Client-ID", "client-123")
-            .body(Body::empty())
-            .unwrap();
-        assert_eq!(extract_client_id(&request), Some("client-123".to_string()));
-
-        // Test X-API-Key
+        // Test PRIORITY 1: X-API-Key (most common)
         let request = Request::builder()
             .header("X-API-Key", "api-key-456")
             .body(Body::empty())
             .unwrap();
-        assert_eq!(extract_client_id(&request), Some("api-key-456".to_string()));
+        assert_eq!(
+            extract_client_id(&request),
+            Some("api-key-456".to_string())
+        );
 
-        // Test X-Forwarded-For
+        // Test PRIORITY 2: Authorization: Bearer token
+        let request = Request::builder()
+            .header("Authorization", "Bearer token-789")
+            .body(Body::empty())
+            .unwrap();
+        assert_eq!(extract_client_id(&request), Some("token-789".to_string()));
+
+        // Test PRIORITY 3: X-Forwarded-For (IP fallback for public endpoints)
         let request = Request::builder()
             .header("X-Forwarded-For", "192.168.1.1, 10.0.0.1")
             .body(Body::empty())
             .unwrap();
-        assert_eq!(extract_client_id(&request), Some("192.168.1.1".to_string()));
+        assert_eq!(
+            extract_client_id(&request),
+            Some("192.168.1.1".to_string())
+        );
 
-        // Test no headers
+        // Test X-Real-IP fallback
+        let request = Request::builder()
+            .header("X-Real-IP", "10.0.0.5")
+            .body(Body::empty())
+            .unwrap();
+        assert_eq!(extract_client_id(&request), Some("10.0.0.5".to_string()));
+
+        // Test API key takes priority over IP (most important test!)
+        let request = Request::builder()
+            .header("X-API-Key", "api-key-123")
+            .header("X-Forwarded-For", "192.168.1.1")
+            .body(Body::empty())
+            .unwrap();
+        assert_eq!(
+            extract_client_id(&request),
+            Some("api-key-123".to_string()),
+            "API key should take priority over IP address"
+        );
+
+        // Test Bearer token takes priority over IP
+        let request = Request::builder()
+            .header("Authorization", "Bearer token-456")
+            .header("X-Real-IP", "10.0.0.1")
+            .body(Body::empty())
+            .unwrap();
+        assert_eq!(
+            extract_client_id(&request),
+            Some("token-456".to_string()),
+            "Bearer token should take priority over IP address"
+        );
+
+        // Test no headers (should be rare)
         let request = Request::builder().body(Body::empty()).unwrap();
         assert_eq!(extract_client_id(&request), None);
     }
