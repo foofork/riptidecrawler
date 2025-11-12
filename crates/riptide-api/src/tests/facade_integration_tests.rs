@@ -116,12 +116,7 @@ async fn test_app_state_initialization_with_facades() {
     let state = result.unwrap();
 
     // Verify key components are initialized
-    assert!(state
-        .http_client
-        .get("https://example.com")
-        
-        .await
-        .is_ok());
+    assert!(state.http_client.get("https://example.com").await.is_ok());
     assert!(state
         .extractor
         .extract("<html>test</html>", "https://example.com")
@@ -634,9 +629,7 @@ async fn test_rapid_fetch_requests() {
     for _ in 0..20 {
         let client = state.http_client.clone();
         let url_clone = url.clone();
-        tasks.push(tokio::spawn(
-            async move { client.get(&url_clone).await },
-        ));
+        tasks.push(tokio::spawn(async move { client.get(&url_clone).await }));
     }
 
     let start = std::time::Instant::now();
