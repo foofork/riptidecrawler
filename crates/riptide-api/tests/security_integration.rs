@@ -489,4 +489,58 @@ mod security_tests {
 
         assert_eq!(with_csrf_response.status(), StatusCode::OK);
     }
+
+    /// Security Test 11: Security headers from riptide-security
+    /// Verifies HSTS, CSP, and other security headers are applied
+    #[tokio::test]
+    async fn test_riptide_security_headers() {
+        let app = test_helpers::create_minimal_test_app();
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/health")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let headers = response.headers();
+
+        // Verify riptide-security headers are present
+        assert!(
+            headers.contains_key("x-xss-protection"),
+            "Missing X-XSS-Protection header from riptide-security"
+        );
+        assert!(
+            headers.contains_key("x-content-type-options"),
+            "Missing X-Content-Type-Options header from riptide-security"
+        );
+        assert!(
+            headers.contains_key("x-frame-options"),
+            "Missing X-Frame-Options header from riptide-security"
+        );
+        assert!(
+            headers.contains_key("strict-transport-security"),
+            "Missing Strict-Transport-Security (HSTS) header from riptide-security"
+        );
+        assert!(
+            headers.contains_key("referrer-policy"),
+            "Missing Referrer-Policy header from riptide-security"
+        );
+
+        // Verify header values are secure
+        let hsts = headers.get("strict-transport-security").unwrap().to_str().unwrap();
+        assert!(
+            hsts.contains("max-age="),
+            "HSTS header should contain max-age directive"
+        );
+
+        let xfo = headers.get("x-frame-options").unwrap().to_str().unwrap();
+        assert!(
+            xfo.contains("DENY") || xfo.contains("SAMEORIGIN"),
+            "X-Frame-Options should be DENY or SAMEORIGIN"
+        );
+    }
 }

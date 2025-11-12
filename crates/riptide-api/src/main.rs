@@ -20,6 +20,7 @@ mod resource_manager;
 mod routes;
 mod rpc_client;
 mod rpc_session_context;
+mod security_config;
 mod sessions;
 mod state; // DEPRECATED: Use context::ApplicationContext instead
 mod strategies_pipeline;
@@ -43,7 +44,8 @@ use crate::context::ApplicationContext;
 #[allow(deprecated)]
 use crate::metrics::{create_metrics_layer, RipTideMetrics};
 use crate::middleware::{
-    auth_middleware, rate_limit_middleware, request_validation_middleware, PayloadLimitLayer,
+    auth_middleware, rate_limit_middleware, request_validation_middleware,
+    security_headers_middleware, PayloadLimitLayer,
 };
 use crate::sessions::middleware::SessionLayer;
 use crate::state::AppConfig;
@@ -188,6 +190,12 @@ async fn main() -> anyhow::Result<()> {
     } else {
         tracing::info!("Initial health check passed - all dependencies healthy");
     }
+
+    // Initialize riptide-security middleware
+    tracing::info!("Initializing security middleware (HSTS, CSP, XSS protection)");
+    let security_middleware = security_config::init_security_middleware()?;
+    let _audit_logger = security_config::init_audit_logger()?;
+    tracing::info!("Security middleware initialized successfully");
 
     // Build the application router with middleware stack
     let app = Router::new()
@@ -569,6 +577,10 @@ async fn main() -> anyhow::Result<()> {
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(Duration::from_secs(30)))
         .layer(CorsLayer::permissive())
+        .layer(axum::middleware::from_fn_with_state(
+            security_middleware.clone(),
+            security_headers_middleware,
+        )) // Security headers (HSTS, CSP, X-Frame-Options, XSS protection)
         .layer(CompressionLayer::new());
 
     // Parse bind address
