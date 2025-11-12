@@ -166,7 +166,7 @@ async fn test_batch_crawl_multiple_sites() {
 #[ignore] // Requires network
 async fn test_crawl_with_custom_options() {
     let mut options = CrawlOptions::default();
-    options.concurrency = Some(2);
+    options.concurrency = 2;
 
     let result = tokio::time::timeout(
         Duration::from_secs(30),
@@ -268,26 +268,15 @@ async fn test_crawl_with_retry() {
 }
 
 // Helper function to crawl a URL
-async fn crawl_url(url: &str, options: CrawlOptions, mode: CrawlMode) -> Result<String, String> {
-    // Import required types
-    use riptide_facade::facades::CrawlResult;
-
-    // Try to create facade - might fail if infrastructure not available
-    let facade = match create_test_facade(options.clone()).await {
-        Ok(f) => f,
-        Err(e) => return Err(format!("Failed to create facade: {}", e)),
-    };
-
-    // Attempt crawl
-    match facade.crawl_single(url, options, mode).await {
-        Ok(CrawlResult::Standard(content)) => Ok(content),
-        Ok(CrawlResult::Enhanced(content)) => Ok(content),
-        Err(e) => Err(format!("Crawl error: {:?}", e)),
-    }
+async fn crawl_url(_url: &str, _options: CrawlOptions, _mode: CrawlMode) -> Result<String, String> {
+    // Placeholder implementation - will be completed in Phase 2B
+    // when CrawlFacade is fully implemented
+    Err("CrawlFacade not yet fully implemented - pending Phase 2B completion".to_string())
 }
 
 // Helper to create test facade
-async fn create_test_facade(options: CrawlOptions) -> Result<CrawlFacade, String> {
+#[allow(dead_code)]
+async fn create_test_facade(_options: CrawlOptions) -> Result<CrawlFacade, String> {
     // For now, return a simple error - this will be implemented when we add
     // the actual CrawlFacade::new() constructor in the next phase
     Err("CrawlFacade not yet fully implemented - pending Phase 2B completion".to_string())
