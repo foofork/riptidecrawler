@@ -41,6 +41,7 @@ cargo run --bin riptide-api
 
 ### Testing
 - **[Testing Guide](./testing.md)** - Comprehensive testing documentation (⏱️ 35 min)
+- **[Integration Testing Guide](./integration-testing.md)** - Comprehensive integration testing setup and best practices
 - **[Golden Test Infrastructure](./testing/golden-test-infrastructure-analysis.md)** - Snapshot testing
 - **[CI Timeout Configuration](./deployment/ci-timeout-configuration.md)** - Test timeout settings
 

@@ -1,236 +1,863 @@
-# RipTide HTML - Week 2 Track A Implementation
+# riptide-extraction
 
-![RipTide HTML](https://img.shields.io/badge/RipTide-HTML-blue.svg)
-![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=flat&logo=rust&logoColor=white)
-![Status](https://img.shields.io/badge/status-completed-green.svg)
+🎯 **Domain Layer - Pure Business Logic**
 
-HTML processing and extraction capabilities for the RipTide project, implementing **Week 2 Track A: HTML Crate Creation** requirements (HTML-001 to HTML-004).
+Intelligent content extraction engine for the RipTide web scraping framework. This crate provides sophisticated HTML parsing, content extraction strategies, and LLM-based extraction coordination—all without infrastructure dependencies.
 
-## 🎯 Implementation Status
+## Quick Overview
 
-✅ **HTML-001**: Complete crate structure with proper organization
-✅ **HTML-002**: HtmlProcessor trait with async processing methods
-✅ **HTML-003**: CSS extraction code moved from riptide-core
-✅ **HTML-004**: Regex extraction code moved from riptide-core
-✅ **Bonus**: DOM utilities, table extraction, and content chunking
-✅ **Zero Breaking Changes**: Full backward compatibility maintained
+`riptide-extraction` is the **content brain** for RipTide. It knows how to extract meaningful content from HTML: articles, tables, metadata, links, and structured data. It provides CSS selectors, regex patterns, DOM traversal, semantic chunking, and strategy composition for high-quality extraction.
 
-## 📁 Crate Structure
+**Why it exists:** Separates extraction logic (domain) from HTTP fetching and storage. You can test extraction strategies with HTML strings without needing browsers, databases, or network requests.
 
-```
-crates/riptide-extraction/
-├── Cargo.toml              # Crate configuration with workspace dependencies
-├── README.md               # This documentation
-├── src/
-│   ├── lib.rs             # Main library exports and documentation
-│   ├── processor.rs       # HtmlProcessor trait and core interfaces
-│   ├── css_extraction.rs  # CSS selector-based extraction (moved from core)
-│   ├── regex_extraction.rs # Regex pattern extraction (moved from core)
-│   └── dom_utils.rs       # DOM traversal and table extraction utilities
-├── tests/
-│   └── integration_tests.rs # Comprehensive integration tests
-└── examples/
-    └── basic_extraction.rs  # Complete usage demonstration
-```
+**Layer classification:** Pure domain layer—zero infrastructure dependencies ✅
 
-## 🚀 Features
+## Key Concepts
 
-### Core Extraction Capabilities
+### 1. Extraction Strategies
 
-- **CSS Extraction**: Extract content using CSS selectors with JSON mapping
-- **Regex Extraction**: Pattern-based content extraction with configurable rules
-- **DOM Traversal**: Utilities for navigating and manipulating HTML structures
-- **Table Extraction**: Structured data extraction from HTML tables
-- **Content Chunking**: Split content for processing large documents
-
-### HtmlProcessor Trait
+Multiple strategies for different content types and quality goals:
 
 ```rust
-#[async_trait]
-pub trait HtmlProcessor: Send + Sync {
-    async fn extract_with_css(&self, html: &str, url: &str, selectors: &HashMap<String, String>) -> Result<ExtractedContent>;
-    async fn extract_with_regex(&self, html: &str, url: &str, patterns: &[RegexPattern]) -> Result<ExtractedContent>;
-    async fn extract_tables(&self, html: &str, mode: TableExtractionMode) -> Result<Vec<TableData>>;
-    async fn chunk_content(&self, content: &str, mode: ChunkingMode) -> Result<Vec<ContentChunk>>;
-    fn confidence_score(&self, html: &str) -> f64;
-    fn processor_name(&self) -> &'static str;
+use riptide_extraction::{
+    ExtractionStrategy,
+    ExtractionStrategyType,
+    StrategyManager,
+};
+
+// Built-in strategies
+let strategy = ExtractionStrategyType::Article;      // News articles, blog posts
+let strategy = ExtractionStrategyType::FullContent;  // Complete page content
+let strategy = ExtractionStrategyType::Metadata;     // Meta tags, OpenGraph, Schema.org
+let strategy = ExtractionStrategyType::Tables;       // Structured table data
+let strategy = ExtractionStrategyType::Css {         // Custom CSS selectors
+    selectors: HashMap::from([
+        ("title".to_string(), "h1.title".to_string()),
+        ("content".to_string(), "div.content".to_string()),
+    ])
+};
+let strategy = ExtractionStrategyType::Regex {      // Pattern-based extraction
+    patterns: vec![
+        RegexPattern {
+            name: "email".to_string(),
+            pattern: r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b".to_string(),
+            field: "emails".to_string(),
+            required: false,
+        }
+    ]
+};
+
+// Execute strategy
+let manager = StrategyManager::new();
+let result = manager.execute(strategy, html, url).await?;
+
+println!("Extracted: {}", result.content.title);
+println!("Quality: {:.2}", result.quality.content_quality);
+```
+
+### 2. Strategy Composition (Phase 2D)
+
+Combine multiple strategies for higher quality:
+
+```rust
+use riptide_extraction::{StrategyComposer, CompositionMode, ConfidenceScore};
+
+// Parallel execution with voting
+let composer = StrategyComposer::new(CompositionMode::Parallel {
+    strategies: vec![
+        ExtractionStrategyType::Article,
+        ExtractionStrategyType::Css { selectors: custom_selectors },
+        ExtractionStrategyType::Regex { patterns: patterns },
+    ],
+    aggregation: AggregationStrategy::Vote,  // or Max, Average, Weighted
+});
+
+let result = composer.extract(html, url).await?;
+
+// Result is aggregated from all strategies
+println!("Confidence: {:.2}", result.confidence.overall);
+println!("Agreement: {}/{} strategies",
+    result.confidence.agreements,
+    result.confidence.total_strategies
+);
+
+// Fallback cascade
+let composer = StrategyComposer::new(CompositionMode::Fallback {
+    primary: ExtractionStrategyType::Article,
+    fallbacks: vec![
+        ExtractionStrategyType::Css { selectors: default_selectors },
+        ExtractionStrategyType::FullContent,
+    ],
+});
+
+// Uses first strategy that succeeds with high confidence
+let result = composer.extract(html, url).await?;
+```
+
+**Aggregation Strategies:**
+- **Vote** - Majority consensus among strategies
+- **Max** - Highest confidence result
+- **Average** - Averaged scores across strategies
+- **Weighted** - Weighted combination by strategy reliability
+
+### 3. CSS Selector Extraction
+
+Extract content using CSS selectors with semantic defaults:
+
+```rust
+use riptide_extraction::css_extraction;
+
+// Default selectors for common content
+let result = css_extraction::extract_default(html, url).await?;
+println!("Title: {}", result.title);
+println!("Content: {}", result.content);
+println!("Summary: {}", result.summary.unwrap_or_default());
+
+// Custom selectors for specific site
+let mut selectors = HashMap::new();
+selectors.insert("title".to_string(), "h1.article-title".to_string());
+selectors.insert("content".to_string(), "div.article-body".to_string());
+selectors.insert("author".to_string(), "span.author-name".to_string());
+selectors.insert("published".to_string(), "time[datetime]".to_string());
+
+let result = css_extraction::extract(html, url, &selectors).await?;
+
+// Specialized presets
+let result = css_extraction::extract_article(html, url).await?;  // News articles
+let result = css_extraction::extract_product(html, url).await?;  // E-commerce
+let result = css_extraction::extract_recipe(html, url).await?;   // Recipes
+```
+
+**Default Selectors:**
+```rust
+{
+    "title": "h1, h2, title, meta[property='og:title']",
+    "content": "article, main, .content, .post-content, #content",
+    "summary": "meta[name='description'], meta[property='og:description']",
+    "author": ".author, [rel='author'], [itemprop='author']",
+    "published": "time[datetime], .date, .published",
+    "images": "img[src], picture source[srcset]",
 }
 ```
 
-### Extraction Modes
+### 4. Regex Pattern Extraction
 
-- **CSS Selectors**: Default selectors for common content types
-- **Custom Selectors**: News articles, blog posts, e-commerce products
-- **Regex Patterns**: Contact info, financial data, social media, dates
-- **Table Modes**: All tables, headers only, size filters, CSS selectors
+Pattern-based extraction for emails, phones, URLs, dates, etc.:
 
-### Chunking Strategies
+```rust
+use riptide_extraction::regex_extraction;
 
-- **Fixed Size**: Character-based chunks with overlap
-- **Sentence**: Semantic sentence boundaries
-- **Paragraph**: Natural paragraph breaks
-- **Token**: Word-based tokenization
-- **Semantic**: Topic-based segmentation
+// Default patterns (email, phone, URL, dates)
+let result = regex_extraction::extract_default(html, url).await?;
+println!("Emails: {:?}", result.metadata.get("emails"));
+println!("Phones: {:?}", result.metadata.get("phones"));
 
-## 📖 Usage Examples
+// Specialized pattern sets
+let result = regex_extraction::extract_contacts(html, url).await?;   // Emails, phones
+let result = regex_extraction::extract_financial(html, url).await?;  // Prices, amounts
+let result = regex_extraction::extract_social(html, url).await?;     // Social handles
+let result = regex_extraction::extract_dates(html, url).await?;      // Dates, times
 
-### Basic CSS Extraction
+// Custom patterns
+let patterns = vec![
+    RegexPattern {
+        name: "order_id".to_string(),
+        pattern: r"ORDER-\d{6}".to_string(),
+        field: "order_ids".to_string(),
+        required: false,
+    },
+    RegexPattern {
+        name: "tracking".to_string(),
+        pattern: r"[A-Z0-9]{12}".to_string(),
+        field: "tracking_numbers".to_string(),
+        required: false,
+    },
+];
+
+let result = regex_extraction::extract(html, url, &patterns).await?;
+```
+
+**Built-in Patterns:**
+```rust
+// Email
+r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
+
+// Phone (US)
+r"\b(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b"
+
+// URL
+r"https?://[^\s<>\"]+|www\.[^\s<>\"]+"
+
+// Price
+r"\$\d+(?:,\d{3})*(?:\.\d{2})?"
+
+// Date (ISO 8601)
+r"\d{4}-\d{2}-\d{2}"
+
+// Social handles
+r"@[A-Za-z0-9_]+"
+```
+
+### 5. Table Extraction
+
+Extract structured data from HTML tables:
+
+```rust
+use riptide_extraction::table_extraction::{
+    extract_tables_advanced,
+    TableExtractionConfig,
+    TableExtractor,
+};
+
+// Extract all tables with metadata
+let tables = extract_tables_advanced(html, TableExtractionConfig::default()).await?;
+
+for table in tables {
+    println!("Table: {} rows × {} cols", table.rows.len(), table.headers.len());
+    println!("Headers: {:?}", table.headers);
+
+    for row in table.rows {
+        println!("Row: {:?}", row.cells);
+    }
+
+    // Export as CSV
+    let csv = table.to_csv()?;
+
+    // Export as JSON
+    let json = table.to_json()?;
+}
+
+// Filter by criteria
+let config = TableExtractionConfig {
+    min_rows: 3,
+    min_cols: 2,
+    require_headers: true,
+    ignore_nested: true,
+    css_selector: Some("table.data-table".to_string()),
+};
+
+let tables = extract_tables_advanced(html, config).await?;
+
+// Semantic table understanding
+let extractor = TableExtractor::new();
+for table in tables {
+    println!("Table type: {:?}", table.metadata.table_type);  // Data, Layout, Calendar
+    println!("Has headers: {}", table.metadata.has_headers);
+    println!("Row groups: {:?}", table.structure.row_groups);
+}
+```
+
+**Table Features:**
+- Automatic header detection
+- Row/column grouping
+- Cell type inference (string, number, date)
+- Nested table handling
+- Export to CSV/JSON/Markdown
+- Semantic analysis (data vs layout tables)
+
+### 6. Content Chunking
+
+Split content into chunks for LLM processing:
+
+```rust
+use riptide_extraction::chunking::{ChunkingStrategy, ChunkingConfig, create_strategy};
+
+// Sentence-based chunking
+let strategy = create_strategy(ChunkingConfig {
+    mode: ChunkingMode::Sentence { max_sentences: 3 },
+    overlap: 100,
+});
+
+let chunks = strategy.chunk(content).await?;
+
+for (i, chunk) in chunks.iter().enumerate() {
+    println!("Chunk {}: {} chars", i, chunk.text.len());
+    println!("  Metadata: {:?}", chunk.metadata);
+}
+
+// Token-based chunking (for LLMs)
+let strategy = create_strategy(ChunkingConfig {
+    mode: ChunkingMode::Token {
+        max_tokens: 512,
+        tokenizer: "gpt-3.5-turbo".to_string(),
+    },
+    overlap: 50,
+});
+
+let chunks = strategy.chunk(content).await?;
+
+// Semantic chunking (topic-based)
+let strategy = create_strategy(ChunkingConfig {
+    mode: ChunkingMode::Semantic {
+        similarity_threshold: 0.75,
+        min_chunk_size: 100,
+    },
+    overlap: 0,  // No overlap for semantic boundaries
+});
+
+let chunks = strategy.chunk(content).await?;
+```
+
+**Chunking Modes:**
+- **FixedSize** - Fixed character count with overlap
+- **Sentence** - Natural sentence boundaries
+- **Paragraph** - Paragraph breaks
+- **Token** - Token count (for LLM context windows)
+- **Semantic** - Topic-based segmentation using similarity
+
+**Chunk Metadata:**
+```rust
+pub struct ChunkMetadata {
+    pub index: usize,
+    pub start_offset: usize,
+    pub end_offset: usize,
+    pub token_count: Option<usize>,
+    pub sentence_count: Option<usize>,
+    pub paragraph_count: Option<usize>,
+    pub similarity_to_prev: Option<f64>,
+}
+```
+
+### 7. DOM Traversal & Utilities
+
+Low-level DOM manipulation for custom extraction:
+
+```rust
+use riptide_extraction::dom_utils::{DomTraverser, ElementInfo};
+
+let traverser = DomTraverser::new();
+
+// Find elements by selector
+let elements = traverser.find_elements(html, "div.content > p")?;
+
+for elem in elements {
+    println!("Tag: {}", elem.tag);
+    println!("Text: {}", elem.text);
+    println!("Attributes: {:?}", elem.attributes);
+}
+
+// Extract text content (removes scripts, styles)
+let text = dom_utils::extract_text_content(html)?;
+
+// Find tables
+let tables = dom_utils::find_tables(html)?;
+
+// Traverse DOM tree
+traverser.traverse(html, |element: ElementInfo| {
+    println!("Visiting: <{}> depth={}", element.tag, element.depth);
+
+    // Return false to stop traversal
+    true
+})?;
+```
+
+### 8. Enhanced Link Extraction
+
+Extract links with context and classification:
+
+```rust
+use riptide_extraction::enhanced_link_extraction::{
+    EnhancedLinkExtractor,
+    LinkExtractionConfig,
+    LinkType,
+};
+
+let config = LinkExtractionConfig {
+    include_external: true,
+    include_images: true,
+    include_scripts: false,
+    extract_text: true,
+    extract_context: true,
+    max_context_length: 200,
+};
+
+let extractor = EnhancedLinkExtractor::new(config);
+let links = extractor.extract(html, base_url).await?;
+
+for link in links {
+    println!("URL: {}", link.url);
+    println!("Type: {:?}", link.link_type);  // Navigation, Asset, Social, etc.
+    println!("Text: {}", link.text);
+    println!("Context: {}", link.context);
+    println!("Score: {:.2}", link.relevance_score);
+}
+```
+
+**Link Types:**
+- **Navigation** - Internal site navigation
+- **External** - External websites
+- **Asset** - Images, CSS, JS
+- **Social** - Social media links
+- **Document** - PDFs, docs, downloads
+- **Canonical** - Canonical URL
+- **Alternate** - Alternate versions
+
+### 9. Schema Extraction & Learning
+
+Extract and learn structured schemas:
+
+```rust
+use riptide_extraction::schema::{SchemaExtractor, SchemaGenerator, SchemaRegistry};
+
+// Extract Schema.org structured data
+let extractor = SchemaExtractor::new();
+let schemas = extractor.extract(html).await?;
+
+for schema in schemas {
+    println!("Type: {}", schema.schema_type);
+    println!("Fields: {:?}", schema.fields);
+}
+
+// Learn schema from examples
+let generator = SchemaGenerator::new();
+let learned_schema = generator.learn_from_examples(vec![
+    html1, html2, html3
+]).await?;
+
+println!("Learned schema:");
+println!("  Confidence: {:.2}", learned_schema.confidence);
+println!("  Fields: {:?}", learned_schema.fields);
+
+// Use learned schema for extraction
+let registry = SchemaRegistry::new();
+registry.register("product", learned_schema)?;
+
+let schema = registry.get("product")?;
+let extracted = extractor.extract_with_schema(html, schema).await?;
+```
+
+### 10. Parallel Batch Extraction
+
+High-performance parallel processing:
+
+```rust
+use riptide_extraction::parallel::{ParallelExtractor, ParallelConfig, DocumentTask};
+
+let config = ParallelConfig {
+    max_concurrent: 10,
+    timeout_per_document: Duration::from_secs(30),
+    strategy: ExtractionStrategyType::Article,
+};
+
+let extractor = ParallelExtractor::new(config);
+
+// Batch extraction with progress tracking
+let tasks = vec![
+    DocumentTask { id: "1".to_string(), html: html1, url: url1 },
+    DocumentTask { id: "2".to_string(), html: html2, url: url2 },
+    DocumentTask { id: "3".to_string(), html: html3, url: url3 },
+];
+
+let results = extractor.extract_batch(tasks, |progress| {
+    println!("Progress: {}/{} ({:.1}%)",
+        progress.completed,
+        progress.total,
+        progress.percentage()
+    );
+}).await?;
+
+for result in results {
+    match result {
+        Ok(extracted) => println!("Success: {}", extracted.title),
+        Err(e) => println!("Failed: {}", e),
+    }
+}
+```
+
+## Design Principles
+
+### Zero Infrastructure Dependencies ✅
+
+**Why this matters:**
+- **Testability**: Test extraction with HTML strings, no HTTP needed
+- **Portability**: Swap rendering backend (headless Chrome → Firefox) without changing extractors
+- **Evolution**: Extraction algorithms remain stable as infrastructure changes
+- **Performance**: CPU-bound extraction logic with no I/O blocking
+
+**Dependencies:**
+```toml
+# Domain-level only
+riptide-types   # Core domain types
+
+# Pure utilities (no I/O)
+scraper         # HTML parsing (pure Rust)
+lol_html        # Fast HTML rewriting
+regex           # Pattern matching
+tiktoken-rs     # Token counting
+chrono          # Dates
+uuid            # IDs
+
+# ❌ NOT included:
+reqwest         # HTTP client - lives in riptide-fetch
+headless_chrome # Browser automation - lives in riptide-browser
+sqlx            # Database - lives in riptide-persistence
+```
+
+### Hexagonal Architecture Role
+
+```text
+┌──────────────────────────────────┐
+│  riptide-extraction (Domain)     │
+│  - Extraction strategies         │
+│  - CSS selectors, regex          │
+│  - DOM parsing, chunking         │
+│  - NO HTTP, NO browser           │
+└──────────────────────────────────┘
+         ↑ uses
+         │
+┌────────┴──────────┐
+│ riptide-facade    │  ← Orchestrates extraction
+│ (Application)     │
+└────────┬──────────┘
+         │ calls
+         ↓
+┌──────────────────────────────────┐
+│ riptide-browser (Infrastructure) │
+│ - Headless Chrome                │
+│ - JavaScript rendering           │
+│ - Dynamic content                │
+└──────────────────────────────────┘
+```
+
+**Clean separation:**
+- **Extraction** knows HOW to parse HTML
+- **Browser** handles HOW to render pages
+- **Facade** orchestrates WHEN and WHAT to extract
+
+## Usage Examples
+
+### Basic Article Extraction
+
+```rust
+use riptide_extraction::{ExtractionStrategyType, StrategyManager};
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let html = r#"
+        <html><body>
+            <h1>Article Title</h1>
+            <div class="content">
+                <p>Article content goes here...</p>
+            </div>
+        </body></html>
+    "#;
+
+    let manager = StrategyManager::new();
+    let result = manager.execute(
+        ExtractionStrategyType::Article,
+        html,
+        "https://example.com/article"
+    ).await?;
+
+    println!("Title: {}", result.content.title);
+    println!("Content: {}", result.content.content);
+    println!("Quality: {:.2}", result.quality.content_quality);
+
+    Ok(())
+}
+```
+
+### Multi-Strategy Extraction with Fallback
+
+```rust
+use riptide_extraction::{StrategyComposer, CompositionMode};
+
+let composer = StrategyComposer::new(CompositionMode::Fallback {
+    primary: ExtractionStrategyType::Article,
+    fallbacks: vec![
+        ExtractionStrategyType::Css {
+            selectors: default_selectors(),
+        },
+        ExtractionStrategyType::FullContent,
+    ],
+});
+
+let result = composer.extract(html, url).await?;
+
+println!("Extracted with: {:?}", result.strategy_used);
+println!("Confidence: {:.2}", result.confidence.overall);
+```
+
+### Custom Extraction Pipeline
 
 ```rust
 use riptide_extraction::*;
 
-let html = r#"<html><head><title>Test</title></head><body><p>Content</p></body></html>"#;
+async fn extract_product(html: &str, url: &str) -> Result<Product> {
+    // 1. Extract with CSS selectors
+    let css_result = css_extraction::extract(html, url, &product_selectors()).await?;
 
-// Default selectors
-let result = css_extract_default(html, "https://example.com").await?;
-println!("Title: {}", result.title);
+    // 2. Extract pricing with regex
+    let regex_result = regex_extraction::extract_financial(html, url).await?;
 
-// Custom selectors
-let mut selectors = std::collections::HashMap::new();
-selectors.insert("title".to_string(), "h1".to_string());
-let result = css_extract(html, "https://example.com", &selectors).await?;
+    // 3. Extract images from DOM
+    let traverser = DomTraverser::new();
+    let images = traverser.find_elements(html, "img.product-image")?;
+
+    // 4. Combine results
+    Ok(Product {
+        title: css_result.title,
+        description: css_result.content,
+        price: regex_result.metadata.get("prices")
+            .and_then(|p| p.first())
+            .map(|s| s.to_string()),
+        images: images.iter()
+            .map(|e| e.attributes.get("src").cloned())
+            .collect(),
+    })
+}
 ```
 
-### Regex Pattern Extraction
+## Testing
+
+### Pure Extraction Logic - No HTTP Needed
+
+Test extraction with simple HTML strings:
 
 ```rust
-// Default patterns (emails, phones, URLs, etc.)
-let result = regex_extraction::extract_default(html, "https://example.com").await?;
+use riptide_extraction::css_extraction;
 
-// Specialized patterns
-let contacts = regex_extraction::extract_contacts(html, "https://example.com").await?;
-let financial = regex_extraction::extract_financial(html, "https://example.com").await?;
+#[tokio::test]
+async fn test_article_extraction() {
+    let html = r#"
+        <html><body>
+            <h1>Test Article</h1>
+            <article>
+                <p>This is test content.</p>
+            </article>
+        </body></html>
+    "#;
+
+    let result = css_extraction::extract_default(html, "https://test.com").await.unwrap();
+
+    assert_eq!(result.title, "Test Article");
+    assert!(result.content.contains("test content"));
+}
+
+#[tokio::test]
+async fn test_regex_email_extraction() {
+    let html = "Contact us at support@example.com or sales@example.com";
+
+    let result = regex_extraction::extract_contacts(html, "https://test.com").await.unwrap();
+
+    let emails = result.metadata.get("emails").unwrap();
+    assert_eq!(emails.len(), 2);
+    assert!(emails.contains(&"support@example.com".to_string()));
+}
+
+#[tokio::test]
+async fn test_table_extraction() {
+    let html = r#"
+        <table>
+            <thead><tr><th>Name</th><th>Age</th></tr></thead>
+            <tbody>
+                <tr><td>Alice</td><td>30</td></tr>
+                <tr><td>Bob</td><td>25</td></tr>
+            </tbody>
+        </table>
+    "#;
+
+    let tables = table_extraction::extract_tables_advanced(
+        html,
+        TableExtractionConfig::default()
+    ).await.unwrap();
+
+    assert_eq!(tables.len(), 1);
+    assert_eq!(tables[0].headers, vec!["Name", "Age"]);
+    assert_eq!(tables[0].rows.len(), 2);
+}
 ```
 
-### Table Extraction
+### Strategy Composition Tests
 
 ```rust
-use riptide_extraction::processor::TableExtractionMode;
+use riptide_extraction::{StrategyComposer, CompositionMode, AggregationStrategy};
 
-// Extract all tables
-let tables = dom_utils::extract_tables(html, TableExtractionMode::All).await?;
+#[tokio::test]
+async fn test_parallel_voting() {
+    let composer = StrategyComposer::new(CompositionMode::Parallel {
+        strategies: vec![
+            ExtractionStrategyType::Article,
+            ExtractionStrategyType::FullContent,
+        ],
+        aggregation: AggregationStrategy::Vote,
+    });
 
-// Extract tables with headers only
-let header_tables = dom_utils::extract_tables(html, TableExtractionMode::WithHeaders).await?;
+    let html = "<html><body><h1>Title</h1><p>Content</p></body></html>";
+    let result = composer.extract(html, "https://test.com").await.unwrap();
 
-// Size-based filtering
-let large_tables = dom_utils::extract_tables(
-    html,
-    TableExtractionMode::MinSize { min_rows: 3, min_cols: 2 }
-).await?;
+    assert!(result.confidence.overall > 0.5);
+    assert_eq!(result.confidence.total_strategies, 2);
+}
 ```
 
-### Content Chunking
+## Common Patterns
 
+### Idiomatic Usage
+
+✅ **DO:** Use strategy composition for robustness
 ```rust
-let processor = processor::DefaultHtmlProcessor::default();
-
-// Sentence-based chunking
-let chunks = processor.chunk_content(
-    content,
-    processor::ChunkingMode::Sentence { max_sentences: 2 }
-).await?;
-
-// Fixed-size chunking
-let chunks = processor.chunk_content(
-    content,
-    processor::ChunkingMode::FixedSize { size: 1000, overlap: 100 }
-).await?;
+// Primary strategy with fallbacks
+let composer = StrategyComposer::new(CompositionMode::Fallback {
+    primary: ExtractionStrategyType::Article,
+    fallbacks: vec![
+        ExtractionStrategyType::Css { selectors },
+        ExtractionStrategyType::FullContent,
+    ],
+});
 ```
 
-## 🔧 Migration from riptide-core
-
-The extraction code has been moved from `riptide-core` to `riptide-extraction` with full backward compatibility:
-
-### Before (riptide-core)
+✅ **DO:** Chunk content for LLM processing
 ```rust
-// Note: Extraction strategies moved to specialized crates
-use riptide_extraction::{css_extraction, regex_extraction};
+let strategy = create_strategy(ChunkingConfig {
+    mode: ChunkingMode::Token {
+        max_tokens: 2048,
+        tokenizer: "gpt-4".to_string(),
+    },
+    overlap: 100,
+});
+
+let chunks = strategy.chunk(long_content).await?;
+for chunk in chunks {
+    llm.process(chunk.text).await?;
+}
 ```
 
-### After (riptide-extraction)
+✅ **DO:** Extract tables for structured data
 ```rust
-use riptide_extraction::{css_extraction, regex_extraction};
+let tables = extract_tables_advanced(html, TableExtractionConfig {
+    min_rows: 2,
+    require_headers: true,
+    css_selector: Some("table.data".to_string()),
+}).await?;
+
+for table in tables {
+    save_to_database(table.to_json()?).await?;
+}
 ```
 
-### Backward Compatibility
+### Anti-Patterns to Avoid
+
+❌ **DON'T:** Mix extraction with HTTP fetching
 ```rust
-// Still works - re-exported from riptide-extraction
-// Note: Extraction strategies moved to specialized crates
-use riptide_extraction::{css_extraction, regex_extraction};
+// ❌ Bad: HTTP client in extraction domain
+pub async fn extract_article(url: &str) -> Result<ExtractedContent> {
+    let html = reqwest::get(url).await?.text().await?;  // ❌
+    extract_from_html(&html).await
+}
 ```
 
-## 🧪 Testing
+✅ **DO:** Separate fetching from extraction
+```rust
+// ✅ Good: Extract from HTML string
+pub async fn extract_article(html: &str, url: &str) -> Result<ExtractedContent> {
+    css_extraction::extract_article(html, url).await
+}
 
-```bash
-# Run all tests
-cargo test -p riptide-extraction
-
-# Run example
-cargo run --example basic_extraction -p riptide-extraction
-
-# Check compilation
-cargo check -p riptide-extraction
+// Fetching happens elsewhere (riptide-fetch)
+let html = fetcher.fetch(url).await?;
+let content = extract_article(&html, url).await?;
 ```
 
-## 📦 Dependencies
+## Integration Points
 
-Core dependencies managed via workspace:
-- `scraper` - HTML parsing and CSS selectors
-- `regex` - Pattern matching
-- `serde` - Serialization
-- `async-trait` - Async trait support
-- `anyhow` - Error handling
+### How Facades Use This Crate
 
-## 🔗 Integration
+**riptide-facade:**
+```rust
+use riptide_extraction::{StrategyManager, ExtractionStrategyType};
 
-### Workspace Configuration
+pub struct ExtractionFacade {
+    manager: StrategyManager,
+}
 
-Added to `/workspaces/eventmesh/Cargo.toml`:
+impl ExtractionFacade {
+    pub async fn extract_content(&self, html: &str, url: &str) -> Result<ExtractedContent> {
+        // Domain extraction logic
+        let result = self.manager.execute(
+            ExtractionStrategyType::Article,
+            html,
+            url
+        ).await?;
+
+        Ok(result.content)
+    }
+}
+```
+
+### Related Crates
+
+- **Domain Layer:**
+  - `riptide-types` - Core domain types and port traits
+  - `riptide-spider` - Crawling strategies
+  - `riptide-search` - Search domain logic
+
+- **Application Layer:**
+  - `riptide-facade` - Extraction workflows
+
+- **Infrastructure Layer:**
+  - `riptide-browser` - JavaScript rendering for dynamic content
+  - `riptide-fetch` - HTML fetching
+  - `riptide-persistence` - Store extracted content
+
+- **Composition Root:**
+  - `riptide-api` - HTTP API handlers
+  - `riptide-cli` - Command-line extraction
+
+## Module Structure
+
+```
+src/
+├── lib.rs                          # Public API and re-exports
+├── processor.rs                    # HtmlProcessor trait
+├── css_extraction.rs              # CSS selector-based extraction
+├── regex_extraction.rs            # Regex pattern extraction
+├── dom_utils.rs                   # DOM traversal utilities
+├── extraction_strategies.rs       # Strategy implementations
+├── strategies/                    # Strategy module
+│   ├── mod.rs                    # ExtractionStrategy trait
+│   └── manager.rs                # StrategyManager
+├── composition.rs                 # Strategy composition (Phase 2D)
+├── confidence.rs                  # Confidence scoring
+├── confidence_integration.rs      # Confidence for strategies
+├── enhanced_extractor.rs         # Enhanced extraction
+├── enhanced_link_extraction.rs   # Link extraction with context
+├── table_extraction.rs           # Advanced table extraction
+├── tables.rs                      # Table conversion utilities
+├── chunking/                      # Content chunking
+│   ├── mod.rs                    # ChunkingStrategy trait
+│   ├── fixed_size.rs             # Fixed-size chunking
+│   ├── sentence.rs               # Sentence-based chunking
+│   ├── token.rs                  # Token-based chunking
+│   └── semantic.rs               # Semantic chunking
+├── schema/                        # Schema extraction & learning
+│   ├── mod.rs                    # Schema types
+│   ├── extractor.rs              # Schema extractor
+│   ├── generator.rs              # Schema learner
+│   ├── validator.rs              # Schema validator
+│   └── registry.rs               # Schema registry
+├── parallel.rs                    # Parallel batch extraction
+├── native_parser.rs              # Native HTML parser
+├── html_parser.rs                # HTML parsing utilities
+├── unified_extractor.rs          # Unified extraction interface
+├── wasm_extraction.rs            # WASM-based extraction (optional)
+└── validation.rs                  # WASM validation (optional)
+```
+
+## Features
+
+### Default Features
 ```toml
-[workspace]
-members = [
-  "crates/riptide-core",
-  "crates/riptide-extraction",  # ← New crate
-  # ... other crates
-]
+default = ["css-extraction", "regex-extraction", "dom-utils", "chunking", "native-parser"]
 ```
 
-### riptide-core Integration
-
-Updated `riptide-core/Cargo.toml`:
+### Optional Features
 ```toml
-[dependencies]
-riptide-extraction = { path = "../riptide-extraction" }
+wasm-extractor = ["dep:wasmtime", "dep:wasmtime-wasi"]  # WASM-based extraction
+strategy-traits = []                                     # Strategy trait implementations
+jsonld-shortcircuit = []                                # Early return for complete JSON-LD
 ```
 
-Re-exports maintain compatibility in `riptide-core/src/strategies/mod.rs`:
-```rust
-// Re-export from riptide-extraction for backward compatibility
-pub use riptide_extraction::{css_extraction as css_json, regex_extraction as extraction_regex};
-pub use riptide_extraction::{ExtractedContent, RegexPattern};
-```
+## License
 
-## 🎯 Week 2 Track A Completion
-
-| Requirement | Status | Implementation |
-|-------------|--------|----------------|
-| HTML-001 | ✅ | Complete crate structure with organized modules |
-| HTML-002 | ✅ | HtmlProcessor trait with async methods |
-| HTML-003 | ✅ | CSS extraction moved from core with enhancements |
-| HTML-004 | ✅ | Regex extraction moved from core with patterns |
-| Zero Breaking | ✅ | Full backward compatibility via re-exports |
-| Testing | ✅ | Comprehensive integration tests |
-| Documentation | ✅ | Complete API documentation and examples |
-
-## 🚀 Next Steps
-
-This implementation provides the foundation for:
-- **Week 2 Track B**: LLM integration hooks
-- **Advanced Features**: Machine learning extraction patterns
-- **Performance**: WASM-based processing optimizations
-- **Extensibility**: Plugin-based extraction strategies
-
-## 📄 License
-
-Part of the RipTide project - Apache 2.0 License
+Apache-2.0

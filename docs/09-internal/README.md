@@ -1,259 +1,193 @@
 # Internal Documentation
 
-Internal development documentation, project history, and decisions for RipTide maintainers.
+This directory contains internal documentation, historical records, and maintainer-specific materials.
 
-> ⚠️ **Note**: This directory contains internal documentation for project maintainers and is not part of the public documentation.
+## 📂 Directory Structure
 
-## 📚 Documentation Categories
+### Project History (`project-history/`)
 
-### Project History
-- **[Project History](./project-history/)** - Complete project timeline and phase documentation
-- **[Phase Documentation](./project-history/phases/)** - Detailed phase-by-phase progress
-- **[Reviews](./project-history/reviews/)** - Architecture and code reviews
-- **[Validation Reports](./project-history/validation/)** - Testing and validation documentation
+Comprehensive archive of RipTide's development journey, organized by document type.
 
-### Configuration & Setup
-- **[Configuration](./configuration/)** - Internal configuration documentation
-- **[Integration Ready](./INTEGRATION-READY.md)** - Integration readiness checklist
+#### Completed Phases (`project-history/phases/`)
 
-### Analysis & Decisions
-- **[Analysis](./analysis/)** - Technical analysis documents
-- **[Decisions](./decisions/)** - Architecture decision records
-- **[Learnings](./learnings/)** - Lessons learned and retrospectives
+Documentation from completed development phases:
 
-### Release Management
-- **[Releases](./releases/)** - Release notes and planning
+- **`phase2-completion/`** (4 reports) - Phase 2: Application Layer
+  - PHASE_2_COMPLETE_SUMMARY.md
+  - PHASE_2_COORDINATOR_REPORT.md
+  - PHASE_2_PRODUCTION_READY.md
+  - PHASE_2_VALIDATION_REPORT.md
 
-## 📋 Project Phases
+- **`phase3-4-completion/`** (2 reports) - Phase 3-4: Handler Refactoring
+  - PHASE3-4_DELIVERABLE.md
+  - PHASE3-4_APPSTATE_ELIMINATION_SUMMARY.md
 
-### Completed Phases
+- **`phase5-completion/`** (1 report) - Phase 5: Quality Validation
+  - phase5_quality_validation_report.md
 
-#### Phase 1: Foundation (Complete)
-- Core architecture implementation
-- WASM integration
-- Browser pool management
-- Basic API endpoints
+#### Migration Reports (`project-history/migration/`)
 
-#### Phase 2: Enhancement (Complete)
-- Streaming protocols (NDJSON, SSE, WebSocket)
-- Advanced extraction features
-- Configuration system
-- Performance optimization
+Records of major architectural migrations:
 
-#### Phase 3: Testing & Validation (Complete)
-- Integration test suite (165+ tests)
-- Performance benchmarking
-- Security validation
-- Documentation improvements
+- **`appstate-migration/`** (4 reports) - AppState→ApplicationContext migration
+  - MIGRATION_COMPLETE_SUMMARY.md
+  - MIGRATION_FINAL_REPORT.md
+  - MIGRATION_STATUS_ACTUAL.md
+  - MIGRATION_VALIDATION_REPORT.md
 
-#### Phase 4-6: Feature Development (Complete)
-- Deep search integration
-- Session management
-- Caching improvements
-- Metrics and monitoring
+- **`handler-refactoring/`** (1 report) - Handler layer refactoring
+  - HANDLER_MIGRATION_COMPLETE.md
 
-#### Phase 7: Code Quality & Build (Complete)
-- Build infrastructure
-- Configuration system refactoring
-- Code quality improvements
-- Release preparation
+- **`coordination/`** (1 report) - Migration coordination
+  - migration-coordination-status.md
 
-See [Phase 7 Documentation](./project-history/phases/phase7/) for details.
+#### Sprint Planning (`project-history/sprints/`)
 
-#### Phase 10: Advanced Features (Complete)
-- JSON-LD structured data extraction
-- Content signals optimization
-- Advanced architecture patterns
-- Performance improvements
+Sprint planning documents and coordination summaries:
 
-See [Phase 10 Reports](./project-history/phases/) for detailed summaries.
+- **`coordination/`** (1 document) - Sprint coordination
+  - COORDINATION-EXECUTIVE-SUMMARY.md
 
-## 🔍 Key Documents
+- **`facade-refactoring/`** (1 document) - Facade refactoring sprint
+  - sprint-plan-facade-refactoring.md
 
-### Architecture Decisions
-- **[P1-B1 Browser Pool Validation](./project-history/validation/P1-B1-browser-pool-validation.md)**
-- **[P2 Risk Register](./project-history/validation/p2-risk-register.md)**
-- **[Architecture Refactor Review](./project-history/reviews/architecture_refactor_review.md)**
+- **`appstate-migration/`** (1 document) - One-shot migration sprint
+  - design-sprint-plan-one-shot.md
 
-### Phase Reports
-- **[Phase 5 Integration Report](./project-history/phases/phase5-integration-report.md)**
-- **[Phase 7 Code Quality Report](./project-history/phases/phase7-code-quality-report.md)**
-- **[Phase 10 Review Report](./project-history/phases/phase10-review-report.md)**
-- **[Phase 10 Test Results](./project-history/phases/phase10-test-results.md)**
+- **`decisions/`** (1 document) - Go/no-go decisions
+  - GO-NO-GO-DECISION.md
 
-### Implementation Guides
-- **[Phase 10 Architecture Design](./project-history/phases/phase10-architecture-design.md)**
-- **[Phase 10 Implementation Plan](./project-history/phases/phase10-implementation-plan.md)**
-- **[JSON-LD Implementation Summary](./project-history/phases/phase10-jsonld-implementation-summary.md)**
-- **[Content Signals Summary](./project-history/phases/phase10-content-signals-summary.md)**
+#### Design Artifacts (`project-history/design/`)
 
-### Coordination & Handoff
-- **[Phase 7 Coordinator Handoff](./project-history/phases/phase7/COORDINATOR-HANDOFF.md)**
-- **[Phase 7 Agent Briefing](./project-history/phases/phase7/AGENT-BRIEFING.md)**
-- **[Phase 7 Coordination Dashboard](./project-history/phases/phase7/COORDINATION-DASHBOARD.md)**
+Historical design documents and validation checklists:
 
-## 📊 Project Statistics
+- **`roadmap-evolution/`** (2 documents) - Roadmap evolution history
+  - design-roadmap-concise.md
+  - DESIGN-SUMMARY-ROADMAP-RESTRUCTURE.md
 
-### Current Status
-- **Total Phases**: 10 (all complete)
-- **Integration Tests**: 165+
-- **Documentation Files**: 100+
-- **API Endpoints**: 59
-- **Performance**: 69.2% faster builds
-- **Test Pass Rate**: 100%
+- **`validation/`** (1 document) - Design validation
+  - design-validation-checklist.md
 
-### Code Quality Metrics
-- **Test Coverage**: High
-- **Warning Reduction**: 56%
-- **Build Time Improvement**: 69.2%
-- **API Documentation**: Complete
+- **`facade-refactoring/`** (1 document) - Facade design audits
+  - facade_verification_audit.md
 
-## 🎯 Development Milestones
+#### Quality & Status Reports (`project-history/reports/`)
 
-### Recent Achievements
-✅ Phase 10 - Advanced features and optimization
-✅ Phase 9 - CLI enhancements
-✅ Phase 8 - Extended feature set
-✅ Phase 7 - Code quality and build infrastructure
-✅ Phase 6 - Integration testing framework (165+ tests)
-✅ Phase 5 - Streaming and dynamic rendering
-✅ Phases 1-4 - Core functionality
+Historical quality assessments and status reports:
 
-### Current Focus
-- Performance optimization
-- Production deployment preparation
-- Additional SDK development
-- Advanced features refinement
+- **`quality/`** (5 reports) - Quality and validation reports
+  - FINAL_ACTUAL_STATUS.md
+  - FINAL_VALIDATION_REPORT.md
+  - CRITICAL_FIX_STATUS.md
+  - quality_baseline_report.md
+  - code_review_report.md
 
-## 📝 Sprint Documentation
+- **Architecture health report** (1 report)
+  - architecture-health-report-2025-11-12.md (798 lines, first analysis)
 
-### Phase 7 Sprints
-- **[Task 7.1: Build Infrastructure](./project-history/phases/phase7/task-7.1-build-infra.md)**
-- **[Task 7.2: Config System](./project-history/phases/phase7/task-7.2-config-system.md)**
-- **[Task 7.3: Code Quality](./project-history/phases/phase7/task-7.3-code-quality.md)**
-- **[Task 7.4: Release Prep](./project-history/phases/phase7/task-7.4-release-prep.md)**
+#### Architecture Planning (`project-history/architecture-planning/`)
 
-### Phase 9 Sprint
-- **[Sprint 1 Day 1 Completion](./project-history/phases/phase9-sprint1-day1-completion.md)**
+Historical architecture planning documents (superseded by current docs):
 
-### Phase 10 Tasks
-- **[Task 10.1 Completion Report](./project-history/phases/phase10-task-10.1-completion-report.md)**
-- **[Task 10.4 Design](./project-history/phases/phase10-task10.4-design.md)**
-- **[Task 10.4 Review](./project-history/phases/phase10-task10.4-review.md)**
+- **`README.md`** - Old architecture directory index
+- **`ADR-001-appstate-elimination.md`** - AppState elimination decision record
+- **`ARCHITECTURE_DELIVERABLES.md`** - Historical deliverables
+- **`CIRCULAR_DEPENDENCY_RESOLUTION.md`** - Dependency resolution strategies
+- **`application-context-design.md`** - ApplicationContext design
+- **`migration-strategy.md`** - Migration planning
+- **`port-trait-specifications.md`** - Port trait specifications
 
-## 🔄 Validation & Testing
+**Note:** Current architecture documentation is in `/docs/04-architecture/`, especially the comprehensive [HEXAGONAL_ARCHITECTURE.md](../04-architecture/HEXAGONAL_ARCHITECTURE.md).
 
-### Test Reports
-- **[Phase 3 Test Validation](./project-history/validation/PHASE3-TEST-VALIDATION-REPORT.md)**
-- **[P1 Final Test Report](./project-history/validation/P1-final-test-report.md)**
-- **[P2 Reviewer Checkpoint](./project-history/validation/P2-REVIEWER-CHECKPOINT-2025-10-19.md)**
-- **[Phase 10 Test Results](./project-history/phases/phase10-test-results.md)**
+#### Roadmap Snapshots (`project-history/roadmap-snapshots/`)
 
-## 🧭 Navigation for Maintainers
+Historical versions of the roadmap:
 
-### Daily Development
-1. Check [Integration Ready](./INTEGRATION-READY.md) status
-2. Review recent [phase reports](./project-history/phases/)
-3. Consult [decisions](./decisions/) for context
-4. Update [configuration](./configuration/) as needed
+- **`ROADMAP-2025-11-11.md`** - Roadmap snapshot from November 11, 2025
 
-### Planning & Coordination
-1. Review [project history](./project-history/) for context
-2. Check [validation reports](./project-history/validation/)
-3. Consult [architecture reviews](./project-history/reviews/)
-4. Update phase documentation
+**Current roadmap:** [docs/roadmap/README.md](../roadmap/README.md)
 
-### Release Preparation
-1. Review [release documentation](./releases/)
-2. Check [validation reports](./project-history/validation/)
-3. Update [integration ready](./INTEGRATION-READY.md)
-4. Coordinate with team
+#### Analysis & Instructions (`project-history/analysis/`)
 
-## 🔗 Related Documentation
+Internal analysis and agent instructions:
 
-### Public Documentation
-- **[Getting Started](../00-getting-started/README.md)** - User onboarding
-- **[Architecture](../04-architecture/README.md)** - Public architecture docs
-- **[Development Guide](../05-development/README.md)** - Contributor guidelines
+- **`instructions/`** (2 files) - Internal instructions
+  - analysisinstructions.md
+  - hygieneinstructions.md
 
-### Internal Resources
-- **[Analysis](./analysis/)** - Technical deep dives
-- **[Configuration](./configuration/)** - Internal configuration
-- **[Learnings](./learnings/)** - Retrospectives
+### Configuration (`configuration/`)
 
-## 📅 Timeline Overview
-
-```
-2024-2025 Development Timeline
-
-Phase 1-4: Foundation & Core Features
-│ ├─ Core architecture
-│ ├─ WASM integration
-│ ├─ Browser pool
-│ └─ Basic API
-
-Phase 5: Streaming & Rendering
-│ ├─ NDJSON/SSE/WebSocket
-│ ├─ Dynamic rendering
-│ └─ Performance optimization
-
-Phase 6: Testing Infrastructure
-│ ├─ 165+ integration tests
-│ ├─ Test framework
-│ └─ Validation suite
-
-Phase 7: Code Quality & Build
-│ ├─ Build infrastructure
-│ ├─ Configuration refactoring
-│ ├─ Code cleanup
-│ └─ Release preparation
-
-Phase 8-9: Extended Features
-│ ├─ CLI enhancements
-│ ├─ Additional endpoints
-│ └─ Documentation expansion
-
-Phase 10: Advanced Features ← Latest
-  ├─ JSON-LD extraction
-  ├─ Content signals
-  ├─ Architecture patterns
-  └─ Performance tuning
-```
-
-## 🎓 Learning from History
-
-### Key Learnings
-1. **Testing First** - Integration tests caught 95% of regressions
-2. **Configuration Management** - Centralized config improved maintainability
-3. **Incremental Refactoring** - Small, tested changes reduce risk
-4. **Documentation** - Up-to-date docs save debugging time
-5. **Performance Monitoring** - Metrics guide optimization efforts
-
-See [Learnings](./learnings/) for detailed retrospectives.
-
-## 🆘 Maintainer Resources
-
-### Quick Links
-- **Phase Status**: Check latest phase reports in [phases/](./project-history/phases/)
-- **Test Status**: See [validation/](./project-history/validation/)
-- **Decisions**: Review [decisions/](./decisions/)
-- **Integration Status**: Check [INTEGRATION-READY.md](./INTEGRATION-READY.md)
-
-### Common Tasks
-```bash
-# Review recent changes
-git log --oneline docs/09-internal/
-
-# Find decision documents
-find docs/09-internal/decisions -name "*.md"
-
-# Check validation status
-cat docs/09-internal/INTEGRATION-READY.md
-
-# Review phase history
-ls -la docs/09-internal/project-history/phases/
-```
+Internal configuration and development settings.
 
 ---
 
-**For public documentation**: See [Main Documentation](../README.md)
+## 📋 Finding Historical Documents
+
+### By Type
+
+| Document Type | Location | Count |
+|---------------|----------|-------|
+| Phase Reports | `project-history/phases/` | 7 |
+| Migration Reports | `project-history/migration/` | 6 |
+| Sprint Planning | `project-history/sprints/` | 4 |
+| Design Artifacts | `project-history/design/` | 4 |
+| Quality Reports | `project-history/reports/quality/` | 5 |
+| Architecture Planning | `project-history/architecture-planning/` | 7 |
+| Roadmap Snapshots | `project-history/roadmap-snapshots/` | 1 |
+| Analysis | `project-history/analysis/` | 2 |
+| **Total** | | **36** |
+
+### By Date
+
+Most documents are from 2024-2025 during major refactoring phases.
+
+### By Phase
+
+- **Phase 0** - Initial cleanup and foundation
+- **Phase 1** - Ports and adapters implementation
+- **Phase 2** - Application layer (riptide-facade)
+- **Phase 3-4** - Handler refactoring and AppState elimination
+- **Phase 5** - Quality validation and production readiness
+
+---
+
+## 🎯 Common Questions
+
+**Q: Where are the phase completion reports?**
+A: See `project-history/phases/` - organized by phase number.
+
+**Q: How was the AppState migration done?**
+A: See `project-history/migration/appstate-migration/` - 4 detailed reports document the entire migration.
+
+**Q: What's the current architecture?**
+A: See [/docs/04-architecture/HEXAGONAL_ARCHITECTURE.md](../04-architecture/HEXAGONAL_ARCHITECTURE.md) - comprehensive current documentation.
+
+**Q: Where are old roadmaps?**
+A: See `project-history/roadmap-snapshots/` - timestamped historical versions.
+
+**Q: What lessons were learned?**
+A: Check phase completion reports and migration final reports - they contain "Lessons Learned" sections.
+
+---
+
+## 📅 Archive Organization
+
+**Archived:** 2025-11-12
+**Strategy:** Preserve all historical documents with complete audit trail
+**Organization:** By document type (phases, migration, sprints, design, reports)
+**Reason:** 97% root directory cleanup (35 files → 1 file in docs/)
+
+**Cleanup Plan:** [project-history/DOCUMENTATION_CLEANUP_PLAN-2025-11-12.md](./project-history/DOCUMENTATION_CLEANUP_PLAN-2025-11-12.md)
+
+---
+
+## 🔗 Related Documentation
+
+- **[Current Documentation](../README.md)** - Main documentation index
+- **[Architecture](../04-architecture/README.md)** - Current architecture documentation
+- **[Roadmap](../roadmap/README.md)** - Current v1.0 roadmap
+- **[Development](../05-development/README.md)** - Contributing and development
+
+---
+
+**For current project status and active development, see the main [documentation](../README.md).**
