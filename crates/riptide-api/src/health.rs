@@ -231,7 +231,10 @@ impl HealthChecker {
         let test_value = "health_check_value";
         let test_value_bytes = test_value.as_bytes();
 
-        context.cache.set(test_key, test_value_bytes, Some(Duration::from_secs(5))).await?;
+        context
+            .cache
+            .set(test_key, test_value_bytes, Some(Duration::from_secs(5)))
+            .await?;
         let retrieved = context.cache.get(test_key).await?;
 
         match retrieved {
@@ -254,7 +257,10 @@ impl HealthChecker {
         let batch_value = "performance_test".as_bytes();
 
         for key in &batch_keys {
-            context.cache.set(key, batch_value, Some(Duration::from_secs(1))).await?;
+            context
+                .cache
+                .set(key, batch_value, Some(Duration::from_secs(1)))
+                .await?;
         }
 
         for key in &batch_keys {
@@ -360,11 +366,7 @@ impl HealthChecker {
             let start_time = Instant::now();
             let health_url = format!("{}/healthz", headless_url);
 
-            match context
-                .http_client
-                .get(&health_url)
-                .await
-            {
+            match context.http_client.get(&health_url).await {
                 Ok(response) if response.is_success() => {
                     let response_time = start_time.elapsed().as_millis() as u64;
                     ServiceHealth {

@@ -3,8 +3,8 @@
 //! Provides backend-agnostic trait for content extraction from HTML,
 //! enabling dependency inversion and testability.
 
-use async_trait::async_trait;
 use crate::error::Result as RiptideResult;
+use async_trait::async_trait;
 
 /// Content extraction result
 #[derive(Debug, Clone)]

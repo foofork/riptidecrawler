@@ -642,11 +642,19 @@ pub trait ReliabilityMetricsRecorder: Send + Sync + std::fmt::Debug {
 // Implement the port trait ReliableContentExtractor from riptide-types
 #[async_trait]
 impl riptide_types::ports::ReliableContentExtractor for ReliableExtractor {
-    async fn extract_with_retry(&self, html: &str, url: &str) -> riptide_types::error::Result<riptide_types::ports::ExtractionResult> {
+    async fn extract_with_retry(
+        &self,
+        html: &str,
+        url: &str,
+    ) -> riptide_types::error::Result<riptide_types::ports::ExtractionResult> {
         // Create a simple HTML parser wrapper
         struct SimpleHtmlParser;
         impl HtmlParser for SimpleHtmlParser {
-            fn parse_html(&self, html: &str, url: &str) -> Result<riptide_types::BasicExtractedDoc> {
+            fn parse_html(
+                &self,
+                html: &str,
+                url: &str,
+            ) -> Result<riptide_types::BasicExtractedDoc> {
                 // Simple parsing - convert to BasicExtractedDoc
                 Ok(riptide_types::BasicExtractedDoc {
                     url: url.to_string(),

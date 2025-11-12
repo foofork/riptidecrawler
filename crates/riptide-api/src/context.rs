@@ -1071,7 +1071,8 @@ impl ApplicationContext {
                     tracing::error!(error = %e, "Failed to initialize browser launcher");
                     anyhow::anyhow!("Failed to initialize browser launcher: {}", e)
                 })?;
-            let launcher: Arc<dyn riptide_types::ports::BrowserDriver> = Arc::new(launcher_concrete);
+            let launcher: Arc<dyn riptide_types::ports::BrowserDriver> =
+                Arc::new(launcher_concrete);
 
             tracing::info!(
                 pool_size = api_config.headless.max_pool_size,
@@ -1716,11 +1717,7 @@ impl ApplicationContext {
         // This keeps the health check internal to the system
         if let Ok(port) = std::env::var("HEALTH_CHECK_PORT") {
             let url = format!("http://127.0.0.1:{}/health", port);
-            if let Ok(response) = self
-                .http_client
-                .get(&url)
-                .await
-            {
+            if let Ok(response) = self.http_client.get(&url).await {
                 if !response.is_success() {
                     return Err(anyhow::anyhow!(
                         "Internal health check failed: {}",
@@ -1843,7 +1840,7 @@ impl ApplicationContext {
         let event_bus = Arc::new(EventBus::new());
 
         let circuit_breaker = riptide_cache::adapters::StandardCircuitBreakerAdapter::new(
-            riptide_types::ports::CircuitBreakerConfig::default()
+            riptide_types::ports::CircuitBreakerConfig::default(),
         ) as Arc<dyn riptide_types::ports::CircuitBreaker>;
         let performance_metrics = Arc::new(Mutex::new(PerformanceMetrics::default()));
 

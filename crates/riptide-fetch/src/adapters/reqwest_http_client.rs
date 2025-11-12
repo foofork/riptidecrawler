@@ -153,11 +153,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_reqwest_client_with_config() {
-        let client = ReqwestHttpClient::with_config(
-            Duration::from_secs(10),
-            5,
-            Duration::from_secs(60),
-        );
+        let client =
+            ReqwestHttpClient::with_config(Duration::from_secs(10), 5, Duration::from_secs(60));
         assert!(client.is_ok());
     }
 

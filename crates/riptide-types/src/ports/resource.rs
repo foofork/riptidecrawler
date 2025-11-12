@@ -3,8 +3,8 @@
 //! Provides backend-agnostic trait for managing system resources,
 //! enabling dependency inversion and testability.
 
-use async_trait::async_trait;
 use crate::error::Result as RiptideResult;
+use async_trait::async_trait;
 
 /// Resource status information
 #[derive(Debug, Clone)]

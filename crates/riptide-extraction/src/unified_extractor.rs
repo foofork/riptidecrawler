@@ -364,7 +364,11 @@ impl crate::extraction_strategies::ContentExtractor for UnifiedExtractor {
 // Implement the port trait ContentExtractor from riptide-types
 #[async_trait]
 impl riptide_types::ports::ContentExtractor for UnifiedExtractor {
-    async fn extract(&self, html: &str, url: &str) -> riptide_types::error::Result<riptide_types::ports::ExtractionResult> {
+    async fn extract(
+        &self,
+        html: &str,
+        url: &str,
+    ) -> riptide_types::error::Result<riptide_types::ports::ExtractionResult> {
         // Use existing extract method
         let content = self.extract(html, url).await.map_err(|e| {
             riptide_types::error::RiptideError::Extraction(format!("Extraction failed: {}", e))

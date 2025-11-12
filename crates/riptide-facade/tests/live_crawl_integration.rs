@@ -35,18 +35,26 @@ async fn test_crawl_example_com() {
     // Note: This test will use HTTP client (not browser) unless Chrome is available
     let result = tokio::time::timeout(
         Duration::from_secs(30),
-        crawl_url("https://example.com", options, CrawlMode::Standard)
-    ).await;
+        crawl_url("https://example.com", options, CrawlMode::Standard),
+    )
+    .await;
 
     assert!(result.is_ok(), "Request timed out");
     let crawl_result = result.unwrap();
 
-    assert!(crawl_result.is_ok(), "Crawl failed: {:?}", crawl_result.err());
+    assert!(
+        crawl_result.is_ok(),
+        "Crawl failed: {:?}",
+        crawl_result.err()
+    );
     let content = crawl_result.unwrap();
 
     // Verify we got content
     assert!(!content.is_empty(), "Content should not be empty");
-    assert!(content.to_lowercase().contains("example"), "Should contain 'example'");
+    assert!(
+        content.to_lowercase().contains("example"),
+        "Should contain 'example'"
+    );
 
     println!("✓ Successfully crawled example.com");
     println!("  Content length: {} bytes", content.len());
@@ -60,13 +68,18 @@ async fn test_crawl_httpbin() {
 
     let result = tokio::time::timeout(
         Duration::from_secs(30),
-        crawl_url("https://httpbin.org/html", options, CrawlMode::Standard)
-    ).await;
+        crawl_url("https://httpbin.org/html", options, CrawlMode::Standard),
+    )
+    .await;
 
     assert!(result.is_ok(), "Request timed out");
     let crawl_result = result.unwrap();
 
-    assert!(crawl_result.is_ok(), "Crawl failed: {:?}", crawl_result.err());
+    assert!(
+        crawl_result.is_ok(),
+        "Crawl failed: {:?}",
+        crawl_result.err()
+    );
     let content = crawl_result.unwrap();
 
     assert!(!content.is_empty(), "Content should not be empty");
@@ -84,18 +97,25 @@ async fn test_crawl_quotes_toscrape() {
 
     let result = tokio::time::timeout(
         Duration::from_secs(30),
-        crawl_url("https://quotes.toscrape.com", options, CrawlMode::Standard)
-    ).await;
+        crawl_url("https://quotes.toscrape.com", options, CrawlMode::Standard),
+    )
+    .await;
 
     assert!(result.is_ok(), "Request timed out");
     let crawl_result = result.unwrap();
 
-    assert!(crawl_result.is_ok(), "Crawl failed: {:?}", crawl_result.err());
+    assert!(
+        crawl_result.is_ok(),
+        "Crawl failed: {:?}",
+        crawl_result.err()
+    );
     let content = crawl_result.unwrap();
 
     assert!(!content.is_empty(), "Content should not be empty");
-    assert!(content.to_lowercase().contains("quote") || content.to_lowercase().contains("quotes"),
-            "Should contain quotes");
+    assert!(
+        content.to_lowercase().contains("quote") || content.to_lowercase().contains("quotes"),
+        "Should contain quotes"
+    );
 
     println!("✓ Successfully crawled quotes.toscrape.com");
     println!("  Content length: {} bytes", content.len());
@@ -119,12 +139,18 @@ async fn test_batch_crawl_multiple_sites() {
         let options = CrawlOptions::default();
         let result = tokio::time::timeout(
             Duration::from_secs(30),
-            crawl_url(url, options, CrawlMode::Standard)
-        ).await;
+            crawl_url(url, options, CrawlMode::Standard),
+        )
+        .await;
 
         assert!(result.is_ok(), "Timeout crawling {}", url);
         let crawl_result = result.unwrap();
-        assert!(crawl_result.is_ok(), "Failed to crawl {}: {:?}", url, crawl_result.err());
+        assert!(
+            crawl_result.is_ok(),
+            "Failed to crawl {}: {:?}",
+            url,
+            crawl_result.err()
+        );
 
         let content = crawl_result.unwrap();
         assert!(!content.is_empty(), "Empty content from {}", url);
@@ -144,8 +170,9 @@ async fn test_crawl_with_custom_options() {
 
     let result = tokio::time::timeout(
         Duration::from_secs(30),
-        crawl_url("https://example.com", options, CrawlMode::Standard)
-    ).await;
+        crawl_url("https://example.com", options, CrawlMode::Standard),
+    )
+    .await;
 
     assert!(result.is_ok(), "Request timed out");
     assert!(result.unwrap().is_ok(), "Crawl with custom options failed");
@@ -162,8 +189,9 @@ async fn test_enhanced_crawl_with_javascript() {
     // Enhanced mode uses browser for JavaScript rendering
     let result = tokio::time::timeout(
         Duration::from_secs(45),
-        crawl_url("https://quotes.toscrape.com", options, CrawlMode::Enhanced)
-    ).await;
+        crawl_url("https://quotes.toscrape.com", options, CrawlMode::Enhanced),
+    )
+    .await;
 
     assert!(result.is_ok(), "Request timed out");
     let crawl_result = result.unwrap();
@@ -190,10 +218,13 @@ async fn test_crawl_invalid_url_handling() {
 
     let result = tokio::time::timeout(
         Duration::from_secs(15),
-        crawl_url("https://this-domain-definitely-does-not-exist-12345.com",
-                 options,
-                 CrawlMode::Standard)
-    ).await;
+        crawl_url(
+            "https://this-domain-definitely-does-not-exist-12345.com",
+            options,
+            CrawlMode::Standard,
+        ),
+    )
+    .await;
 
     // Should complete (not timeout) but return error
     assert!(result.is_ok(), "Should not timeout");
@@ -218,8 +249,9 @@ async fn test_crawl_with_retry() {
 
         let result = tokio::time::timeout(
             Duration::from_secs(30),
-            crawl_url(url, options.clone(), CrawlMode::Standard)
-        ).await;
+            crawl_url(url, options.clone(), CrawlMode::Standard),
+        )
+        .await;
 
         if result.is_ok() && result.unwrap().is_ok() {
             println!("✓ Success on attempt {}", attempts);

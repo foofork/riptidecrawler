@@ -80,9 +80,9 @@ pub mod streaming;
 pub mod rate_limit;
 
 // Sprint 4.8 ports (trait migration)
-pub mod worker;
-pub mod resource;
 pub mod monitoring;
+pub mod resource;
+pub mod worker;
 
 // Spider port
 #[cfg(feature = "spider")]

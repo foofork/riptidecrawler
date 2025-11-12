@@ -3,8 +3,8 @@
 //! Provides backend-agnostic traits for system monitoring, health checks,
 //! and performance tracking.
 
-use async_trait::async_trait;
 use crate::error::Result as RiptideResult;
+use async_trait::async_trait;
 
 /// Performance tracking port trait
 ///

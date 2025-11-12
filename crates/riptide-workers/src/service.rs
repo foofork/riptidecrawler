@@ -502,7 +502,11 @@ impl riptide_types::ports::WorkerService for WorkerService {
             worker_pool_healthy: service_health.worker_pool_healthy,
             scheduler_healthy: service_health.scheduler_healthy,
             active_workers: service_health.metrics_snapshot.worker_health.len(),
-            pending_jobs: service_health.metrics_snapshot.queue_sizes.values().sum::<u64>() as usize,
+            pending_jobs: service_health
+                .metrics_snapshot
+                .queue_sizes
+                .values()
+                .sum::<u64>() as usize,
         }
     }
 

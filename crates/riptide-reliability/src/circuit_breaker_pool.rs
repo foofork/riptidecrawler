@@ -179,7 +179,9 @@ impl riptide_types::ports::CircuitBreaker for CircuitBreakerAdapter {
         }
     }
 
-    async fn stats(&self) -> riptide_types::error::Result<riptide_types::ports::CircuitBreakerStats> {
+    async fn stats(
+        &self,
+    ) -> riptide_types::error::Result<riptide_types::ports::CircuitBreakerStats> {
         let state = self.state.lock().await;
         let (successful_requests, failed_requests, current_failures) = match *state {
             CircuitBreakerState::Closed {
@@ -187,7 +189,9 @@ impl riptide_types::ports::CircuitBreaker for CircuitBreakerAdapter {
                 failure_count,
                 ..
             } => (success_count, failure_count, failure_count as u32),
-            CircuitBreakerState::Open { failure_count, .. } => (0, failure_count, failure_count as u32),
+            CircuitBreakerState::Open { failure_count, .. } => {
+                (0, failure_count, failure_count as u32)
+            }
             CircuitBreakerState::HalfOpen { test_requests, .. } => (test_requests, 0, 0),
         };
 

@@ -350,9 +350,7 @@ impl StrategiesPipelineOrchestrator {
             .map_err(|_| ApiError::timeout("content_fetch", format!("Timeout fetching {}", url)))?
             .map_err(|e| ApiError::fetch(url, e.to_string()))?;
 
-        let content_type = http_response
-            .header("content-type")
-            .map(|s| s.to_string());
+        let content_type = http_response.header("content-type").map(|s| s.to_string());
 
         let content_bytes = http_response.body.clone();
 
@@ -438,8 +436,12 @@ impl StrategiesPipelineOrchestrator {
                 });
 
                 // Serialize the JSON request body
-                let body_json = serde_json::to_vec(&render_request)
-                    .map_err(|e| ApiError::dependency("headless_service", format!("JSON serialization failed: {}", e)))?;
+                let body_json = serde_json::to_vec(&render_request).map_err(|e| {
+                    ApiError::dependency(
+                        "headless_service",
+                        format!("JSON serialization failed: {}", e),
+                    )
+                })?;
 
                 let response = self
                     .state
@@ -472,7 +474,9 @@ impl StrategiesPipelineOrchestrator {
             return Ok(None);
         }
 
-        let cache_data = self.state.cache
+        let cache_data = self
+            .state
+            .cache
             .get(cache_key)
             .await
             .map_err(|e| ApiError::cache(format!("Cache read failed: {}", e)))?;
@@ -496,8 +500,13 @@ impl StrategiesPipelineOrchestrator {
         let content_bytes = serde_json::to_vec(content)
             .map_err(|e| ApiError::cache(format!("Cache serialization failed: {}", e)))?;
 
-        self.state.cache
-            .set(cache_key, &content_bytes, Some(Duration::from_secs(self.state.config.cache_ttl)))
+        self.state
+            .cache
+            .set(
+                cache_key,
+                &content_bytes,
+                Some(Duration::from_secs(self.state.config.cache_ttl)),
+            )
             .await
             .map_err(|e| ApiError::cache(format!("Cache write failed: {}", e)))
     }
