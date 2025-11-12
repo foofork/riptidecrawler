@@ -549,7 +549,11 @@ mod security_tests {
         );
 
         // Verify header values are secure
-        let hsts = headers.get("strict-transport-security").unwrap().to_str().unwrap();
+        let hsts = headers
+            .get("strict-transport-security")
+            .unwrap()
+            .to_str()
+            .unwrap();
         assert!(
             hsts.contains("max-age="),
             "HSTS header should contain max-age directive"

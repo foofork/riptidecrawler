@@ -127,7 +127,9 @@ pub fn create_security_test_app() -> Router {
     use riptide_security::SecurityMiddleware;
     use std::sync::Arc;
 
-    let security = Arc::new(SecurityMiddleware::with_defaults().expect("Failed to create security middleware"));
+    let security = Arc::new(
+        SecurityMiddleware::with_defaults().expect("Failed to create security middleware"),
+    );
 
     Router::new()
         // Health endpoint - standardized on /healthz

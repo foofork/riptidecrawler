@@ -104,17 +104,11 @@ mod tests {
     async fn test_security_headers_applied() {
         let security = Arc::new(SecurityMiddleware::with_defaults().unwrap());
 
-        let app = Router::new()
-            .route("/test", get(test_handler))
-            .layer(axum::middleware::from_fn_with_state(
-                security,
-                security_headers_middleware,
-            ));
+        let app = Router::new().route("/test", get(test_handler)).layer(
+            axum::middleware::from_fn_with_state(security, security_headers_middleware),
+        );
 
-        let request = Request::builder()
-            .uri("/test")
-            .body(Body::empty())
-            .unwrap();
+        let request = Request::builder().uri("/test").body(Body::empty()).unwrap();
 
         let response = app.oneshot(request).await.unwrap();
 

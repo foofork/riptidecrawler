@@ -177,10 +177,7 @@ mod tests {
             .header("X-API-Key", "api-key-456")
             .body(Body::empty())
             .unwrap();
-        assert_eq!(
-            extract_client_id(&request),
-            Some("api-key-456".to_string())
-        );
+        assert_eq!(extract_client_id(&request), Some("api-key-456".to_string()));
 
         // Test PRIORITY 2: Authorization: Bearer token
         let request = Request::builder()
@@ -194,10 +191,7 @@ mod tests {
             .header("X-Forwarded-For", "192.168.1.1, 10.0.0.1")
             .body(Body::empty())
             .unwrap();
-        assert_eq!(
-            extract_client_id(&request),
-            Some("192.168.1.1".to_string())
-        );
+        assert_eq!(extract_client_id(&request), Some("192.168.1.1".to_string()));
 
         // Test X-Real-IP fallback
         let request = Request::builder()
