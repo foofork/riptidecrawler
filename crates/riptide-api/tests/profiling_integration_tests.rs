@@ -8,7 +8,7 @@
 //! - API endpoint responses
 
 use riptide_api::health::HealthChecker;
-use riptide_api::state::{AppConfig, AppState};
+use riptide_api::state::{AppConfig, ApplicationContext};
 use std::sync::Arc;
 use tokio::time::{sleep, Duration};
 
@@ -18,9 +18,9 @@ async fn test_profiling_memory_endpoint() {
     let config = AppConfig::default();
     let health_checker = Arc::new(HealthChecker::new());
 
-    let state = AppState::new(config, health_checker)
+    let state = ApplicationContext::new(config, health_checker)
         .await
-        .expect("Failed to initialize AppState");
+        .expect("Failed to initialize ApplicationContext");
 
     // Get memory metrics
     let result = state.performance_manager.get_metrics().await;
@@ -46,9 +46,9 @@ async fn test_profiling_cache_stats() {
     let config = AppConfig::default();
     let health_checker = Arc::new(HealthChecker::new());
 
-    let state = AppState::new(config, health_checker)
+    let state = ApplicationContext::new(config, health_checker)
         .await
-        .expect("Failed to initialize AppState");
+        .expect("Failed to initialize ApplicationContext");
 
     // Get cache statistics
     let result = state.performance_manager.get_cache_stats().await;
@@ -71,9 +71,9 @@ async fn test_profiling_leak_detection_simple() {
     let config = AppConfig::default();
     let health_checker = Arc::new(HealthChecker::new());
 
-    let state = AppState::new(config, health_checker)
+    let state = ApplicationContext::new(config, health_checker)
         .await
-        .expect("Failed to initialize AppState");
+        .expect("Failed to initialize ApplicationContext");
 
     // Get initial metrics
     let initial_metrics = state.performance_manager.get_metrics().await.unwrap();
@@ -103,9 +103,9 @@ async fn test_profiling_performance_overhead() {
 
     // Measure time to initialize with profiling
     let start = std::time::Instant::now();
-    let state = AppState::new(config, health_checker)
+    let state = ApplicationContext::new(config, health_checker)
         .await
-        .expect("Failed to initialize AppState");
+        .expect("Failed to initialize ApplicationContext");
     let init_duration = start.elapsed();
 
     // Initialization should be fast (< 5 seconds)
@@ -134,9 +134,9 @@ async fn test_profiling_target_compliance() {
     let config = AppConfig::default();
     let health_checker = Arc::new(HealthChecker::new());
 
-    let state = AppState::new(config, health_checker)
+    let state = ApplicationContext::new(config, health_checker)
         .await
-        .expect("Failed to initialize AppState");
+        .expect("Failed to initialize ApplicationContext");
 
     // Check targets
     let target_status = state.performance_manager.check_targets().await;
@@ -177,9 +177,9 @@ async fn test_profiling_resource_limits() {
     let config = AppConfig::default();
     let health_checker = Arc::new(HealthChecker::new());
 
-    let state = AppState::new(config, health_checker)
+    let state = ApplicationContext::new(config, health_checker)
         .await
-        .expect("Failed to initialize AppState");
+        .expect("Failed to initialize ApplicationContext");
 
     // Get resource usage
     let usage = state.performance_manager.get_resource_usage().await;
@@ -197,9 +197,9 @@ async fn test_profiling_cache_optimization() {
     let config = AppConfig::default();
     let health_checker = Arc::new(HealthChecker::new());
 
-    let state = AppState::new(config, health_checker)
+    let state = ApplicationContext::new(config, health_checker)
         .await
-        .expect("Failed to initialize AppState");
+        .expect("Failed to initialize ApplicationContext");
 
     // Get cache stats before optimization
     let _initial_stats = state.performance_manager.get_cache_stats().await.unwrap();
@@ -226,9 +226,9 @@ async fn test_profiling_concurrent_access() {
     let health_checker = Arc::new(HealthChecker::new());
 
     let state = Arc::new(
-        AppState::new(config, health_checker)
+        ApplicationContext::new(config, health_checker)
             .await
-            .expect("Failed to initialize AppState"),
+            .expect("Failed to initialize ApplicationContext"),
     );
 
     // Spawn multiple tasks to access metrics concurrently
@@ -263,9 +263,9 @@ async fn test_profiling_memory_growth_tracking() {
     let config = AppConfig::default();
     let health_checker = Arc::new(HealthChecker::new());
 
-    let state = AppState::new(config, health_checker)
+    let state = ApplicationContext::new(config, health_checker)
         .await
-        .expect("Failed to initialize AppState");
+        .expect("Failed to initialize ApplicationContext");
 
     // Take initial snapshot
     let _initial = state.performance_manager.get_metrics().await.unwrap();
@@ -291,9 +291,9 @@ async fn test_profiling_metrics_completeness() {
     let config = AppConfig::default();
     let health_checker = Arc::new(HealthChecker::new());
 
-    let state = AppState::new(config, health_checker)
+    let state = ApplicationContext::new(config, health_checker)
         .await
-        .expect("Failed to initialize AppState");
+        .expect("Failed to initialize ApplicationContext");
 
     let metrics = state.performance_manager.get_metrics().await.unwrap();
 
@@ -332,9 +332,9 @@ mod performance_baseline_tests {
         let config = AppConfig::default();
         let health_checker = Arc::new(HealthChecker::new());
 
-        let state = AppState::new(config, health_checker)
+        let state = ApplicationContext::new(config, health_checker)
             .await
-            .expect("Failed to initialize AppState");
+            .expect("Failed to initialize ApplicationContext");
 
         let init_time = start.elapsed();
 

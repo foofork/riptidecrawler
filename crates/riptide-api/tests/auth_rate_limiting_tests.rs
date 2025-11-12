@@ -22,7 +22,7 @@ use tower::ServiceExt;
 
 use riptide_api::{
     middleware::{auth_middleware, AuthConfig},
-    state::AppState,
+    state::ApplicationContext,
 };
 
 /// Helper function to create a test app with authentication middleware
@@ -30,7 +30,7 @@ async fn create_test_app_with_auth(auth_config: AuthConfig) -> axum::Router {
     use axum::{middleware, routing::get, Router};
 
     // Create minimal test state
-    let mut state = AppState::new_test_minimal().await;
+    let mut state = ApplicationContext::new_test_minimal().await;
     state.auth_config = auth_config;
 
     // Create router with auth middleware

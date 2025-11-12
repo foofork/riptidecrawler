@@ -15,7 +15,7 @@ use axum::{
 };
 use bytes::Bytes;
 use http_body_util::BodyExt;
-use riptide_api::state::{AppConfig, AppState};
+use riptide_api::state::{AppConfig, ApplicationContext};
 use serde_json::{json, Value};
 use std::sync::Arc;
 use tokio::time::{timeout, Duration};
@@ -23,14 +23,14 @@ use tower::ServiceExt;
 
 mod test_helpers;
 
-/// Test helper to create test AppState
-async fn create_test_app_state() -> AppState {
+/// Test helper to create test ApplicationContext
+async fn create_test_app_state() -> ApplicationContext {
     let config = AppConfig::default();
     let health_checker = Arc::new(riptide_api::health::HealthChecker::new());
 
-    AppState::new(config, health_checker)
+    ApplicationContext::new(config, health_checker)
         .await
-        .expect("Failed to create AppState")
+        .expect("Failed to create ApplicationContext")
 }
 
 /// Test helper to parse NDJSON stream
