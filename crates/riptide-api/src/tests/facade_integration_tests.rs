@@ -116,12 +116,7 @@ async fn test_app_state_initialization_with_facades() {
     let state = result.unwrap();
 
     // Verify key components are initialized
-    assert!(state
-        .http_client
-        .get("https://example.com")
-        .send()
-        .await
-        .is_ok());
+    assert!(state.http_client.get("https://example.com").await.is_ok());
     assert!(state
         .extractor
         .extract("<html>test</html>", "https://example.com")
@@ -401,15 +396,12 @@ async fn test_fetch_handler_error_recovery() {
     let state = create_test_app_state().await.unwrap();
 
     // Attempt to fetch from error endpoint
-    let fetch_result = state
-        .http_client
-        .get(format!("{}/error", mock_server.uri()))
-        .send()
-        .await;
+    let url = format!("{}/error", mock_server.uri());
+    let fetch_result = state.http_client.get(&url).await;
 
     assert!(fetch_result.is_ok()); // Request succeeds
     let response = fetch_result.unwrap();
-    assert_eq!(response.status(), 500); // But status is error
+    assert_eq!(response.status, 500); // But status is error
 }
 
 #[tokio::test]
@@ -426,10 +418,8 @@ async fn test_timeout_handling() {
         .build()
         .unwrap();
 
-    let fetch_result = client
-        .get(format!("{}/slow", mock_server.uri()))
-        .send()
-        .await;
+    let url = format!("{}/slow", mock_server.uri());
+    let fetch_result = client.get(&url).send().await;
 
     // Should timeout
     assert!(fetch_result.is_err());
@@ -516,7 +506,7 @@ async fn test_concurrent_fetch_operations() {
     let mut tasks = Vec::new();
     for url in urls {
         let client = state.http_client.clone();
-        tasks.push(tokio::spawn(async move { client.get(&url).send().await }));
+        tasks.push(tokio::spawn(async move { client.get(&url).await }));
     }
 
     // Wait for all tasks
@@ -576,13 +566,13 @@ async fn test_multi_facade_workflow() {
 
     // Step 1: Fetch HTML using ScraperFacade (via http_client)
     let url = format!("{}/article", mock_server.uri());
-    let fetch_result = state.http_client.get(&url).send().await;
+    let fetch_result = state.http_client.get(&url).await;
     assert!(fetch_result.is_ok());
 
     let response = fetch_result.unwrap();
-    assert_eq!(response.status(), 200);
+    assert_eq!(response.status, 200);
 
-    let html_content = response.text().await.unwrap();
+    let html_content = response.text().unwrap();
     assert!(!html_content.is_empty());
 
     // Step 2: Extract content using ExtractionFacade
@@ -639,9 +629,7 @@ async fn test_rapid_fetch_requests() {
     for _ in 0..20 {
         let client = state.http_client.clone();
         let url_clone = url.clone();
-        tasks.push(tokio::spawn(
-            async move { client.get(&url_clone).send().await },
-        ));
+        tasks.push(tokio::spawn(async move { client.get(&url_clone).await }));
     }
 
     let start = std::time::Instant::now();

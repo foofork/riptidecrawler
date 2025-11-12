@@ -489,6 +489,36 @@ impl WorkerService {
     }
 }
 
+// Implement the WorkerService trait from riptide-types
+#[async_trait::async_trait]
+impl riptide_types::ports::WorkerService for WorkerService {
+    async fn health_check(&self) -> riptide_types::ports::WorkerHealth {
+        let service_health = self.health_check().await;
+
+        // Convert WorkerServiceHealth to WorkerHealth
+        riptide_types::ports::WorkerHealth {
+            overall_healthy: service_health.overall_healthy,
+            queue_healthy: service_health.queue_healthy,
+            worker_pool_healthy: service_health.worker_pool_healthy,
+            scheduler_healthy: service_health.scheduler_healthy,
+            active_workers: service_health.metrics_snapshot.worker_health.len(),
+            pending_jobs: service_health
+                .metrics_snapshot
+                .queue_sizes
+                .values()
+                .sum::<u64>() as usize,
+        }
+    }
+
+    async fn active_worker_count(&self) -> usize {
+        self.get_metrics().await.worker_health.len()
+    }
+
+    async fn pending_jobs_count(&self) -> usize {
+        self.get_metrics().await.queue_sizes.values().sum::<u64>() as usize
+    }
+}
+
 /// Health status of the worker service
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct WorkerServiceHealth {

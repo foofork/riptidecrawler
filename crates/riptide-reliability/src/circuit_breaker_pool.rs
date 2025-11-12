@@ -20,6 +20,7 @@
 //!
 //! See `/docs/architecture/CIRCUIT_BREAKER_CONSOLIDATION_SUMMARY.md` for full analysis.
 
+use async_trait::async_trait;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
@@ -76,6 +77,150 @@ impl CircuitBreakerState {
     /// Check if the circuit breaker is closed (normal operation)
     pub fn is_closed(&self) -> bool {
         matches!(self, CircuitBreakerState::Closed { .. })
+    }
+
+    /// Get current state as port CircuitState
+    fn to_port_state(&self) -> riptide_types::ports::CircuitState {
+        match self {
+            CircuitBreakerState::Closed { .. } => riptide_types::ports::CircuitState::Closed,
+            CircuitBreakerState::Open { .. } => riptide_types::ports::CircuitState::Open,
+            CircuitBreakerState::HalfOpen { .. } => riptide_types::ports::CircuitState::HalfOpen,
+        }
+    }
+}
+
+// Wrapper to implement CircuitBreaker trait (requires tokio::sync::Mutex wrapper)
+// This struct wraps CircuitBreakerState to provide the async CircuitBreaker trait
+#[derive(Debug)]
+pub struct CircuitBreakerAdapter {
+    state: Arc<Mutex<CircuitBreakerState>>,
+}
+
+impl CircuitBreakerAdapter {
+    pub fn new(state: CircuitBreakerState) -> Self {
+        Self {
+            state: Arc::new(Mutex::new(state)),
+        }
+    }
+
+    pub fn from_arc(state: Arc<Mutex<CircuitBreakerState>>) -> Self {
+        Self { state }
+    }
+}
+
+#[async_trait]
+impl riptide_types::ports::CircuitBreaker for CircuitBreakerAdapter {
+    async fn state(&self) -> riptide_types::ports::CircuitState {
+        let state = self.state.lock().await;
+        state.to_port_state()
+    }
+
+    async fn try_call(&self) -> riptide_types::error::Result<()> {
+        let state = self.state.lock().await;
+        if state.is_open() {
+            Err(riptide_types::error::RiptideError::CircuitBreakerOpen(
+                "Circuit breaker is open".to_string(),
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
+    async fn on_success(&self) {
+        let mut state = self.state.lock().await;
+        match *state {
+            CircuitBreakerState::Closed {
+                ref mut success_count,
+                ..
+            } => {
+                *success_count += 1;
+            }
+            CircuitBreakerState::HalfOpen { .. } => {
+                // Transition to Closed on success in HalfOpen
+                *state = CircuitBreakerState::Closed {
+                    failure_count: 0,
+                    success_count: 1,
+                    last_failure: None,
+                };
+            }
+            CircuitBreakerState::Open { .. } => {
+                // No-op in Open state
+            }
+        }
+    }
+
+    async fn on_failure(&self) {
+        let mut state = self.state.lock().await;
+        let now = Instant::now();
+        match *state {
+            CircuitBreakerState::Closed {
+                ref mut failure_count,
+                ..
+            } => {
+                *failure_count += 1;
+                // Open circuit if failures exceed threshold (default 5)
+                if *failure_count >= 5 {
+                    *state = CircuitBreakerState::Open {
+                        opened_at: now,
+                        failure_count: *failure_count,
+                    };
+                }
+            }
+            CircuitBreakerState::HalfOpen { .. } => {
+                // Transition back to Open on failure
+                *state = CircuitBreakerState::Open {
+                    opened_at: now,
+                    failure_count: 1,
+                };
+            }
+            CircuitBreakerState::Open { .. } => {
+                // Already open, no-op
+            }
+        }
+    }
+
+    async fn stats(
+        &self,
+    ) -> riptide_types::error::Result<riptide_types::ports::CircuitBreakerStats> {
+        let state = self.state.lock().await;
+        let (successful_requests, failed_requests, current_failures) = match *state {
+            CircuitBreakerState::Closed {
+                success_count,
+                failure_count,
+                ..
+            } => (success_count, failure_count, failure_count as u32),
+            CircuitBreakerState::Open { failure_count, .. } => {
+                (0, failure_count, failure_count as u32)
+            }
+            CircuitBreakerState::HalfOpen { test_requests, .. } => (test_requests, 0, 0),
+        };
+
+        let total = successful_requests + failed_requests;
+        let success_rate = if total > 0 {
+            successful_requests as f32 / total as f32
+        } else {
+            1.0
+        };
+
+        Ok(riptide_types::ports::CircuitBreakerStats {
+            state: state.to_port_state(),
+            total_requests: total,
+            successful_requests,
+            failed_requests,
+            circuit_opens: 0, // Not tracked in this implementation
+            current_failures,
+            success_rate,
+        })
+    }
+
+    async fn reset(&self) -> riptide_types::error::Result<()> {
+        let mut state = self.state.lock().await;
+        *state = CircuitBreakerState::Closed {
+            failure_count: 0,
+            success_count: 0,
+            last_failure: None,
+        };
+        Ok(())
     }
 }
 

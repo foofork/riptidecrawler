@@ -4,6 +4,9 @@ set -e
 # Add cargo to PATH
 export PATH="$HOME/.cargo/bin:$PATH"
 
+# Match GitHub Actions strictness - treat all warnings as errors (including deprecations)
+export RUSTFLAGS="-Dwarnings"
+
 echo "========================================="
 echo "Running RipTide Quality Gate Checks"
 echo "========================================="

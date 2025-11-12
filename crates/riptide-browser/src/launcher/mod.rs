@@ -519,6 +519,86 @@ impl HeadlessLauncher {
     }
 }
 
+// Implement BrowserDriver trait from riptide-types
+#[async_trait::async_trait]
+impl riptide_types::ports::BrowserDriver for HeadlessLauncher {
+    async fn navigate(
+        &self,
+        url: &str,
+    ) -> riptide_types::error::Result<riptide_types::ports::BrowserSession> {
+        let session = self
+            .launch_page(url, None)
+            .await
+            .map_err(|e| riptide_types::error::RiptideError::BrowserOperation(e.to_string()))?;
+
+        Ok(riptide_types::ports::BrowserSession::new(
+            session.session_id.clone(),
+            url,
+        ))
+    }
+
+    async fn execute_script(
+        &self,
+        session: &riptide_types::ports::BrowserSession,
+        script: &str,
+    ) -> riptide_types::error::Result<riptide_types::ports::ScriptResult> {
+        // This is a simplified implementation - full session tracking would require session management
+        let launch_session = self
+            .launch_page(&session.url, None)
+            .await
+            .map_err(|e| riptide_types::error::RiptideError::BrowserOperation(e.to_string()))?;
+
+        let eval_result = launch_session
+            .page
+            .evaluate(script)
+            .await
+            .map_err(|e| riptide_types::error::RiptideError::BrowserOperation(e.to_string()))?;
+
+        Ok(riptide_types::ports::ScriptResult {
+            value: eval_result
+                .value()
+                .cloned()
+                .unwrap_or(serde_json::Value::Null),
+            success: true,
+            error: None,
+        })
+    }
+
+    async fn screenshot(
+        &self,
+        session: &riptide_types::ports::BrowserSession,
+    ) -> riptide_types::error::Result<Vec<u8>> {
+        let launch_session = self
+            .launch_page(&session.url, None)
+            .await
+            .map_err(|e| riptide_types::error::RiptideError::BrowserOperation(e.to_string()))?;
+
+        let screenshot_params =
+            chromiumoxide_cdp::cdp::browser_protocol::page::CaptureScreenshotParams::builder()
+                .format(
+                    chromiumoxide_cdp::cdp::browser_protocol::page::CaptureScreenshotFormat::Png,
+                )
+                .build();
+
+        let bytes = launch_session
+            .page
+            .screenshot(screenshot_params)
+            .await
+            .map_err(|e| riptide_types::error::RiptideError::BrowserOperation(e.to_string()))?;
+
+        Ok(bytes)
+    }
+
+    async fn close(
+        &self,
+        _session: riptide_types::ports::BrowserSession,
+    ) -> riptide_types::error::Result<()> {
+        // Sessions are automatically cleaned up via Drop trait on LaunchSession
+        // No explicit close needed
+        Ok(())
+    }
+}
+
 /// A browser session with automatic cleanup
 pub struct LaunchSession<'a> {
     pub session_id: String,

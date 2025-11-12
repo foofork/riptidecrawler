@@ -254,7 +254,7 @@ mod test_setup {
     use riptide_api::{
         health::HealthChecker,
         routes,
-        state::{AppConfig, AppState},
+        state::{AppConfig, ApplicationContext},
     };
     use std::sync::Arc;
 
@@ -262,7 +262,7 @@ mod test_setup {
         let config = AppConfig::default();
         let health_checker = Arc::new(HealthChecker::new());
 
-        let app_state = AppState::new(config, health_checker)
+        let app_state = ApplicationContext::new(config, health_checker)
             .await
             .expect("Failed to create app state");
 

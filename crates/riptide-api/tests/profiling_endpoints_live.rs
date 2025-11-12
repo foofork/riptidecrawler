@@ -17,22 +17,22 @@ use std::sync::Arc;
 use tower::ServiceExt;
 
 use riptide_api::health::HealthChecker;
-use riptide_api::state::{AppConfig, AppState};
+use riptide_api::state::{AppConfig, ApplicationContext};
 
-/// Create a test AppState for endpoint testing
-async fn create_test_state() -> Arc<AppState> {
+/// Create a test ApplicationContext for endpoint testing
+async fn create_test_state() -> Arc<ApplicationContext> {
     let config = AppConfig::default();
     let health_checker = Arc::new(HealthChecker::new());
 
     Arc::new(
-        AppState::new(config, health_checker)
+        ApplicationContext::new(config, health_checker)
             .await
-            .expect("Failed to create AppState"),
+            .expect("Failed to create ApplicationContext"),
     )
 }
 
 /// Helper to build a router with profiling endpoints
-fn build_test_router(state: Arc<AppState>) -> axum::Router {
+fn build_test_router(state: Arc<ApplicationContext>) -> axum::Router {
     use axum::routing::{get, post};
     use riptide_api::handlers::profiling;
 

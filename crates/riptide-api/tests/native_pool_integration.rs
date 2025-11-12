@@ -16,7 +16,7 @@ async fn test_e2e_native_pool_extraction() -> Result<()> {
     //     native_pool_size: 4,
     //     ..Default::default()
     // };
-    // let state = AppState::new(config).await?;
+    // let state = ApplicationContext::new(config).await?;
 
     // When: Making an extraction request through the API
     // let html = r#"
@@ -72,7 +72,7 @@ async fn test_native_primary_wasm_fallback() -> Result<()> {
     //     extraction_strategy: Strategy::NativePrimaryWasmFallback,
     //     ..Default::default()
     // };
-    // let state = AppState::new(config).await?;
+    // let state = ApplicationContext::new(config).await?;
 
     // When: Native extraction succeeds
     // let result = state.extract(valid_html, url).await?;
@@ -109,7 +109,7 @@ async fn test_fallback_on_native_timeout() -> Result<()> {
     //     enable_wasm_fallback: true,
     //     ..Default::default()
     // };
-    // let state = AppState::new(config).await?;
+    // let state = ApplicationContext::new(config).await?;
 
     // When: Native extraction times out
     // let very_large_html = generate_large_html(10_000_000); // 10MB
@@ -158,7 +158,7 @@ async fn test_no_fallback_when_disabled() -> Result<()> {
     //     enable_wasm_fallback: false,
     //     ..Default::default()
     // };
-    // let state = AppState::new(config).await?;
+    // let state = ApplicationContext::new(config).await?;
 
     // When: Native extraction fails
     // let result = state.extract(invalid_html, url).await;
@@ -388,7 +388,7 @@ async fn test_invalid_config_rejected() -> Result<()> {
     // };
 
     // When: Attempting to create state
-    // let result = AppState::new(config).await;
+    // let result = ApplicationContext::new(config).await;
 
     // Then: Should fail with descriptive error
     // assert!(result.is_err());
@@ -404,7 +404,7 @@ async fn test_config_from_environment() -> Result<()> {
     // std::env::set_var("NATIVE_POOL_TIMEOUT_MS", "5000");
 
     // When: Creating state from environment
-    // let state = AppState::from_env().await?;
+    // let state = ApplicationContext::from_env().await?;
 
     // Then: Config should reflect environment
     // assert_eq!(state.config.native_pool_size, 12);
@@ -418,13 +418,13 @@ async fn test_config_from_environment() -> Result<()> {
 // ==========================
 
 // Helper to create test state with default config
-// async fn create_test_state() -> Result<AppState> {
-//     AppState::new(AppConfig::default()).await
+// async fn create_test_state() -> Result<ApplicationContext> {
+//     ApplicationContext::new(AppConfig::default()).await
 // }
 
 // Helper to create state with small pool for exhaustion tests
-// async fn create_test_state_with_small_pool() -> Result<AppState> {
-//     AppState::new(AppConfig {
+// async fn create_test_state_with_small_pool() -> Result<ApplicationContext> {
+//     ApplicationContext::new(AppConfig {
 //         native_pool_size: 2,
 //         ..Default::default()
 //     }).await

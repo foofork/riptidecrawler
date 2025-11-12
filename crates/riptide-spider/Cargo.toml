@@ -10,7 +10,7 @@ categories = ["web-programming"]
 
 [dependencies]
 # Shared types to avoid circular dependencies
-riptide-types = { path = "../riptide-types" }
+riptide-types = { path = "../riptide-types", features = ["spider"] }
 riptide-utils = { path = "../riptide-utils" }
 riptide-config = { path = "../riptide-config" }
 riptide-fetch = { path = "../riptide-fetch" }
@@ -67,6 +67,7 @@ criterion = { version = "0.5", features = ["html_reports"] }
 [features]
 default = []
 benchmarks = []
+spider = []  # Feature for spider-specific functionality
 
 [[bench]]
 name = "query_aware_benchmark"

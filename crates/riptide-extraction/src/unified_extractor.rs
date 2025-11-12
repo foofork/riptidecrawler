@@ -361,6 +361,45 @@ impl crate::extraction_strategies::ContentExtractor for UnifiedExtractor {
     }
 }
 
+// Implement the port trait ContentExtractor from riptide-types
+#[async_trait]
+impl riptide_types::ports::ContentExtractor for UnifiedExtractor {
+    async fn extract(
+        &self,
+        html: &str,
+        url: &str,
+    ) -> riptide_types::error::Result<riptide_types::ports::ExtractionResult> {
+        // Use existing extract method
+        let content = self.extract(html, url).await.map_err(|e| {
+            riptide_types::error::RiptideError::Extraction(format!("Extraction failed: {}", e))
+        })?;
+
+        // Convert ExtractedContent to ExtractionResult
+        let mut metadata = std::collections::HashMap::new();
+        metadata.insert("title".to_string(), content.title.clone());
+        if let Some(summary) = content.summary.clone() {
+            metadata.insert("summary".to_string(), summary);
+        }
+        metadata.insert("strategy".to_string(), content.strategy_used.clone());
+        metadata.insert("url".to_string(), content.url.clone());
+
+        Ok(riptide_types::ports::ExtractionResult {
+            text: content.content,
+            metadata,
+            quality_score: content.extraction_confidence,
+        })
+    }
+
+    fn extractor_type(&self) -> &str {
+        self.extractor_type()
+    }
+
+    async fn is_available(&self) -> bool {
+        // UnifiedExtractor is always available (has native fallback)
+        true
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

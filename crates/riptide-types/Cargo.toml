@@ -27,6 +27,9 @@ tracing = { workspace = true }
 # URL handling
 url = { workspace = true }
 
+# Metrics (for monitoring port traits)
+prometheus = "0.13"
+
 # Time handling
 chrono = { workspace = true }
 
@@ -44,6 +47,10 @@ serde_bytes = "0.11"
 
 # Base64 encoding for binary data in JSON
 base64 = "0.22"
+
+[features]
+default = []
+spider = []
 
 [lib]
 name = "riptide_types"

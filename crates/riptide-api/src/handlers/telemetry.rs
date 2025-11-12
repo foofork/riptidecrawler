@@ -282,15 +282,11 @@ pub async fn get_telemetry_status(
         .map_err(|e| ApiError::internal(format!("Failed to get resource status: {}", e)))?;
     let resource_status = state.resource_manager.get_resource_status().await;
     let streaming_metrics = state.streaming.metrics().await;
-    let circuit_breaker_state = {
-        let cb = state.circuit_breaker.lock().await;
-        if cb.is_open() {
-            "open"
-        } else if cb.is_half_open() {
-            "half_open"
-        } else {
-            "closed"
-        }
+    let cb_state = state.circuit_breaker.state().await;
+    let circuit_breaker_state = match cb_state {
+        riptide_types::ports::CircuitState::Closed => "closed",
+        riptide_types::ports::CircuitState::Open => "open",
+        riptide_types::ports::CircuitState::HalfOpen => "half_open",
     };
 
     // Get worker service health (feature-gated)

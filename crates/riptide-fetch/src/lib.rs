@@ -19,6 +19,7 @@
 //! - **riptide-core**: Orchestration
 
 // Core modules
+pub mod adapters;
 pub mod fetch;
 pub mod robots;
 pub mod telemetry;
@@ -29,5 +30,6 @@ pub use riptide_utils::circuit_breaker::{
 };
 
 // Re-export main types
+pub use adapters::ReqwestHttpClient;
 pub use fetch::*;
 pub use robots::{RobotsConfig, RobotsManager};

@@ -26,18 +26,18 @@ mod test_utils {
     use super::*;
     use riptide_api::{
         health::HealthChecker,
-        state::{AppConfig, AppState},
+        state::{AppConfig, ApplicationContext},
     };
     use std::sync::Arc;
 
     /// Create test app state with minimal configuration
     #[allow(dead_code)]
-    pub async fn create_test_app_state() -> Arc<AppState> {
+    pub async fn create_test_app_state() -> Arc<ApplicationContext> {
         let config = AppConfig::default();
         let health_checker = Arc::new(HealthChecker::new());
 
         Arc::new(
-            AppState::new(config, health_checker)
+            ApplicationContext::new(config, health_checker)
                 .await
                 .expect("Failed to create test app state"),
         )

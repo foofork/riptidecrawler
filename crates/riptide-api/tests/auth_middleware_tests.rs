@@ -21,7 +21,7 @@ use tower::ServiceExt;
 
 use riptide_api::{
     middleware::{auth_middleware, rate_limit_middleware, AuthConfig},
-    state::AppState,
+    state::ApplicationContext,
 };
 
 /// Helper to extract JSON from response body
@@ -38,7 +38,7 @@ async fn body_to_json(body: Body) -> Value {
 async fn test_middleware_integration_with_protected_routes() {
     // Setup: Create app with auth middleware on specific routes
     let auth_config = AuthConfig::with_api_keys(vec!["test-key".to_string()]);
-    let mut state = AppState::new_test_minimal().await;
+    let mut state = ApplicationContext::new_test_minimal().await;
     state.auth_config = auth_config;
 
     let protected_routes = Router::new()
@@ -98,7 +98,7 @@ async fn test_middleware_integration_with_protected_routes() {
 async fn test_public_endpoints_bypass_authentication() {
     // Setup: Create app state with auth required
     let auth_config = AuthConfig::with_api_keys(vec!["required-key".to_string()]);
-    let mut state = AppState::new_test_minimal().await;
+    let mut state = ApplicationContext::new_test_minimal().await;
     state.auth_config = auth_config;
 
     // Create app with auth middleware
@@ -155,7 +155,7 @@ async fn test_middleware_ordering_auth_before_handler() {
     }
 
     let auth_config = AuthConfig::with_api_keys(vec!["test-key".to_string()]);
-    let mut state = AppState::new_test_minimal().await;
+    let mut state = ApplicationContext::new_test_minimal().await;
     state.auth_config = auth_config;
 
     let app = Router::new()
@@ -190,7 +190,7 @@ async fn test_middleware_ordering_auth_before_handler() {
 async fn test_rate_limit_and_auth_middleware_integration() {
     // Setup: Create app with both auth and rate limiting
     let auth_config = AuthConfig::with_api_keys(vec!["test-key".to_string()]);
-    let mut state = AppState::new_test_minimal().await;
+    let mut state = ApplicationContext::new_test_minimal().await;
     state.auth_config = auth_config;
 
     let app = Router::new()
@@ -244,7 +244,7 @@ async fn test_rate_limit_and_auth_middleware_integration() {
 async fn test_error_response_format_consistency() {
     // Setup: Create app with auth
     let auth_config = AuthConfig::with_api_keys(vec!["valid-key".to_string()]);
-    let mut state = AppState::new_test_minimal().await;
+    let mut state = ApplicationContext::new_test_minimal().await;
     state.auth_config = auth_config;
 
     let app = Router::new()
@@ -286,7 +286,7 @@ async fn test_error_response_format_consistency() {
 async fn test_error_response_headers() {
     // Setup: Create app with auth
     let auth_config = AuthConfig::with_api_keys(vec!["test-key".to_string()]);
-    let mut state = AppState::new_test_minimal().await;
+    let mut state = ApplicationContext::new_test_minimal().await;
     state.auth_config = auth_config;
 
     let app = Router::new()
@@ -332,7 +332,7 @@ async fn test_error_response_headers() {
 async fn test_authentication_across_nested_routes() {
     // Setup: Create nested route structure
     let auth_config = AuthConfig::with_api_keys(vec!["api-key".to_string()]);
-    let mut state = AppState::new_test_minimal().await;
+    let mut state = ApplicationContext::new_test_minimal().await;
     state.auth_config = auth_config;
 
     let api_v1 = Router::new()
@@ -393,7 +393,7 @@ async fn test_authentication_across_nested_routes() {
 async fn test_authentication_with_different_route_methods() {
     // Setup: Create routes with different HTTP methods
     let auth_config = AuthConfig::with_api_keys(vec!["method-key".to_string()]);
-    let mut state = AppState::new_test_minimal().await;
+    let mut state = ApplicationContext::new_test_minimal().await;
     state.auth_config = auth_config;
 
     let app = Router::new()
@@ -476,7 +476,7 @@ async fn test_auth_config_disable_authentication() {
     let auth_config = AuthConfig::new();
     std::env::remove_var("REQUIRE_AUTH");
 
-    let mut state = AppState::new_test_minimal().await;
+    let mut state = ApplicationContext::new_test_minimal().await;
     state.auth_config = auth_config;
 
     let app = Router::new()
@@ -505,7 +505,7 @@ async fn test_dynamic_api_key_management() {
 
     // Setup: Create auth config
     let auth_config = AuthConfig::with_api_keys(vec!["initial-key".to_string()]);
-    let mut state = AppState::new_test_minimal().await;
+    let mut state = ApplicationContext::new_test_minimal().await;
     let config_ref = auth_config.clone();
     state.auth_config = auth_config;
 
@@ -590,7 +590,7 @@ async fn test_middleware_chain_execution_order() {
     };
 
     let auth_config = AuthConfig::with_api_keys(vec!["test-key".to_string()]);
-    let mut state = AppState::new_test_minimal().await;
+    let mut state = ApplicationContext::new_test_minimal().await;
     state.auth_config = auth_config;
 
     let app = Router::new()
@@ -621,7 +621,7 @@ async fn test_middleware_chain_execution_order() {
 async fn test_error_propagation_through_middleware_chain() {
     // Setup: Create middleware chain with auth that fails
     let auth_config = AuthConfig::with_api_keys(vec!["valid-key".to_string()]);
-    let mut state = AppState::new_test_minimal().await;
+    let mut state = ApplicationContext::new_test_minimal().await;
     state.auth_config = auth_config;
 
     let app = Router::new()

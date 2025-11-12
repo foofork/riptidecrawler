@@ -905,6 +905,65 @@ impl Spider {
     }
 }
 
+// SpiderEngine trait implementation for dependency inversion (Hexagonal Architecture)
+#[cfg(feature = "spider")]
+use riptide_types::ports::{
+    CrawlResults as PortCrawlResults, CrawlState as PortCrawlState,
+    PerformanceMetrics as PortPerformanceMetrics, SpiderEngine,
+};
+
+#[cfg(feature = "spider")]
+#[async_trait::async_trait]
+impl SpiderEngine for Spider {
+    /// Start crawling from seed URLs
+    ///
+    /// Delegates to the Spider's internal crawl implementation and converts
+    /// the result to the port-defined types for dependency inversion.
+    async fn crawl(&self, seeds: Vec<Url>) -> Result<PortCrawlResults> {
+        // Call the existing crawl method
+        let result = self.crawl(seeds).await?;
+
+        // Convert SpiderResult to port CrawlResults
+        Ok(PortCrawlResults {
+            pages_crawled: result.pages_crawled,
+            pages_failed: result.pages_failed,
+            duration: result.duration,
+            stop_reason: result.stop_reason,
+            performance: PortPerformanceMetrics {
+                pages_per_second: result.performance.pages_per_second,
+                avg_response_time: result.performance.avg_response_time,
+                memory_usage: result.performance.memory_usage,
+                error_rate: result.performance.error_rate,
+            },
+            domains: result.domains,
+            discovered_urls: result.discovered_urls,
+        })
+    }
+
+    /// Get current crawl state
+    ///
+    /// Provides a snapshot of the crawler's current state for monitoring.
+    async fn get_crawl_state(&self) -> PortCrawlState {
+        let state = self.crawl_state.read().await;
+
+        PortCrawlState {
+            active: state.active,
+            pages_crawled: state.pages_crawled,
+            pages_failed: state.pages_failed,
+            frontier_size: state.frontier_size,
+            active_domains: state.active_domains.clone(),
+        }
+    }
+
+    /// Stop crawl and cleanup
+    ///
+    /// Delegates to the Spider's internal stop implementation.
+    async fn stop(&self) -> Result<()> {
+        self.stop().await;
+        Ok(())
+    }
+}
+
 /// Blend strategy priority with query-aware relevance score
 fn blend_priority_with_relevance(strategy_priority: Priority, relevance_score: f64) -> Priority {
     use Priority::*;

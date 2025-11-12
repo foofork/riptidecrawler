@@ -93,11 +93,11 @@ jobs:
       - name: System deps
         run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config redis-tools
 
-      - name: Build API (native-only, no WASM)
+      - name: Build API with default features
         env: { RUSTFLAGS: "-Dwarnings" }
         run: |
-          echo "🔨 Building API with native-parser only (40% faster, no WASM)..."
-          cargo build --release -p riptide-api --no-default-features --features native-parser
+          echo "🔨 Building API with default features (matches quality_gate.sh)..."
+          cargo build --release -p riptide-api
 
       - name: Start API (native-only, no WASM required)
         run: |
@@ -169,10 +169,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       # WASM build removed - not required for fuzzing tests
       - run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config redis-tools
-      - name: Build API (native-only, no WASM)
+      - name: Build API with default features
         run: |
-          echo "🔨 Building API with native-parser only (faster fuzzing)..."
-          cargo build --release -p riptide-api --no-default-features --features native-parser
+          echo "🔨 Building API with default features (matches quality_gate.sh)..."
+          cargo build --release -p riptide-api
 
       - name: Start API (native-only, health wait)
         run: |
