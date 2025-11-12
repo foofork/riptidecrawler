@@ -116,11 +116,130 @@ pub fn create_test_router(state: ApplicationContext) -> Router {
         .layer(CorsLayer::permissive())
 }
 
+/// Create a security-enabled test app with middleware
+///
+/// This function creates a router with security middleware layers
+/// (security headers, CORS) but without requiring full dependencies
+/// like Redis or database connections. Suitable for testing security features.
+#[allow(dead_code)] // Used only in security_integration tests
+pub fn create_security_test_app() -> Router {
+    use axum::Json;
+    use riptide_security::SecurityMiddleware;
+    use std::sync::Arc;
+
+    let security = Arc::new(SecurityMiddleware::with_defaults().expect("Failed to create security middleware"));
+
+    Router::new()
+        // Health endpoint - standardized on /healthz
+        .route("/healthz", get(|| async { "OK" }))
+        // Metrics endpoint - primary /api/v1 path
+        .route("/api/v1/metrics", get(|| async { "# No metrics" }))
+        .route("/metrics", get(|| async { "# No metrics" })) // Alias for backward compatibility
+        // Crawl endpoint - primary /api/v1 path
+        .route(
+            "/api/v1/crawl",
+            post(|| async { Json(json!({"status": "mock", "message": "Test crawl endpoint"})) }),
+        )
+        // Extract endpoint - primary /api/v1 path with validation
+        .route(
+            "/api/v1/extract",
+            post(
+                |payload: Result<
+                    Json<serde_json::Value>,
+                    axum::extract::rejection::JsonRejection,
+                >| async move {
+                    // Validate JSON structure - if parsing fails, return 400
+                    match payload {
+                        Ok(_) => (
+                            StatusCode::OK,
+                            Json(json!({
+                                "url": "https://example.com",
+                                "content": "Test content",
+                                "strategy_used": "mock"
+                            })),
+                        ),
+                        Err(err) => (
+                            StatusCode::BAD_REQUEST,
+                            Json(json!({
+                                "error": "Invalid JSON",
+                                "message": err.to_string()
+                            })),
+                        ),
+                    }
+                },
+            ),
+        )
+        // Search endpoint - primary /api/v1 path
+        .route(
+            "/api/v1/search",
+            get(|| async {
+                Json(json!({
+                    "query": "test",
+                    "results": [],
+                    "provider_used": "mock"
+                }))
+            }),
+        )
+        // Cache endpoints for e2e tests
+        .route(
+            "/api/v1/cache/set",
+            post(|| async {
+                Json(json!({
+                    "status": "success",
+                    "message": "Cache entry stored",
+                    "key": "user:session:12345"
+                }))
+            }),
+        )
+        .route(
+            "/api/v1/cache/get",
+            get(|| async {
+                (
+                    StatusCode::NOT_FOUND,
+                    Json(json!({
+                        "error": "Not found"
+                    })),
+                )
+            }),
+        )
+        // Admin endpoints for e2e tests
+        .route(
+            "/api/v1/admin/tenants",
+            get(|| async {
+                (
+                    StatusCode::UNAUTHORIZED,
+                    Json(json!({
+                        "error": "Unauthorized"
+                    })),
+                )
+            }),
+        )
+        .route(
+            "/api/v1/admin/config",
+            post(|| async {
+                (
+                    StatusCode::UNAUTHORIZED,
+                    Json(json!({
+                        "error": "Unauthorized"
+                    })),
+                )
+            }),
+        )
+        .layer(axum::middleware::from_fn_with_state(
+            security.clone(),
+            riptide_api::middleware::security_headers_middleware,
+        ))
+        .layer(CorsLayer::permissive())
+}
+
 /// Create a minimal test app without dependencies
 ///
 /// This function creates a basic router with mock responses,
 /// suitable for testing routing and request/response format.
 /// Uses consistent /api/v1/* URL structure.
+///
+/// **Note**: This does NOT include security middleware. For security tests,
+/// use `create_security_test_app()` instead.
 pub fn create_minimal_test_app() -> Router {
     use axum::Json;
 
