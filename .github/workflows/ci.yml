@@ -97,11 +97,10 @@ jobs:
           echo "RUSTFLAGS: $RUSTFLAGS"
           echo "Building packages with native-parser only (40% faster)..."
 
-          # Build each binary package explicitly with native-parser feature (no WASM)
-          # This skips wasmtime dependencies and uses only the native Rust parser
+          # Build each binary package with default features (matches quality_gate.sh)
           echo ""
-          echo "Building riptide-api (native-only, no WASM)..."
-          cargo build --release -p riptide-api --no-default-features --features native-parser
+          echo "Building riptide-api..."
+          cargo build --release -p riptide-api
 
           echo ""
           echo "Building riptide-headless..."
