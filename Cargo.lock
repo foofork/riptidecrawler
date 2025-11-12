@@ -6786,6 +6786,7 @@ dependencies = [
  "riptide-persistence",
  "riptide-reliability",
  "riptide-search",
+ "riptide-security",
  "riptide-spider",
  "riptide-stealth",
  "riptide-types",

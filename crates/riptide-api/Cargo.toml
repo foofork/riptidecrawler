@@ -51,6 +51,7 @@ tower-http = { workspace = true, features = ["timeout"] }
 tracing-subscriber = { workspace = true }
 riptide-pdf = { path = "../riptide-pdf", features = ["pdf"] }
 riptide-stealth = { path = "../riptide-stealth", features = ["stealth"] }
+riptide-security = { path = "../riptide-security" }  # Security headers, PII redaction, audit logging
 # Phase 1: WASM Optional - Use native-parser by default, wasm-extractor opt-in
 riptide-extraction = { path = "../riptide-extraction", default-features = false, features = ["css-extraction", "regex-extraction", "dom-utils", "chunking"], optional = true }
 riptide-types = { path = "../riptide-types" }
