@@ -1,10 +1,15 @@
 # Architecture Documentation
 
+> **🎯 NEW: Comprehensive Hexagonal Architecture Guide**
+>
+> See [HEXAGONAL_ARCHITECTURE.md](./HEXAGONAL_ARCHITECTURE.md) for a deep-dive into RipTide's hexagonal architecture implementation, including all 30+ port traits, dependency flow, testing strategies, and architectural patterns. This is the definitive guide to understanding the system's architecture.
+
 System design, architecture decisions, and technical specifications for RipTide.
 
 ## 📚 Core Architecture Documents
 
 ### Overview
+- **[HEXAGONAL_ARCHITECTURE.md](./HEXAGONAL_ARCHITECTURE.md)** - Deep-dive into hexagonal architecture and ports & adapters pattern (⏱️ 2 hours) **← NEW! Comprehensive guide**
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Complete system architecture (⏱️ 30 min)
 - **[DESIGN.md](./DESIGN.md)** - Design philosophy and patterns (⏱️ 20 min)
 
@@ -88,16 +93,18 @@ System design, architecture decisions, and technical specifications for RipTide.
 
 ## 🎓 Learning Path
 
-**Beginner** (1 hour):
+**Beginner** (2 hours):
 1. [System Overview](./components/system-overview.md)
-2. [ARCHITECTURE.md](./ARCHITECTURE.md)
-3. [Integration Crosswalk](./components/integration-crosswalk.md)
+2. [HEXAGONAL_ARCHITECTURE.md](./HEXAGONAL_ARCHITECTURE.md) - **Start here for architecture principles**
+3. [ARCHITECTURE.md](./ARCHITECTURE.md)
+4. [Integration Crosswalk](./components/integration-crosswalk.md)
 
-**Intermediate** (3 hours):
-1. [DESIGN.md](./DESIGN.md)
-2. [System Design](./components/SYSTEM_DESIGN.md)
-3. [WASM Integration](./components/WASM_INTEGRATION_GUIDE.md)
-4. [Streaming Pipeline](./components/streaming-pipeline-integration-design.md)
+**Intermediate** (4 hours):
+1. [HEXAGONAL_ARCHITECTURE.md](./HEXAGONAL_ARCHITECTURE.md) - Deep dive
+2. [DESIGN.md](./DESIGN.md)
+3. [System Design](./components/SYSTEM_DESIGN.md)
+4. [WASM Integration](./components/WASM_INTEGRATION_GUIDE.md)
+5. [Streaming Pipeline](./components/streaming-pipeline-integration-design.md)
 
 **Advanced** (Full day):
 1. Component-specific documentation
@@ -116,6 +123,7 @@ System design, architecture decisions, and technical specifications for RipTide.
 
 | Topic | Document | Time |
 |-------|----------|------|
+| **Hexagonal Architecture** | [HEXAGONAL_ARCHITECTURE.md](./HEXAGONAL_ARCHITECTURE.md) | 2 hours |
 | **System Overview** | [system-overview.md](./components/system-overview.md) | 15 min |
 | **Complete Architecture** | [ARCHITECTURE.md](./ARCHITECTURE.md) | 30 min |
 | **Design Patterns** | [DESIGN.md](./DESIGN.md) | 20 min |

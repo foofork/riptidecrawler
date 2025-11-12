@@ -9,6 +9,19 @@ Welcome to RipTide - a high-performance web crawler and content extraction platf
 - 4GB RAM minimum
 - Redis (included in Docker setup)
 
+### Quick Start with Docker (Fastest)
+
+The fastest way to get RipTide running is with Docker:
+
+**[→ Docker Quick Start Guide](./docker-quickstart.md)** - Get running in 30 seconds
+
+```bash
+docker-compose up -d
+curl http://localhost:3000/health
+```
+
+For detailed Docker setup instructions, see the guide above or continue with the manual steps below.
+
 ### Launch with Docker
 
 ```bash
