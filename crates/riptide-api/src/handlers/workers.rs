@@ -237,9 +237,10 @@ pub async fn list_jobs(
 /// Helper function to format job type for metrics
 fn format_job_type(job_type: &riptide_workers::JobType) -> String {
     match job_type {
-        riptide_workers::JobType::SingleCrawl => "single_crawl".to_string(),
-        riptide_workers::JobType::BatchCrawl => "batch_crawl".to_string(),
-        riptide_workers::JobType::Maintenance => "maintenance".to_string(),
-        riptide_workers::JobType::Custom(name) => format!("custom_{}", name),
+        riptide_workers::JobType::SingleCrawl { .. } => "single_crawl".to_string(),
+        riptide_workers::JobType::BatchCrawl { .. } => "batch_crawl".to_string(),
+        riptide_workers::JobType::PdfExtraction { .. } => "pdf_extraction".to_string(),
+        riptide_workers::JobType::Maintenance { .. } => "maintenance".to_string(),
+        riptide_workers::JobType::Custom { job_name, .. } => format!("custom_{}", job_name),
     }
 }

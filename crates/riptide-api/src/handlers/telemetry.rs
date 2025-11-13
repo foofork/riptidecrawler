@@ -297,7 +297,35 @@ pub async fn get_telemetry_status(
         worker_pool_healthy,
         worker_scheduler_healthy,
     ) = {
-        let worker_health = state.worker_service.health_check().await;
+        let worker_health = if let Some(ws) = &state.worker_service {
+            ws.health_check().await
+        } else {
+            // Return default unhealthy status when worker service not available
+            riptide_workers::WorkerServiceHealth {
+                overall_healthy: false,
+                queue_healthy: false,
+                worker_pool_healthy: false,
+                scheduler_healthy: false,
+                metrics_snapshot: riptide_workers::WorkerMetricsSnapshot {
+                    jobs_submitted: 0,
+                    jobs_completed: 0,
+                    jobs_failed: 0,
+                    jobs_retried: 0,
+                    jobs_dead_letter: 0,
+                    avg_processing_time_ms: 0,
+                    p95_processing_time_ms: 0,
+                    p99_processing_time_ms: 0,
+                    queue_sizes: std::collections::HashMap::new(),
+                    worker_health: std::collections::HashMap::new(),
+                    job_type_stats: std::collections::HashMap::new(),
+                    uptime_seconds: 0,
+                    success_rate: 0.0,
+                    total_workers: 0,
+                    healthy_workers: 0,
+                    timestamp: chrono::Utc::now(),
+                },
+            }
+        };
         (
             worker_health.overall_healthy,
             worker_health.queue_healthy,
