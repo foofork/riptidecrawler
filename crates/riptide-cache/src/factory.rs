@@ -272,9 +272,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_redis_missing_url() {
-        let mut config = StorageConfig::default();
-        config.backend = CacheBackend::Redis;
-        config.redis_url = None;
+        let config = StorageConfig {
+            backend: CacheBackend::Redis,
+            redis_url: None,
+            ..Default::default()
+        };
 
         let result = CacheFactory::create(&config).await;
         assert!(result.is_err());
@@ -373,8 +375,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_config_before_create() {
-        let mut config = StorageConfig::default();
-        config.max_connections = 0; // Invalid
+        let config = StorageConfig {
+            max_connections: 0, // Invalid
+            ..Default::default()
+        };
 
         let result = CacheFactory::create(&config).await;
         assert!(result.is_err());

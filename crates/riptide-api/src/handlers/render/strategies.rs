@@ -185,11 +185,11 @@ async fn process_static(
                 .map_err(|e| ApiError::dependency("scraper", e.to_string()))?,
         )
     } else {
-        let mut req = state.http_client.get(url);
+        let mut req = riptide_types::ports::http::HttpRequest::new("GET", url);
         if let Some(s) = stealth {
-            req = req.header("User-Agent", s.next_user_agent());
+            req = req.with_header("User-Agent", s.next_user_agent());
             for (k, v) in s.generate_headers() {
-                req = req.header(k, v);
+                req = req.with_header(k, v);
             }
         }
         if let Some(sid) = session_id {
@@ -201,7 +201,7 @@ async fn process_static(
                         .await
                     {
                         if !cookies.is_empty() {
-                            req = req.header(
+                            req = req.with_header(
                                 "Cookie",
                                 cookies
                                     .iter()
@@ -214,20 +214,20 @@ async fn process_static(
                 }
             }
         }
-        let resp = req
-            .send()
+        let resp = state
+            .http_client
+            .request(req)
             .await
             .map_err(|e| ApiError::dependency("http", e.to_string()))?;
-        if !resp.status().is_success() {
+        if !resp.is_success() {
             return Err(ApiError::dependency(
                 "http",
-                format!("HTTP {}", resp.status()),
+                format!("HTTP {}", resp.status),
             ));
         }
         (
-            resp.url().to_string(),
+            url.to_string(),
             resp.text()
-                .await
                 .map_err(|e| ApiError::dependency("http", e.to_string()))?,
         )
     };

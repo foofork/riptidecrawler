@@ -333,9 +333,11 @@ mod tests {
 
     #[test]
     fn test_validate_redis_missing_url() {
-        let mut config = StorageConfig::default();
-        config.backend = CacheBackend::Redis;
-        config.redis_url = None;
+        let config = StorageConfig {
+            backend: CacheBackend::Redis,
+            redis_url: None,
+            ..Default::default()
+        };
 
         let result = config.validate();
         assert!(result.is_err());
@@ -375,8 +377,10 @@ mod tests {
 
     #[test]
     fn test_validate_zero_max_connections() {
-        let mut config = StorageConfig::default();
-        config.max_connections = 0;
+        let config = StorageConfig {
+            max_connections: 0,
+            ..Default::default()
+        };
 
         let result = config.validate();
         assert!(result.is_err());
@@ -385,8 +389,10 @@ mod tests {
 
     #[test]
     fn test_validate_zero_ttl() {
-        let mut config = StorageConfig::default();
-        config.default_ttl_secs = 0;
+        let config = StorageConfig {
+            default_ttl_secs: 0,
+            ..Default::default()
+        };
 
         let result = config.validate();
         assert!(result.is_err());

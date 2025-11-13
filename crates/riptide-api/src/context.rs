@@ -139,7 +139,7 @@ pub struct ApplicationContext {
 
     /// Worker service for background job processing (Phase 1: Optional - disabled by default)
     #[cfg(feature = "workers")]
-    pub worker_service: Option<Arc<dyn riptide_types::ports::WorkerService>>,
+    pub worker_service: Option<Arc<riptide_workers::WorkerService>>,
 
     /// Event bus for centralized event coordination
     pub event_bus: Arc<EventBus>,
@@ -1734,17 +1734,21 @@ impl ApplicationContext {
         #[cfg(feature = "workers")]
         {
             health.worker_service = {
-                let worker_health = self.worker_service.health_check().await;
-                if worker_health.overall_healthy {
-                    DependencyHealth::Healthy
+                if let Some(worker_svc) = &self.worker_service {
+                    let worker_health = worker_svc.health_check().await;
+                    if worker_health.overall_healthy {
+                        DependencyHealth::Healthy
+                    } else {
+                        health.healthy = false;
+                        DependencyHealth::Unhealthy(format!(
+                            "Worker service unhealthy: queue={}, pool={}, scheduler={}",
+                            worker_health.queue_healthy,
+                            worker_health.worker_pool_healthy,
+                            worker_health.scheduler_healthy
+                        ))
+                    }
                 } else {
-                    health.healthy = false;
-                    DependencyHealth::Unhealthy(format!(
-                        "Worker service unhealthy: queue={}, pool={}, scheduler={}",
-                        worker_health.queue_healthy,
-                        worker_health.worker_pool_healthy,
-                        worker_health.scheduler_healthy
-                    ))
+                    DependencyHealth::Healthy
                 }
             };
         }
@@ -1928,11 +1932,11 @@ impl ApplicationContext {
         #[cfg(feature = "workers")]
         let worker_service = {
             let worker_config = WorkerServiceConfig::default();
-            Arc::new(
+            Some(Arc::new(
                 WorkerService::new(worker_config)
                     .await
                     .expect("Failed to create worker service"),
-            )
+            ) as Arc<dyn riptide_types::ports::WorkerService>)
         };
 
         let event_bus = Arc::new(EventBus::new());
@@ -2043,7 +2047,7 @@ impl ApplicationContext {
 
         // Detect capabilities for test state (workers disabled in tests by default)
         #[cfg(feature = "workers")]
-        let workers_enabled = worker_service.is_some();
+        let workers_enabled = true;
         #[cfg(not(feature = "workers"))]
         let workers_enabled = false;
         let capabilities = SystemCapabilities::detect("redis", workers_enabled);

@@ -247,6 +247,7 @@ pub async fn test_expire<C: CacheStorage>(cache: &C) -> RiptideResult<()> {
 /// - Returns Some(duration) for keys with TTL
 /// - Returns None for non-existent keys
 /// - TTL decreases over time (within reasonable bounds)
+#[allow(dead_code)]
 pub async fn test_ttl_query<C: CacheStorage>(cache: &C) -> RiptideResult<()> {
     let key = "test_key_ttl_query";
     let value = b"test_value";
@@ -293,6 +294,7 @@ pub async fn test_ttl_query<C: CacheStorage>(cache: &C) -> RiptideResult<()> {
 /// - Can decrement with negative delta
 /// - Returns correct new value
 /// - Fails on non-numeric values
+#[allow(dead_code)]
 pub async fn test_incr<C: CacheStorage>(cache: &C) -> RiptideResult<()> {
     let key = "test_key_incr";
 
@@ -471,6 +473,7 @@ pub async fn test_empty_values<C: CacheStorage>(cache: &C) -> RiptideResult<()> 
 ///
 /// This is a convenience function that runs all contract tests in sequence.
 /// Use individual test functions for more granular control.
+#[allow(dead_code)]
 pub async fn run_all_tests<C: CacheStorage>(cache: &C) -> RiptideResult<()> {
     test_basic_operations(cache).await?;
     test_exists(cache).await?;

@@ -251,6 +251,7 @@ pub async fn test_multi_tenancy<S: SessionStorage>(storage: &S) -> RiptideResult
 /// - Can filter sessions by user_id
 /// - Returns only sessions for that user
 /// - Works across different tenants
+#[allow(dead_code)]
 pub async fn test_user_filtering<S: SessionStorage>(storage: &S) -> RiptideResult<()> {
     // Create sessions for same user in different tenants
     let user1_tenant1 = create_test_session(
@@ -315,6 +316,7 @@ pub async fn test_user_filtering<S: SessionStorage>(storage: &S) -> RiptideResul
 /// Validates:
 /// - active_only=true filters out expired sessions
 /// - active_only=false includes all sessions
+#[allow(dead_code)]
 pub async fn test_active_filtering<S: SessionStorage>(storage: &S) -> RiptideResult<()> {
     // Create active session
     let active = create_test_session(
@@ -379,6 +381,7 @@ pub async fn test_active_filtering<S: SessionStorage>(storage: &S) -> RiptideRes
 /// - Metadata is preserved on save/retrieve
 /// - Can update metadata
 /// - Empty metadata works correctly
+#[allow(dead_code)]
 pub async fn test_metadata<S: SessionStorage>(storage: &S) -> RiptideResult<()> {
     let mut session = create_test_session(
         "metadata_session",
@@ -436,6 +439,7 @@ pub async fn test_metadata<S: SessionStorage>(storage: &S) -> RiptideResult<()> 
 /// Validates:
 /// - Multiple concurrent saves don't corrupt data
 /// - Storage remains consistent under concurrent load
+#[allow(dead_code)]
 pub async fn test_concurrent_operations<S: SessionStorage>(storage: &S) -> RiptideResult<()> {
     use tokio::task::JoinSet;
 
@@ -488,6 +492,7 @@ pub async fn test_concurrent_operations<S: SessionStorage>(storage: &S) -> Ripti
 /// Validates:
 /// - Returns empty vec when no sessions match filter
 /// - Doesn't error on empty results
+#[allow(dead_code)]
 pub async fn test_empty_list<S: SessionStorage>(storage: &S) -> RiptideResult<()> {
     let filter = SessionFilter {
         tenant_id: Some("non_existent_tenant".to_string()),
@@ -506,6 +511,7 @@ pub async fn test_empty_list<S: SessionStorage>(storage: &S) -> RiptideResult<()
 /// Validates:
 /// - cleanup_expired returns 0 when nothing to clean
 /// - Doesn't error when no expired sessions exist
+#[allow(dead_code)]
 pub async fn test_cleanup_no_expired<S: SessionStorage>(storage: &S) -> RiptideResult<()> {
     // Create only active sessions
     let active = create_test_session(
@@ -533,6 +539,7 @@ pub async fn test_cleanup_no_expired<S: SessionStorage>(storage: &S) -> RiptideR
 ///
 /// This is a convenience function that runs all contract tests in sequence.
 /// Use individual test functions for more granular control.
+#[allow(dead_code)]
 pub async fn run_all_tests<S: SessionStorage>(storage: &S) -> RiptideResult<()> {
     test_crud_operations(storage).await?;
     test_expiration(storage).await?;

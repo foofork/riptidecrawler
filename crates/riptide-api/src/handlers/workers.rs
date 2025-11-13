@@ -14,8 +14,8 @@ use uuid::Uuid;
 
 /// Check if workers are enabled, return 503 if not
 fn check_workers_enabled(
-    worker_service: &Option<std::sync::Arc<dyn riptide_types::ports::WorkerService>>,
-) -> Result<&std::sync::Arc<dyn riptide_types::ports::WorkerService>, StatusCode> {
+    worker_service: &Option<std::sync::Arc<riptide_workers::WorkerService>>,
+) -> Result<&std::sync::Arc<riptide_workers::WorkerService>, StatusCode> {
     worker_service
         .as_ref()
         .ok_or(StatusCode::SERVICE_UNAVAILABLE)

@@ -155,8 +155,11 @@ pub mod coordination_contract;
 pub mod session_storage_contract;
 
 // Re-export for convenience
+#[allow(unused_imports)]
 pub use cache_storage_contract as cache_storage;
+#[allow(unused_imports)]
 pub use coordination_contract as coordination;
+#[allow(unused_imports)]
 pub use session_storage_contract as session_storage;
 
 #[cfg(test)]
@@ -166,6 +169,6 @@ mod tests {
     #[test]
     fn test_contract_modules_exist() {
         // Ensure all modules are properly exported
-        assert!(true, "Contract test modules are accessible");
+        // This test simply verifies that the module compiles and links correctly
     }
 }

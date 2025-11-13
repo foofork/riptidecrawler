@@ -610,8 +610,6 @@ impl Subscriber for RedisSubscriber {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn test_key_formatting() {
         // Test key formatting logic without needing actual Redis connection

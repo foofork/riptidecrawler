@@ -330,7 +330,7 @@ async fn test_screenshot_formats() -> Result<()> {
 /// Test 30: PDF with various configurations
 #[tokio::test]
 async fn test_pdf_configurations() -> Result<()> {
-    let configs = vec![
+    let configs = [
         PdfParams::default(),
         PdfParams {
             landscape: true,

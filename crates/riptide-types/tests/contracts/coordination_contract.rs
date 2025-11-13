@@ -71,6 +71,7 @@ pub async fn test_pattern_invalidation<C: CacheSync>(coordinator: &C) -> Riptide
 /// - Can handle rapid notification bursts
 /// - No dropped notifications under load
 /// - Maintains stability under concurrent access
+#[allow(dead_code)]
 pub async fn test_high_frequency<C: CacheSync>(coordinator: &C) -> RiptideResult<()> {
     // Send 100 rapid notifications
     for i in 0..100 {
@@ -120,6 +121,7 @@ pub async fn test_concurrent_notifications<C: CacheSync>(coordinator: &C) -> Rip
 /// - Graceful handling of invalid inputs
 /// - Recovery from transient failures
 /// - No persistent state corruption
+#[allow(dead_code)]
 pub async fn test_error_handling<C: CacheSync>(coordinator: &C) -> RiptideResult<()> {
     // Empty key (should handle gracefully)
     let _ = coordinator.notify_set("").await;
@@ -147,6 +149,7 @@ pub async fn test_error_handling<C: CacheSync>(coordinator: &C) -> RiptideResult
 ///
 /// Note: This is a best-effort test as distributed systems
 /// don't guarantee strict ordering
+#[allow(dead_code)]
 pub async fn test_notification_ordering<C: CacheSync>(coordinator: &C) -> RiptideResult<()> {
     // Send a sequence of operations
     coordinator.notify_set("order_key_1").await?;
@@ -165,6 +168,7 @@ pub async fn test_notification_ordering<C: CacheSync>(coordinator: &C) -> Riptid
 /// Validates:
 /// - Can interleave different notification types
 /// - No interference between notification types
+#[allow(dead_code)]
 pub async fn test_mixed_operations<C: CacheSync>(coordinator: &C) -> RiptideResult<()> {
     // Interleave different operations
     coordinator.notify_set("mixed_1").await?;
@@ -183,6 +187,7 @@ pub async fn test_mixed_operations<C: CacheSync>(coordinator: &C) -> RiptideResu
 /// - Can handle large batches of notifications
 /// - Performance remains acceptable
 /// - No memory leaks or resource exhaustion
+#[allow(dead_code)]
 pub async fn test_large_batch<C: CacheSync>(coordinator: &C) -> RiptideResult<()> {
     // Send 1000 notifications
     for i in 0..1000 {
@@ -203,6 +208,7 @@ pub async fn test_large_batch<C: CacheSync>(coordinator: &C) -> RiptideResult<()
 ///
 /// This is a convenience function that runs all contract tests in sequence.
 /// Use individual test functions for more granular control.
+#[allow(dead_code)]
 pub async fn run_all_tests<C: CacheSync>(coordinator: &C) -> RiptideResult<()> {
     test_basic_notifications(coordinator).await?;
     test_pattern_invalidation(coordinator).await?;
