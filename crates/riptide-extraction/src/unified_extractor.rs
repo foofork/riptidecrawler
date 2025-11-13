@@ -56,9 +56,21 @@ pub enum UnifiedExtractor {
 }
 
 /// Native extractor wrapper for consistent interface
-#[derive(Default)]
 pub struct NativeExtractor {
     parser: NativeHtmlParser,
+}
+
+impl Default for NativeExtractor {
+    fn default() -> Self {
+        // Use a config with low quality threshold for UnifiedExtractor's fallback logic
+        let config = ParserConfig {
+            min_quality_score: 0, // Let UnifiedExtractor handle quality assessment
+            ..ParserConfig::default()
+        };
+        Self {
+            parser: NativeHtmlParser::with_config(config),
+        }
+    }
 }
 
 impl NativeExtractor {
