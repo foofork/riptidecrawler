@@ -913,11 +913,10 @@ impl ApplicationContext {
                 let ws = WorkerService::new(config.worker_config.clone())
                     .await
                     .map_err(|e| anyhow::anyhow!("Failed to initialize worker service: {}", e))?;
-                let ws: Arc<dyn riptide_types::ports::WorkerService> = Arc::new(ws);
                 tracing::info!(
                     "Worker service initialized successfully - async job processing enabled"
                 );
-                Some(ws)
+                Some(Arc::new(ws))
             } else {
                 tracing::info!(
                     "Worker service disabled - running in single-process mode without job queue"
@@ -1936,8 +1935,7 @@ impl ApplicationContext {
                 WorkerService::new(worker_config)
                     .await
                     .expect("Failed to create worker service"),
-            )
-                as Arc<dyn riptide_types::ports::WorkerService>)
+            ))
         };
 
         let event_bus = Arc::new(EventBus::new());
@@ -1964,7 +1962,7 @@ impl ApplicationContext {
             HeadlessLauncher::new()
                 .await
                 .expect("Failed to create browser launcher"),
-        ));
+        ) as Arc<dyn riptide_types::ports::BrowserDriver>);
 
         // Initialize facades (Phase 2C.2: Restored after breaking circular dependency)
         let facade_config = riptide_facade::RiptideConfig::default();
