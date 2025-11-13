@@ -94,12 +94,6 @@ pub fn create_test_router(state: ApplicationContext) -> Router {
         // Extract endpoint - NEW v1.1 (v1 path primary)
         .route("/api/v1/extract", post(handlers::extract));
 
-    // Search endpoint - NEW v1.1 (v1 path primary)
-    #[cfg(feature = "search")]
-    {
-        app = app.route("/api/v1/search", get(handlers::search));
-    }
-
     app
         // Table extraction routes
         .nest("/api/v1/tables", routes::tables::table_routes())

@@ -3,7 +3,8 @@
 //! These tests verify the complete flow from facade options through to extraction results.
 
 use crate::config::RiptideConfig;
-use crate::facades::{ExtractionFacade, ExtractionStrategy, HtmlExtractionOptions};
+use crate::facades::{ExtractionFacade, HtmlExtractionOptions};
+use riptide_types::ExtractionMethod;
 
 fn create_test_html() -> &'static str {
     r#"

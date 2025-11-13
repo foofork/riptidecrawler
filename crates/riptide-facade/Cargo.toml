@@ -21,7 +21,6 @@ riptide-browser = { path = "../riptide-browser" }
 riptide-stealth = { path = "../riptide-stealth" }
 riptide-monitoring = { path = "../riptide-monitoring" }
 riptide-spider = { path = "../riptide-spider" }
-riptide-search = { path = "../riptide-search" }
 riptide-utils = { path = "../riptide-utils" }
 riptide-intelligence = { path = "../riptide-intelligence", optional = true }
 riptide-reliability = { path = "../riptide-reliability" }

@@ -40,20 +40,9 @@ use riptide_spider::{Spider, SpiderConfig};
 // TelemetrySystem is in riptide_monitoring, not riptide_core
 #[cfg(feature = "extraction")]
 use riptide_extraction::UnifiedExtractor;
-use riptide_monitoring::TelemetrySystem;
-// Facade types removed to break circular dependency
-// Facades are now used through riptide-facade crate directly
-// #[cfg(feature = "extraction")]
-// use riptide_facade::facades::ExtractionFacade;
-// #[cfg(feature = "search")]
-// use riptide_facade::facades::SearchFacade;
-// #[cfg(feature = "spider")]
-// use riptide_facade::facades::SpiderFacade;
-// #[cfg(feature = "browser")]
-// use riptide_facade::BrowserFacade;
-// use riptide_facade::ScraperFacade;
 #[cfg(feature = "browser")]
 use riptide_headless::launcher::HeadlessLauncher;
+use riptide_monitoring::TelemetrySystem;
 use riptide_monitoring::{
     AlertCondition, AlertManager, AlertRule, AlertSeverity, HealthCalculator, MetricsCollector,
     MonitoringConfig, PerformanceMetrics,
@@ -182,22 +171,15 @@ pub struct ApplicationContext {
     // pub browser_facade: Option<Arc<BrowserFacade>>,
 
     /// Extraction facade for content extraction with multiple strategies
-    /// Phase 2C.2: Restored after eliminating circular dependency via trait abstraction
     pub extraction_facade: Arc<riptide_facade::facades::ExtractionFacade>,
 
     /// Scraper facade for simple HTTP operations
-    /// Phase 2C.2: Restored after eliminating circular dependency via trait abstraction
     pub scraper_facade: Arc<riptide_facade::facades::ScraperFacade>,
 
     /// Spider facade for web crawling operations
-    /// Phase 2C.2: Restored after eliminating circular dependency via trait abstraction
+
     #[cfg(feature = "spider")]
     pub spider_facade: Option<Arc<riptide_facade::facades::SpiderFacade>>,
-
-    /// Search facade for web search operations
-    /// Phase 2C.2: Restored after eliminating circular dependency via trait abstraction
-    #[cfg(feature = "search")]
-    pub search_facade: Option<Arc<riptide_facade::facades::SearchFacade>>,
 
     /// Engine selection facade for intelligent engine selection
     /// Phase 3 Sprint 3.1: Engine selection business logic
@@ -1231,67 +1213,7 @@ impl ApplicationContext {
         //     None
         // };
 
-        // Initialize search facade with backend from environment or default to None
-        // #[cfg(feature = "search")]
-        // let search_facade = {
-        // Read search backend from environment with fallback to None
-        //     let backend_str = std::env::var("RIPTIDE_SEARCH_BACKEND")
-        //         .or_else(|_| std::env::var("SEARCH_BACKEND"))
-        //         .unwrap_or_else(|_| "none".to_string());
-        //         //     let backend: riptide_search::SearchBackend = backend_str.parse().unwrap_or_else(|e| {
-        //         tracing::warn!(
-        //             error = %e,
-        //             backend = %backend_str,
-        //             "Invalid search backend specified, falling back to 'none'"
-        //         );
-        //         riptide_search::SearchBackend::None
-        //     });
-        //         //     tracing::info!(backend = %backend, "Initializing SearchFacade");
-        //             // Try to initialize with the specified backend
-        //     match SearchFacade::new(backend.clone()).await {
-        //         Ok(facade) => {
-        //             tracing::info!(backend = %backend, "SearchFacade initialized successfully");
-        //             Some(Arc::new(facade))
-        //         }
-        //         Err(e) => {
-        //             tracing::warn!(
-        //                 error = %e,
-        //                 backend = %backend,
-        //                 "Failed to initialize SearchFacade with specified backend"
-        //             );
-        //                     // If not already using None backend, try falling back to None
-        //             if backend != riptide_search::SearchBackend::None {
-        //                 tracing::info!(
-        //                     "Attempting fallback to 'none' backend for graceful degradation"
-        //                 );
-        //                 match SearchFacade::new(riptide_search::SearchBackend::None).await {
-        //                     Ok(facade) => {
-        //                         tracing::info!(
-        //                             "SearchFacade initialized successfully with fallback 'none' backend. \
-        //                              Search functionality will work with URL parsing only."
-        //                         );
-        //                         Some(Arc::new(facade))
-        //                     }
-        //                     Err(fallback_err) => {
-        //                         tracing::error!(
-        //                             error = %fallback_err,
-        //                             "Failed to initialize SearchFacade even with 'none' backend fallback. \
-        //                              Search endpoint will be unavailable."
-        //                         );
-        //                         None
-        //                     }
-        //                 }
-        //             } else {
-        // Already tried None backend and it failed
-        //                 tracing::error!(
-        //                     "Failed to initialize SearchFacade with 'none' backend. \
-        //                      Search endpoint will be unavailable."
-        //                 );
-        //                 None
-        //             }
-        //         }
-        //     }
-        // };
+        // Note: Search functionality removed in cleanup phase
 
         tracing::info!("Application state initialization complete with resource controls, event bus, circuit breaker, monitoring, fetch engine, performance manager, authentication, cache warming, browser launcher, and facade layer");
 
@@ -1403,9 +1325,6 @@ impl ApplicationContext {
         #[cfg(feature = "spider")]
         let spider_facade = None;
 
-        #[cfg(feature = "search")]
-        let search_facade = None;
-
         // Detect system capabilities for deployment mode reporting
         let cache_backend_str = storage_config.backend.to_string();
         // Phase 1: Check actual runtime config, not just feature flag
@@ -1461,8 +1380,6 @@ impl ApplicationContext {
             scraper_facade,
             #[cfg(feature = "spider")]
             spider_facade,
-            #[cfg(feature = "search")]
-            search_facade,
             // Engine facade (Phase 3 Sprint 3.1)
             engine_facade,
             // TODO Phase 4.3: Streaming facade (Phase 4 Sprint 4.3)
@@ -1530,31 +1447,6 @@ impl ApplicationContext {
                     tracing::warn!(error = %e, "Failed to initialize SpiderFacade, spider endpoints will be unavailable");
                     None
                 }
-            };
-        }
-
-        // Initialize SearchFacade if SERPER_API_KEY is available
-        #[cfg(feature = "search")]
-        {
-            self.search_facade = if let Ok(api_key) = std::env::var("SERPER_API_KEY") {
-                match riptide_facade::facades::SearchFacade::with_api_key(
-                    riptide_search::SearchBackend::Serper,
-                    Some(api_key),
-                )
-                .await
-                {
-                    Ok(facade) => {
-                        tracing::info!("SearchFacade initialized with Serper backend");
-                        Some(Arc::new(facade))
-                    }
-                    Err(e) => {
-                        tracing::warn!(error = %e, "Failed to initialize SearchFacade, search endpoint will be unavailable");
-                        None
-                    }
-                }
-            } else {
-                tracing::info!("SERPER_API_KEY not found, search endpoint will be unavailable. Set SERPER_API_KEY to enable search.");
-                None
             };
         }
 
@@ -1993,10 +1885,6 @@ impl ApplicationContext {
             ))
         };
 
-        // SearchFacade not initialized for tests (requires external API key)
-        #[cfg(feature = "search")]
-        let search_facade = None;
-
         // Initialize engine facade for tests using factory
         let engine_cache_config =
             StorageConfig::redis_with_fallback(&redis_url).with_connection_timeout_secs(2);
@@ -2089,8 +1977,6 @@ impl ApplicationContext {
             scraper_facade,
             #[cfg(feature = "spider")]
             spider_facade,
-            #[cfg(feature = "search")]
-            search_facade,
             // Engine facade (Phase 3 Sprint 3.1)
             engine_facade,
             // TODO Phase 4.3: Streaming facade (Phase 4 Sprint 4.3)

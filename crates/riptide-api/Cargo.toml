@@ -65,7 +65,6 @@ riptide-intelligence = { path = "../riptide-intelligence" }
 riptide-workers = { path = "../riptide-workers" }
 riptide-browser = { path = "../riptide-browser", optional = true }
 riptide-headless = { path = "../riptide-headless", optional = true }
-riptide-search = { path = "../riptide-search", optional = true }
 riptide-performance = { path = "../riptide-performance" }
 riptide-persistence = { path = "../riptide-persistence" }
 riptide-monitoring = { path = "../riptide-monitoring", features = ["collector"] }
@@ -123,7 +122,6 @@ fetch = ["dep:riptide-fetch"]
 browser = ["dep:riptide-browser", "dep:riptide-headless"]
 llm = []
 workers = []
-search = ["dep:riptide-search"]
 idempotency = []
 
 # PostgreSQL feature gate - wires production database adapters
@@ -143,4 +141,4 @@ native-parser = ["extraction", "riptide-extraction/native-parser"]     # Native 
 wasm-extractor = ["extraction", "riptide-extraction/wasm-extractor"]   # WASM-based extraction (opt-in)
 
 # Full feature set for production (when ready)
-full = ["spider", "extraction", "fetch", "browser", "llm", "workers", "search", "events", "sessions", "streaming", "telemetry", "persistence", "postgres", "jemalloc"]
+full = ["spider", "extraction", "fetch", "browser", "llm", "workers", "events", "sessions", "streaming", "telemetry", "persistence", "postgres", "jemalloc"]

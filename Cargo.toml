@@ -10,7 +10,6 @@ members = [
   "crates/riptide-events",  # P1-A3 Phase 2A: Event system (extracted from core)
   "crates/riptide-pool",  # P1-A3 Phase 2B: Instance pool (extracted from core)
   "crates/riptide-extraction",
-  "crates/riptide-search",
   "crates/riptide-api",
   "crates/riptide-cli",
   "crates/riptide-headless",

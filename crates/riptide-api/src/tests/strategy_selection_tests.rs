@@ -7,36 +7,27 @@
 //! 4. Feature guards work correctly for WASM
 
 use crate::handlers::extract::*;
-use riptide_types::{ExtractOptions, ExtractRequest};
+use riptide_types::{ExtractOptions, ExtractRequest, ExtractionMethod};
 
 #[test]
 fn test_parse_strategy_native() {
     let strategy = parse_extraction_strategy("native");
     assert!(strategy.is_some());
-    assert_eq!(
-        strategy.unwrap(),
-        riptide_facade::facades::ExtractionStrategy::HtmlCss
-    );
+    assert_eq!(strategy.unwrap(), ExtractionMethod::HtmlCss);
 }
 
 #[test]
 fn test_parse_strategy_css() {
     let strategy = parse_extraction_strategy("css");
     assert!(strategy.is_some());
-    assert_eq!(
-        strategy.unwrap(),
-        riptide_facade::facades::ExtractionStrategy::HtmlCss
-    );
+    assert_eq!(strategy.unwrap(), ExtractionMethod::HtmlCss);
 }
 
 #[test]
 fn test_parse_strategy_wasm() {
     let strategy = parse_extraction_strategy("wasm");
     assert!(strategy.is_some());
-    assert_eq!(
-        strategy.unwrap(),
-        riptide_facade::facades::ExtractionStrategy::Wasm
-    );
+    assert_eq!(strategy.unwrap(), ExtractionMethod::Wasm);
 }
 
 #[test]

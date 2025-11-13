@@ -75,11 +75,6 @@ feature_stub!(browser_render_stub, "browser", Json);
 feature_stub!(spider_crawl_stub, "spider", Json);
 feature_stub!(spider_stream_stub, "spider", Json);
 
-// Search Feature Stubs
-feature_stub!(search_query_stub, "search", Json);
-feature_stub!(deepsearch_query_stub, "search", Json);
-feature_stub!(deepsearch_stream_stub, "search", Json);
-
 // Workers Feature Stubs
 feature_stub!(workers_submit_stub, "workers", Json);
 feature_stub!(workers_status_stub, "workers", Path);

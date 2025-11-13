@@ -87,11 +87,11 @@ impl CircuitBreakerPreset {
                 initial_backoff_ms: 1000,
             },
             Self::SearchIndexing => HttpConfig {
-                timeout_ms: 30_000,         // 30s for search operations
+                timeout_ms: 30_000,         // 30s for indexing operations
                 connect_timeout_ms: 10_000, // 10s connect timeout
                 pool_idle_timeout_secs: 90,
                 pool_max_idle_per_host: 10,
-                user_agent: format!("riptide-search/{}", env!("CARGO_PKG_VERSION")),
+                user_agent: format!("riptide-crawler/{}", env!("CARGO_PKG_VERSION")),
                 circuit_failure_threshold: 5,
                 circuit_cooldown_ms: 30_000, // 30s cooldown
                 max_retries: 5,              // Aggressive retries

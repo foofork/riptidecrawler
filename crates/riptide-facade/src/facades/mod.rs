@@ -22,7 +22,6 @@ pub mod profiling;
 pub mod render;
 pub mod render_strategy;
 pub mod scraper;
-pub mod search;
 pub mod session;
 pub mod session_metrics;
 pub mod spider;
@@ -88,7 +87,6 @@ pub use render::{
 pub use render_strategy::RenderStrategyFacade;
 pub use riptide_types::ExtractionMethod;
 pub use scraper::ScraperFacade;
-pub use search::SearchFacade;
 pub use session::{SessionConfig, SessionEvent, SessionFacade};
 pub use spider::{CrawlSummary, SpiderFacade, SpiderPreset};
 pub use table::{

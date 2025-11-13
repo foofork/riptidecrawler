@@ -223,27 +223,6 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/v1/extract", post(handlers::extract))
         .route("/extract", post(handlers::extract)); // Root alias for backward compatibility
 
-    // Search endpoint - NEW v1.1 feature (feature-gated)
-    #[cfg(feature = "search")]
-    let app = app
-        .route("/api/v1/search", get(handlers::search))
-        .route("/search", get(handlers::search)); // Root alias for backward compatibility
-
-    // DeepSearch (feature-gated)
-    #[cfg(feature = "search")]
-    let app = app.route("/deepsearch", post(handlers::handle_deep_search));
-
-    // DeepSearch streaming endpoint (always available as stub if search is disabled)
-    let app = app
-        .route(
-            "/deepsearch/stream",
-            post(handlers::stubs::deepsearch_stream_stub),
-        )
-        .route(
-            "/api/v1/deepsearch/stream",
-            post(handlers::stubs::deepsearch_stream_stub),
-        ); // v1 alias
-
     let app = app
         // PDF processing endpoints with progress tracking
         .nest("/pdf", routes::pdf::pdf_routes())

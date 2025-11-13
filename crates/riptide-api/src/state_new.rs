@@ -24,9 +24,6 @@ pub struct AppState {
     #[cfg(feature = "spider")]
     spider_facade: Option<Arc<riptide_facade::facades::SpiderFacade>>,
 
-    #[cfg(feature = "search")]
-    search_facade: Option<Arc<riptide_facade::facades::SearchFacade>>,
-
     engine_facade: Arc<riptide_facade::facades::EngineFacade>,
 
     resource_facade: Arc<riptide_facade::facades::ResourceFacade<crate::adapters::ResourceSlot>>,
@@ -70,18 +67,6 @@ impl AppState {
         };
 
         // Search facade (optional)
-        #[cfg(feature = "search")]
-        let search_facade = std::env::var("SERPER_API_KEY")
-            .ok()
-            .and_then(|key| {
-                tokio::runtime::Handle::current().block_on(async {
-                    riptide_facade::facades::SearchFacade::with_api_key(
-                        riptide_search::SearchBackend::Serper,
-                        Some(key)
-                    ).await.ok()
-                }).map(Arc::new)
-            });
-
         // Engine facade (requires cache storage)
         let redis_url = std::env::var("REDIS_URL")
             .unwrap_or_else(|_| "redis://localhost:6379".to_string());
@@ -101,8 +86,6 @@ impl AppState {
             scraper_facade,
             #[cfg(feature = "spider")]
             spider_facade,
-            #[cfg(feature = "search")]
-            search_facade,
             engine_facade,
             resource_facade,
         })
@@ -122,12 +105,6 @@ impl AppState {
     #[cfg(feature = "spider")]
     pub fn spider_facade(&self) -> &Option<Arc<riptide_facade::facades::SpiderFacade>> {
         &self.spider_facade
-    }
-
-    /// Get search facade
-    #[cfg(feature = "search")]
-    pub fn search_facade(&self) -> &Option<Arc<riptide_facade::facades::SearchFacade>> {
-        &self.search_facade
     }
 
     /// Get engine facade
