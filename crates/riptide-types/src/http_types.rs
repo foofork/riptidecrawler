@@ -35,6 +35,9 @@ pub struct ExtractOptions {
     /// Timeout in milliseconds
     #[serde(default = "default_timeout")]
     pub timeout_ms: u64,
+    /// Include raw HTML in response (default: false)
+    #[serde(default)]
+    pub include_html: bool,
 }
 
 impl Default for ExtractOptions {
@@ -43,6 +46,7 @@ impl Default for ExtractOptions {
             strategy: default_strategy(),
             quality_threshold: default_quality_threshold(),
             timeout_ms: default_timeout(),
+            include_html: false,
         }
     }
 }
@@ -60,6 +64,9 @@ pub struct ExtractResponse {
     /// Parser metadata for observability (optional)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parser_metadata: Option<ParserMetadataHttp>,
+    /// Raw HTML content (only included if requested)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub raw_html: Option<String>,
 }
 
 /// Content metadata

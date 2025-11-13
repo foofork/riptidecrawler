@@ -143,6 +143,9 @@ pub mod prelude;
 pub mod traits;
 pub mod workflows;
 
+#[cfg(test)]
+mod tests;
+
 // Re-export important domain types for API layer
 pub use facades::pipeline::FetchOperation;
 

@@ -1365,7 +1365,6 @@ mod tests {
     // P1-C1 Week 2: Test multi-session support
     #[tokio::test]
     #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
-    #[ignore]
     async fn test_browser_multi_session() {
         let config = RiptideConfig::default().with_stealth_preset("Low");
         let facade = BrowserFacade::new(config).await.unwrap();

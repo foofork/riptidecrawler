@@ -11,6 +11,20 @@ use crate::context::ApplicationContext;
 // Import HTTP DTOs from riptide-types (Phase 2C.1 - breaking circular dependency)
 use riptide_types::ExtractRequest;
 
+// Import ExtractionStrategy from facade
+use riptide_facade::facades::ExtractionStrategy;
+
+/// Parse strategy string to ExtractionStrategy enum
+pub(crate) fn parse_extraction_strategy(strategy_str: &str) -> Option<ExtractionStrategy> {
+    match strategy_str.to_lowercase().as_str() {
+        "native" | "css" => Some(ExtractionStrategy::HtmlCss),
+        "wasm" => Some(ExtractionStrategy::Wasm),
+        "auto" | "multi" => None, // None means use default UnifiedExtractor
+        "markdown" => None, // Handled separately via as_markdown flag
+        _ => None,
+    }
+}
+
 /// Extract content from a URL using multi-strategy extraction
 ///
 /// This endpoint provides a unified interface for content extraction,
@@ -29,6 +43,9 @@ pub async fn extract(
         return crate::errors::ApiError::invalid_url(&payload.url, e.to_string()).into_response();
     }
 
+    // Parse strategy from request
+    let extraction_strategy = parse_extraction_strategy(&payload.options.strategy);
+
     // Build extraction options from request
     let html_options = riptide_facade::facades::HtmlExtractionOptions {
         as_markdown: payload.options.strategy == "markdown",
@@ -37,6 +54,7 @@ pub async fn extract(
         extract_links: false,
         extract_images: false,
         custom_selectors: None,
+        extraction_strategy,
     };
 
     // Delegate to facade (handles fetch + extraction)
@@ -46,6 +64,13 @@ pub async fn extract(
         .await
     {
         Ok(extracted) => {
+            // Include raw HTML only if explicitly requested
+            let raw_html = if payload.options.include_html {
+                extracted.raw_html.clone()
+            } else {
+                None
+            };
+
             let response = riptide_types::ExtractResponse {
                 url: extracted.url.clone(),
                 title: extracted.title.clone(),
@@ -60,6 +85,7 @@ pub async fn extract(
                 quality_score: extracted.confidence,
                 extraction_time_ms: start.elapsed().as_millis() as u64,
                 parser_metadata: None,
+                raw_html,
             };
             (StatusCode::OK, Json(response)).into_response()
         }

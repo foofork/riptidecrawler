@@ -14,4 +14,7 @@ mod resource_controls;
 
 #[cfg(test)]
 pub mod test_helpers;
+
+#[cfg(test)]
+mod strategy_selection_tests;
 // mod appstate_migration_tests; // Removed - will be created during migration
