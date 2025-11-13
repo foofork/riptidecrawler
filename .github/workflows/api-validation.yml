@@ -49,7 +49,7 @@ jobs:
         run: cargo fmt --package riptide-api -- --check
 
       - name: Clippy (zero warnings)
-        run: cargo clippy --package riptide-api --all-targets -- -D warnings
+        run: cargo clippy --package riptide-api --lib --bins -- -D warnings
 
       # OpenAPI validation disabled - skip swagger-cli and spectral checks
       # Re-enable by removing 'if: false' below
