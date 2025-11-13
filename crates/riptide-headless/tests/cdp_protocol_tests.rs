@@ -295,11 +295,14 @@ async fn test_render_request_serialization() {
         wait_for: Some(".content".to_string()),
         scroll_steps: Some(3),
         session_id: Some("test-123".to_string()),
-        actions: Some([PageAction::Scroll {
-            steps: 2,
-            step_px: 500,
-            delay_ms: 100,
-        }].to_vec()),
+        actions: Some(
+            [PageAction::Scroll {
+                steps: 2,
+                step_px: 500,
+                delay_ms: 100,
+            }]
+            .to_vec(),
+        ),
         timeouts: None,
         artifacts: Some(Artifacts {
             screenshot: true,

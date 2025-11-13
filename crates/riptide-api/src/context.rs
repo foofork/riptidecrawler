@@ -1936,7 +1936,8 @@ impl ApplicationContext {
                 WorkerService::new(worker_config)
                     .await
                     .expect("Failed to create worker service"),
-            ) as Arc<dyn riptide_types::ports::WorkerService>)
+            )
+                as Arc<dyn riptide_types::ports::WorkerService>)
         };
 
         let event_bus = Arc::new(EventBus::new());
