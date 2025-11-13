@@ -63,7 +63,7 @@ async fn test_render_request_with_wait_for() {
 
 #[tokio::test]
 async fn test_render_request_with_actions() {
-    let actions = vec![
+    let actions = [
         PageAction::WaitForCss {
             css: ".main-content".to_string(),
             timeout_ms: Some(5000),
@@ -83,7 +83,7 @@ async fn test_render_request_with_actions() {
         wait_for: None,
         scroll_steps: None,
         session_id: None,
-        actions: Some(actions.clone()),
+        actions: Some(actions.to_vec()),
         timeouts: None,
         artifacts: None,
         stealth_config: None,
@@ -295,11 +295,11 @@ async fn test_render_request_serialization() {
         wait_for: Some(".content".to_string()),
         scroll_steps: Some(3),
         session_id: Some("test-123".to_string()),
-        actions: Some(vec![PageAction::Scroll {
+        actions: Some([PageAction::Scroll {
             steps: 2,
             step_px: 500,
             delay_ms: 100,
-        }]),
+        }].to_vec()),
         timeouts: None,
         artifacts: Some(Artifacts {
             screenshot: true,

@@ -98,17 +98,18 @@ jobs:
           echo "Building packages with native-parser only (40% faster)..."
 
           # Build each binary package with default features (matches quality_gate.sh)
+          # Note: --lib --bins excludes examples and benchmarks to reduce build time
           echo ""
           echo "Building riptide-api..."
-          cargo build --release -p riptide-api
+          cargo build --release -p riptide-api --lib --bins
 
           echo ""
           echo "Building riptide-headless..."
-          cargo build --release -p riptide-headless
+          cargo build --release -p riptide-headless --lib --bins
 
           echo ""
           echo "Building riptide-workers..."
-          cargo build --release -p riptide-workers
+          cargo build --release -p riptide-workers --lib --bins
 
           echo ""
           echo "✅ Build completed. Detecting binary location..."
