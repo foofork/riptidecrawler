@@ -105,19 +105,19 @@ RUN mkdir -p crates/riptide-api/src crates/riptide-browser/src \
     echo "fn main() {}" > crates/riptide-workers/src/lib.rs && \
     echo "fn main() {}" > wasm/riptide-extractor-wasm/src/lib.rs
 
-# Build dependencies only (cached layer) - NATIVE ONLY
-RUN echo "🔧 Building native-only (no WASM)..." && \
-    cargo build --profile ci --bin riptide-api --no-default-features --features native-parser && \
+# Build dependencies only (cached layer) - Use default features
+RUN echo "🔧 Building with default features..." && \
+    cargo build --profile ci --bin riptide-api && \
     rm -rf /usr/local/cargo/registry/cache/* /app/target/*/incremental
 
 # Copy actual source code
 COPY crates crates/
 COPY wasm wasm/
 
-# Build with real source (uses cached dependencies) - NATIVE ONLY
+# Build with real source (uses cached dependencies)
 RUN touch crates/*/src/lib.rs crates/*/src/main.rs wasm/*/src/lib.rs && \
-    echo "🚀 Building native-only API..." && \
-    cargo build --profile ci --bin riptide-api --no-default-features --features native-parser && \
+    echo "🚀 Building API with default features..." && \
+    cargo build --profile ci --bin riptide-api && \
     cd /app && \
     strip target/ci/riptide-api && \
     rm -rf /usr/local/cargo/registry/cache/* \

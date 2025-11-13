@@ -389,7 +389,12 @@ impl AuthConfig {
         let require_auth = std::env::var("REQUIRE_AUTH")
             .ok()
             .and_then(|s| s.parse().ok())
-            .unwrap_or(true); // Authentication required by default
+            .unwrap_or(false); // Authentication optional by default for easy testing
+
+        // Warn if authentication is disabled
+        if !require_auth {
+            tracing::warn!("🔓 Authentication is DISABLED - not recommended for production");
+        }
 
         let public_paths = vec![
             "/health".to_string(),
@@ -835,8 +840,8 @@ mod tests {
         // In production, API_KEYS and REQUIRE_AUTH would be configured
         let config = AuthConfig::new();
 
-        // Default should require auth
-        assert!(config.requires_auth());
+        // Default should NOT require auth (for easy testing)
+        assert!(!config.requires_auth());
 
         // Should have standard public paths
         assert!(config.is_public_path("/health"));

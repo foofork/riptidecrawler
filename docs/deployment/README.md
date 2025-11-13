@@ -1,12 +1,25 @@
 # RipTide Deployment Documentation
 
-Comprehensive guides for deploying RipTide in various environments.
+Complete guide to deploying and distributing RipTide in production environments.
 
 ## 📚 Documentation Index
 
-### Getting Started
-- [**Quick Start (Docker)**](./quick-start-docker.md) - Get running in 5 minutes
+### Quick Start
+- **[Quick Start Guide](../00-getting-started/QUICK_START.md)** - Get running in < 5 minutes (Binary, Docker, or Source)
 - [**Docker Deployment Modes**](./docker-modes.md) - Minimal, Simple, Distributed
+
+### Binary Distribution
+- **[Distribution Summary](./DISTRIBUTION_SUMMARY.md)** - Executive overview of the distribution strategy
+- **[Binary Distribution Architecture](./BINARY_DISTRIBUTION.md)** - Complete technical design and implementation
+- **[Implementation Checklist](./IMPLEMENTATION_CHECKLIST.md)** - Step-by-step deployment guide
+
+### Docker Deployment
+- **[Docker Optimization](./DOCKER_OPTIMIZATION.md)** - Optimize builds, reduce image size, improve performance
+- [**Docker Modes**](./docker-modes.md) - Minimal, Simple, Distributed configurations
+
+### Version Management
+- **[Version Management](./VERSION_MANAGEMENT.md)** - Versioning strategy, updates, and release process
+- **[Release Template](../../.github/RELEASE_TEMPLATE.md)** - Template for creating new releases
 
 ### Configuration
 - [Configuration Guide](../config/README.md) - Complete configuration reference

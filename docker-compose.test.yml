@@ -1,0 +1,262 @@
+# ============================================================================
+# RipTide - TEST MODE Docker Compose
+# ============================================================================
+# Pre-configured for easy testing with zero authentication.
+#
+# Quick Start:
+#   docker compose -f docker-compose.test.yml up -d
+#   curl http://localhost:8080/health
+#   curl -X POST http://localhost:8080/api/extract \
+#     -H "Content-Type: application/json" \
+#     -d '{"url": "https://example.com"}'
+#   docker compose -f docker-compose.test.yml down
+#
+# This configuration:
+#   ✅ Disables authentication (REQUIRE_AUTH=false)
+#   ✅ Uses in-memory cache (no Redis required)
+#   ✅ Minimal resource requirements
+#   ✅ Fast startup (<10 seconds)
+#   ✅ Perfect for CI/CD, development, and testing
+# ============================================================================
+
+services:
+  # =========================================================================
+  # RipTide API - Test Mode (No Authentication)
+  # =========================================================================
+  riptide-api:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.api
+      target: runtime
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    image: riptide-api:test
+    container_name: riptide-api-test
+    restart: unless-stopped
+
+    ports:
+      - "8080:8080"
+
+    environment:
+      # =====================================================================
+      # TEST MODE CONFIGURATION
+      # =====================================================================
+
+      # 🔓 AUTHENTICATION DISABLED for easy testing
+      - REQUIRE_AUTH=false
+
+      # Cache: In-memory mode (Redis connection for rate limiting only)
+      - CACHE_BACKEND=memory
+      - CACHE_MEMORY_TTL=3600
+      - CACHE_MAX_ENTRIES=1000
+      - REDIS_URL=redis://riptide-redis:6379
+
+      # Server Configuration
+      - RIPTIDE_API_HOST=0.0.0.0
+      - RIPTIDE_API_PORT=8080
+      - RIPTIDE_MAX_CONCURRENT_REQUESTS=50
+
+      # Logging (set to debug for testing)
+      - RUST_LOG=${RUST_LOG:-info}
+      - RUST_BACKTRACE=1
+
+      # =====================================================================
+      # OPTIONAL FEATURES (uncomment to enable)
+      # =====================================================================
+
+      # Spider/Crawler
+      - SPIDER_ENABLE=true
+
+      # Search backend (none = no external dependencies)
+      - SEARCH_BACKEND=none
+      # - SERPER_API_KEY=${SERPER_API_KEY}  # Uncomment if using Serper
+
+      # LLM Integration (optional)
+      # - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+
+      # Headless Browser (disabled by default in test mode)
+      # - HEADLESS_URL=http://riptide-headless-test:9123
+
+      # =====================================================================
+      # OUTPUT DIRECTORIES
+      # =====================================================================
+      - RIPTIDE_OUTPUT_DIR=/opt/riptide/data
+      - RIPTIDE_CACHE_DIR=/opt/riptide/cache
+      - RIPTIDE_LOGS_DIR=/opt/riptide/logs
+
+    volumes:
+      # Ephemeral volumes (cleared on down)
+      - riptide-test-data:/opt/riptide/data
+      - riptide-test-cache:/opt/riptide/cache
+      - riptide-test-logs:/opt/riptide/logs
+
+    networks:
+      - riptide-test-network
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+    # Minimal resource limits for testing
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+
+  # =========================================================================
+  # Redis - Required for rate limiting (lightweight, always enabled)
+  # =========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: riptide-redis
+    restart: unless-stopped
+
+    ports:
+      - "6379:6379"
+
+    command: >
+      redis-server
+      --appendonly no
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+
+    networks:
+      - riptide-test-network
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+
+  # =========================================================================
+  # Headless Browser - OPTIONAL (profile: headless)
+  # Enable with: docker compose -f docker-compose.test.yml --profile headless up -d
+  # =========================================================================
+  riptide-headless:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.headless
+      target: runtime
+    image: riptide-headless:test
+    container_name: riptide-headless-test
+    restart: unless-stopped
+    profiles: ["headless"]
+
+    ports:
+      - "9123:9123"
+
+    environment:
+      - RUST_LOG=${RUST_LOG:-info}
+      - CHROME_BIN=/usr/bin/chromium
+      - CHROME_FLAGS=--no-sandbox --headless --disable-gpu --disable-dev-shm-usage
+
+    networks:
+      - riptide-test-network
+
+    shm_size: 1gb
+
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  riptide-test-network:
+    driver: bridge
+
+
+# =============================================================================
+# Volumes - Ephemeral (cleared with docker compose down -v)
+# =============================================================================
+volumes:
+  riptide-test-data:
+    driver: local
+  riptide-test-cache:
+    driver: local
+  riptide-test-logs:
+    driver: local
+
+
+# =============================================================================
+# USAGE EXAMPLES
+# =============================================================================
+#
+# 1. Start test environment (minimal - no auth, no Redis):
+#    docker compose -f docker-compose.test.yml up -d
+#
+# 2. Start with Redis caching:
+#    docker compose -f docker-compose.test.yml --profile redis up -d
+#
+# 3. Start with headless browser support:
+#    docker compose -f docker-compose.test.yml --profile headless up -d
+#
+# 4. Start with all features:
+#    docker compose -f docker-compose.test.yml --profile redis --profile headless up -d
+#
+# 5. View logs:
+#    docker compose -f docker-compose.test.yml logs -f
+#
+# 6. Stop and clean up:
+#    docker compose -f docker-compose.test.yml down -v
+#
+# 7. Rebuild after code changes:
+#    docker compose -f docker-compose.test.yml build --no-cache
+#    docker compose -f docker-compose.test.yml up -d
+#
+# =============================================================================
+# TEST COMMANDS
+# =============================================================================
+#
+# Health check:
+#   curl http://localhost:8080/health
+#
+# Extract webpage:
+#   curl -X POST http://localhost:8080/api/extract \
+#     -H "Content-Type: application/json" \
+#     -d '{"url": "https://example.com"}'
+#
+# Batch crawl:
+#   curl -X POST http://localhost:8080/api/crawl \
+#     -H "Content-Type: application/json" \
+#     -d '{"urls": ["https://example.com", "https://docs.rs"]}'
+#
+# Spider mode (deep crawl):
+#   curl -X POST http://localhost:8080/api/crawl \
+#     -H "Content-Type: application/json" \
+#     -d '{
+#       "urls": ["https://example.com"],
+#       "use_spider": true,
+#       "max_depth": 2,
+#       "max_pages": 10
+#     }'
+#
+# View metrics:
+#   curl http://localhost:8080/metrics
+#
+# =============================================================================
