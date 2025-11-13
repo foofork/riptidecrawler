@@ -68,6 +68,8 @@ pub struct HtmlExtractionOptions {
     pub extract_images: bool,
     /// Custom CSS selectors
     pub custom_selectors: Option<HashMap<String, String>>,
+    /// Specific extraction strategy to use (None = auto/UnifiedExtractor)
+    pub extraction_strategy: Option<ExtractionStrategy>,
 }
 
 /// Options for PDF extraction
@@ -222,22 +224,73 @@ impl ExtractionFacade {
         url: &str,
         options: HtmlExtractionOptions,
     ) -> Result<ExtractedData> {
-        // Use CSS extraction as default
+        // Route to specific strategy if requested
         let result = if let Some(selectors) = options.custom_selectors {
             // Custom selector extraction
             css_extract(html, url, &selectors)
                 .await
                 .map_err(|e| RiptideError::extraction(e.to_string()))?
+        } else if let Some(strategy) = options.extraction_strategy {
+            // Use specific requested strategy
+            match strategy {
+                ExtractionStrategy::HtmlCss => {
+                    // Use native CSS extractor directly
+                    let css_extractor = CssExtractorStrategy::new();
+                    css_extractor
+                        .extract(html, url)
+                        .await
+                        .map_err(|e| RiptideError::extraction(e.to_string()))?
+                }
+                ExtractionStrategy::Wasm => {
+                    // Use WASM extractor if available
+                    #[cfg(feature = "wasm-extractor")]
+                    {
+                        let wasm_extractor = StrategyWasmExtractor::new(
+                            std::env::var("WASM_EXTRACTOR_PATH").ok().as_deref()
+                        )
+                        .await
+                        .map_err(|e| RiptideError::extraction(e.to_string()))?;
+
+                        wasm_extractor
+                            .extract(html, url)
+                            .await
+                            .map_err(|e| RiptideError::extraction(e.to_string()))?
+                    }
+                    #[cfg(not(feature = "wasm-extractor"))]
+                    {
+                        return Err(RiptideError::extraction(
+                            "WASM extractor not available - compile with 'wasm-extractor' feature"
+                        ));
+                    }
+                }
+                ExtractionStrategy::Fallback => {
+                    // Use UnifiedExtractor (native-first with WASM fallback)
+                    let extractor = UnifiedExtractor::new(None)
+                        .await
+                        .map_err(|e| RiptideError::extraction(e.to_string()))?;
+
+                    extractor
+                        .extract(html, url)
+                        .await
+                        .map_err(|e| RiptideError::extraction(e.to_string()))?
+                }
+                _ => {
+                    return Err(RiptideError::extraction(format!(
+                        "Strategy {:?} not implemented for HTML extraction",
+                        strategy
+                    )));
+                }
+            }
         } else {
-            // Use UnifiedExtractor (native-first with WASM fallback)
+            // Default: Use UnifiedExtractor (auto mode - native-first with WASM fallback)
             let extractor = UnifiedExtractor::new(std::env::var("WASM_EXTRACTOR_PATH").ok().as_deref())
                 .await
                 .map_err(|e| RiptideError::extraction(e.to_string()))?;
 
-            let extracted = extractor.extract(html, url)
+            extractor
+                .extract(html, url)
                 .await
-                .map_err(|e| RiptideError::extraction(e.to_string()))?;
-            extracted
+                .map_err(|e| RiptideError::extraction(e.to_string()))?
         };
 
         // Extract metadata, links, and images using simple extraction

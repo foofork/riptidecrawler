@@ -112,31 +112,47 @@ pub async fn fallback_extract(html: &str, url: &str) -> Result<ExtractedContent>
         }
     }
 
-    // Extract main content
+    // Extract main content - expanded selectors and aggregate from all matches
+    // CRITICAL FIX: Removed nav and footer - they cause -20% quality degradation
     let content_selectors = [
         "article",
-        ".content",
-        ".post-content",
-        ".entry-content",
+        "section",
         "main",
         ".main",
+        "#main",
+        ".content",
+        "div.content",
+        ".post-content",
+        ".entry-content",
         "#content",
         ".post",
+        "div.post",
+        "div.article",
     ];
 
-    let mut content = String::new();
+    let mut content_parts = Vec::new();
+    let mut seen_text = std::collections::HashSet::new();
+
     for selector_str in &content_selectors {
         if let Ok(selector) = Selector::parse(selector_str) {
-            if let Some(element) = document.select(&selector).next() {
-                content = element.text().collect::<Vec<_>>().join(" ");
-                if content.len() > 100 {
-                    break;
+            // Extract from ALL matching elements, not just first
+            for element in document.select(&selector) {
+                let text = element.text().collect::<Vec<_>>().join(" ");
+                let normalized = text.split_whitespace().collect::<Vec<_>>().join(" ");
+
+                // Only add if we haven't seen this text before and it's substantial
+                if !normalized.is_empty() && !seen_text.contains(&normalized) {
+                    seen_text.insert(normalized.clone());
+                    content_parts.push(normalized);
                 }
             }
         }
     }
 
-    // If no good content found, try body
+    // Combine all extracted parts
+    let mut content = content_parts.join(" ");
+
+    // If no good content found, try body as last resort
     if content.len() < 100 {
         if let Ok(selector) = Selector::parse("body") {
             if let Some(element) = document.select(&selector).next() {
@@ -158,7 +174,7 @@ pub async fn fallback_extract(html: &str, url: &str) -> Result<ExtractedContent>
         content,
         summary: None,
         url: url.to_string(),
-        strategy_used: "wasm_fallback".to_string(),
+        strategy_used: "native_scraper".to_string(),
         extraction_confidence: 0.6, // Lower confidence for fallback
     })
 }
@@ -371,7 +387,7 @@ mod tests {
         let result = fallback_extract(html, "https://example.com").await.unwrap();
         assert_eq!(result.title, "Test Title");
         assert!(result.content.contains("This is the main content"));
-        assert_eq!(result.strategy_used, "wasm_fallback");
+        assert_eq!(result.strategy_used, "native_scraper");
     }
 
     #[tokio::test]

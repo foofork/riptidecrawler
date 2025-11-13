@@ -44,7 +44,7 @@ impl Default for ParserConfig {
             extract_categories: true,
             max_content_length: 10_000_000, // 10MB
             parse_timeout_ms: 5000,         // 5 seconds
-            min_quality_score: 30,
+            min_quality_score: 15,          // Lowered from 30 to allow more content through
         }
     }
 }

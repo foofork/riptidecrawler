@@ -40,33 +40,56 @@ impl ContentExtractor {
             "main article",
         ];
 
+        let mut all_content = Vec::new();
+        let mut seen_text = std::collections::HashSet::new();
+
         for selector_str in &selectors {
             if let Ok(selector) = Selector::parse(selector_str) {
-                if let Some(element) = document.select(&selector).next() {
+                // CRITICAL FIX: Iterate ALL matching elements, not just first
+                for element in document.select(&selector) {
                     let text = Self::extract_clean_text(element.html().as_str());
-                    if text.len() > 100 {
-                        return Some(text);
+                    // Deduplicate to avoid nested content repetition
+                    if !text.is_empty() && !seen_text.contains(&text) {
+                        seen_text.insert(text.clone());
+                        all_content.push(text);
                     }
                 }
             }
         }
-        None
+
+        let combined = all_content.join("\n\n");
+        if combined.len() > 100 {
+            Some(combined)
+        } else {
+            None
+        }
     }
 
     fn extract_main_content(document: &Html) -> Option<String> {
         let selectors = ["main", "[role='main']", ".main-content", "#content"];
 
+        let mut all_content = Vec::new();
+        let mut seen_text = std::collections::HashSet::new();
+
         for selector_str in &selectors {
             if let Ok(selector) = Selector::parse(selector_str) {
-                if let Some(element) = document.select(&selector).next() {
+                // CRITICAL FIX: Iterate ALL matching elements
+                for element in document.select(&selector) {
                     let text = Self::extract_clean_text(element.html().as_str());
-                    if text.len() > 100 {
-                        return Some(text);
+                    if !text.is_empty() && !seen_text.contains(&text) {
+                        seen_text.insert(text.clone());
+                        all_content.push(text);
                     }
                 }
             }
         }
-        None
+
+        let combined = all_content.join("\n\n");
+        if combined.len() > 100 {
+            Some(combined)
+        } else {
+            None
+        }
     }
 
     fn extract_body_content(document: &Html) -> Option<String> {
@@ -83,18 +106,35 @@ impl ContentExtractor {
     fn extract_clean_text(html: &str) -> String {
         let doc = Html::parse_fragment(html);
 
-        // Remove scripts and styles
+        // First, remove nav and footer content to prevent quality degradation
+        let exclude_selectors = ["nav", "footer", "script", "style", "noscript"];
+        let mut excluded_text = std::collections::HashSet::new();
+
+        for selector_str in &exclude_selectors {
+            if let Ok(selector) = Selector::parse(selector_str) {
+                for element in doc.select(&selector) {
+                    let text: String = element.text().collect();
+                    excluded_text.insert(text);
+                }
+            }
+        }
+
         let mut text = String::new();
 
-        // Extract text from paragraphs, headings, list items
-        let content_selectors = ["p", "h1", "h2", "h3", "h4", "h5", "h6", "li", "blockquote"];
+        // CRITICAL FIX: Expanded content selectors to capture more content
+        let content_selectors = [
+            "p", "h1", "h2", "h3", "h4", "h5", "h6",
+            "li", "blockquote", "div", "section", "aside",
+            "code", "pre", "span"
+        ];
 
         for selector_str in &content_selectors {
             if let Ok(selector) = Selector::parse(selector_str) {
                 for element in doc.select(&selector) {
                     let element_text: String = element.text().collect();
                     let cleaned = element_text.trim();
-                    if !cleaned.is_empty() {
+                    // Skip if empty or from excluded sections
+                    if !cleaned.is_empty() && !excluded_text.iter().any(|ex| ex.contains(cleaned)) {
                         text.push_str(cleaned);
                         text.push('\n');
                     }
