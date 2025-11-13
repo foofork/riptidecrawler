@@ -1,16 +1,13 @@
 //! Extraction method types for facade-level extraction strategies
 //!
 //! This module defines the implementation-level extraction methods used by
-//! the facade layer, separate from the high-level domain strategies in
-//! `riptide-schemas`.
+//! the facade layer for concrete extraction approaches.
 
 use serde::{Deserialize, Serialize};
 
 /// Extraction method for facade-level content processing
 ///
-/// Defines the concrete extraction approach to use, distinct from the
-/// high-level `ExtractionStrategy` in riptide-schemas which defines
-/// domain-level strategies (ICS, JsonLd, LLM, etc).
+/// Defines the concrete extraction approach to use for processing content.
 ///
 /// These methods represent the actual implementation techniques:
 /// - **HtmlCss**: Use CSS selectors for HTML content

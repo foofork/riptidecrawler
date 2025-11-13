@@ -14,7 +14,8 @@ use std::sync::Arc;
 ///
 /// This is used to create orchestrators in integration tests.
 /// Only use in test code.
-pub async fn create_test_state() -> AppState {
+#[allow(dead_code)]
+async fn create_test_state() -> AppState {
     let config = AppConfig::default();
     let health_checker = Arc::new(HealthChecker::new());
     AppState::new(config, health_checker)
@@ -23,7 +24,8 @@ pub async fn create_test_state() -> AppState {
 }
 
 /// Create a PipelineOrchestrator for testing
-pub async fn create_test_pipeline_orchestrator(
+#[allow(dead_code)]
+async fn create_test_pipeline_orchestrator(
     state: AppState,
     options: CrawlOptions,
 ) -> Arc<PipelineOrchestrator> {
@@ -31,7 +33,8 @@ pub async fn create_test_pipeline_orchestrator(
 }
 
 /// Create a StrategiesPipelineOrchestrator for testing
-pub async fn create_test_strategies_orchestrator(
+#[allow(dead_code)]
+async fn create_test_strategies_orchestrator(
     state: AppState,
     options: CrawlOptions,
 ) -> Arc<StrategiesPipelineOrchestrator> {

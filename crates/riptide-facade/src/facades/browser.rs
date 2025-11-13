@@ -1252,7 +1252,6 @@ mod tests {
     // Integration test (requires browser)
     #[tokio::test]
     #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
-    #[ignore] // Ignore by default, run with --ignored flag
     async fn test_browser_launch_and_close() {
         let config = RiptideConfig::default();
         let facade = BrowserFacade::new(config).await.unwrap();
@@ -1264,7 +1263,6 @@ mod tests {
     // Integration test (requires browser and network)
     #[tokio::test]
     #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
-    #[ignore]
     async fn test_browser_navigation() {
         let config = RiptideConfig::default();
         let facade = BrowserFacade::new(config).await.unwrap();
@@ -1279,7 +1277,6 @@ mod tests {
     // Integration test (requires browser and network)
     #[tokio::test]
     #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
-    #[ignore]
     async fn test_browser_screenshot() {
         let config = RiptideConfig::default();
         let facade = BrowserFacade::new(config).await.unwrap();
@@ -1300,7 +1297,6 @@ mod tests {
     // Integration test (requires browser and network)
     #[tokio::test]
     #[ignore = "requires Chrome - run with: cargo test -- --ignored"]
-    #[ignore]
     async fn test_browser_content() {
         let config = RiptideConfig::default();
         let facade = BrowserFacade::new(config).await.unwrap();
