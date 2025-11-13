@@ -96,6 +96,11 @@ enum Commands {
     /// List, inspect, and use different extraction strategies (native/wasm/headless).
     Strategies(commands::strategies::StrategyArgs),
 
+    /// Basic crawl with optional streaming
+    ///
+    /// Perform a basic crawl of URLs with configurable depth and streaming support.
+    Crawl(commands::crawl::CrawlArgs),
+
     /// PDF extraction and processing
     ///
     /// Extract content from PDF files with optional OCR support.
@@ -144,6 +149,7 @@ async fn run() -> Result<()> {
         Commands::Strategies(args) => {
             commands::strategies::execute(client, args, cli.output).await
         }
+        Commands::Crawl(args) => commands::crawl::execute(client, args, cli.output).await,
         #[cfg(feature = "pdf")]
         Commands::Pdf(args) => commands::pdf::execute(&args).await,
     }
