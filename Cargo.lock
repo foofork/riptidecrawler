@@ -6737,7 +6737,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-api"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-stream",
@@ -6827,7 +6827,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-browser"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6848,7 +6848,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-cache"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6884,7 +6884,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-cli"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -6913,7 +6913,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-config"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "once_cell",
@@ -6929,7 +6929,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-events"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6953,7 +6953,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-extraction"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7010,7 +7010,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-facade"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-stream",
@@ -7054,7 +7054,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-fetch"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7096,7 +7096,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-headless"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -7118,7 +7118,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-intelligence"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -7156,7 +7156,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-monitoring"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7191,7 +7191,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-pdf"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7221,7 +7221,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-performance"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7267,7 +7267,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-persistence"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7309,7 +7309,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-pool"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7332,7 +7332,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-reliability"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7359,7 +7359,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-search"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7380,7 +7380,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-security"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7405,7 +7405,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-spider"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7444,7 +7444,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-stealth"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "dashmap 6.1.0",
@@ -7459,7 +7459,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-streaming"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-stream",
@@ -7512,7 +7512,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-test-utils"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -7525,7 +7525,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-types"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7547,7 +7547,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-utils"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7568,7 +7568,7 @@ dependencies = [
 
 [[package]]
 name = "riptide-workers"
-version = "0.9.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-trait",
