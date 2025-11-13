@@ -96,11 +96,13 @@ struct MetadataOutput {
 /// Execute the PDF command
 #[cfg(feature = "riptide-pdf")]
 pub async fn execute(args: &PdfArgs) -> Result<()> {
-
     // Validate format
     match args.format.to_lowercase().as_str() {
         "text" | "markdown" | "json" => {}
-        _ => anyhow::bail!("Invalid format: {}. Supported formats: text, markdown, json", args.format),
+        _ => anyhow::bail!(
+            "Invalid format: {}. Supported formats: text, markdown, json",
+            args.format
+        ),
     }
 
     // Validate page range if specified
@@ -119,8 +121,8 @@ pub async fn execute(args: &PdfArgs) -> Result<()> {
 
     // Handle metadata-only extraction
     if args.metadata {
-        let metadata = pdf_impl::extract_metadata(&pdf_data)
-            .context("Failed to extract PDF metadata")?;
+        let metadata =
+            pdf_impl::extract_metadata(&pdf_data).context("Failed to extract PDF metadata")?;
 
         let output = format_metadata_output(&metadata, &args.format)?;
         pdf_impl::write_output(&output, args.output.as_deref())
@@ -132,8 +134,8 @@ pub async fn execute(args: &PdfArgs) -> Result<()> {
     let output = match args.format.to_lowercase().as_str() {
         "text" => {
             eprintln!("Extracting text...");
-            let text = pdf_impl::extract_text(&pdf_data)
-                .context("Failed to extract text from PDF")?;
+            let text =
+                pdf_impl::extract_text(&pdf_data).context("Failed to extract text from PDF")?;
 
             if args.tables {
                 let tables = pdf_impl::extract_tables(&pdf_data)
@@ -158,15 +160,16 @@ pub async fn execute(args: &PdfArgs) -> Result<()> {
         "json" => {
             eprintln!("Extracting content as JSON...");
             let text = if !args.tables {
-                Some(pdf_impl::extract_text(&pdf_data)
-                    .context("Failed to extract text from PDF")?)
+                Some(pdf_impl::extract_text(&pdf_data).context("Failed to extract text from PDF")?)
             } else {
                 None
             };
 
             let tables = if args.tables {
-                Some(pdf_impl::extract_tables(&pdf_data)
-                    .context("Failed to extract tables from PDF")?)
+                Some(
+                    pdf_impl::extract_tables(&pdf_data)
+                        .context("Failed to extract tables from PDF")?,
+                )
             } else {
                 None
             };
@@ -180,8 +183,7 @@ pub async fn execute(args: &PdfArgs) -> Result<()> {
     };
 
     // Write output
-    pdf_impl::write_output(&output, args.output.as_deref())
-        .context("Failed to write output")?;
+    pdf_impl::write_output(&output, args.output.as_deref()).context("Failed to write output")?;
 
     eprintln!("PDF processing completed successfully");
     Ok(())
@@ -197,7 +199,6 @@ pub async fn execute(_args: &PdfArgs) -> Result<()> {
 
 #[cfg(feature = "riptide-pdf")]
 fn format_text_with_tables(text: &str, tables: &[riptide_pdf::ExtractedTable]) -> String {
-
     let mut output = text.to_string();
 
     if !tables.is_empty() {
@@ -241,8 +242,7 @@ fn format_metadata_output(metadata: &riptide_pdf::PdfDocMetadata, format: &str) 
                 page_count: metadata.page_count,
             };
 
-            serde_json::to_string_pretty(&output)
-                .context("Failed to serialize metadata to JSON")
+            serde_json::to_string_pretty(&output).context("Failed to serialize metadata to JSON")
         }
         "text" | "markdown" => {
             let mut output = String::new();
@@ -317,8 +317,7 @@ fn format_json_output(
         metadata: metadata_output,
     };
 
-    serde_json::to_string_pretty(&output)
-        .context("Failed to serialize output to JSON")
+    serde_json::to_string_pretty(&output).context("Failed to serialize output to JSON")
 }
 
 #[cfg(test)]
@@ -348,17 +347,15 @@ mod tests {
         use riptide_pdf::ExtractedTable;
 
         let text = "Sample text content";
-        let tables = vec![
-            ExtractedTable {
-                page: 1,
-                headers: vec!["Header 1".to_string(), "Header 2".to_string()],
-                rows: vec![
-                    vec!["Row 1 Col 1".to_string(), "Row 1 Col 2".to_string()],
-                    vec!["Row 2 Col 1".to_string(), "Row 2 Col 2".to_string()],
-                ],
-                position: None,
-            },
-        ];
+        let tables = vec![ExtractedTable {
+            page: 1,
+            headers: vec!["Header 1".to_string(), "Header 2".to_string()],
+            rows: vec![
+                vec!["Row 1 Col 1".to_string(), "Row 1 Col 2".to_string()],
+                vec!["Row 2 Col 1".to_string(), "Row 2 Col 2".to_string()],
+            ],
+            position: None,
+        }];
 
         let output = format_text_with_tables(text, &tables);
 
@@ -386,11 +383,7 @@ mod tests {
             encrypted: false,
         };
 
-        let output = format_json_output(
-            Some("Test text".to_string()),
-            None,
-            Some(metadata),
-        );
+        let output = format_json_output(Some("Test text".to_string()), None, Some(metadata));
 
         assert!(output.is_ok());
         let json = output.unwrap();

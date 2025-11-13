@@ -13,16 +13,37 @@ High-performance web crawling & extraction in Rust. Built for speed, reliability
 * Real-time streaming (NDJSON/SSE/WebSocket)
 * Multi-LLM provider routing and failover
 
-## Quick start (local)
+## ⚡ Quick Test (No Auth, No Setup)
+
+**Want to try RipTide instantly?** Use Docker test mode with zero configuration:
+
+```bash
+# Start test environment (no authentication required)
+docker compose -f docker-compose.test.yml up -d
+
+# Test extraction:
+curl -X POST http://localhost:8080/api/extract \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com"}'
+
+# Or run automated tests:
+./scripts/quick-test.sh
+```
+
+**🔥 That's it!** See [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md) for more testing options.
+
+---
+
+## Quick start (local dev)
 
 ```bash
 git clone <repo>
-cp .env.example .env   # add SERPER_API_KEY if you use search
+cp .env.test .env      # Pre-configured for testing (no auth)
 # Minimal mode (no Redis)
-docker compose -f docker-compose.minimal.yml up -d
-# or
-cargo run --release -- --config config/deployment/minimal.toml
-curl http://localhost:8080/healthz
+docker compose -f docker-compose.test.yml up -d
+# or with Cargo:
+cargo run --release
+curl http://localhost:8080/health
 ```
 
 ## Deployment modes

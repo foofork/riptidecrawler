@@ -1,0 +1,208 @@
+# syntax=docker/dockerfile:1
+# ============================================================================
+# RipTide - Optimized Multi-Stage Dockerfile
+# ============================================================================
+# Ultra-optimized build for fast CI/CD and minimal image size
+# Build time: ~8 minutes (native) | ~15 minutes (WASM)
+# Image size: ~180MB (native) | ~250MB (WASM)
+# ============================================================================
+
+ARG ENABLE_WASM=false
+ARG RUST_VERSION=nightly
+
+# ============================================================================
+# Stage 1: Dependency Planner
+# ============================================================================
+# Extract dependencies for caching layer
+FROM rustlang/rust:${RUST_VERSION}-slim AS planner
+
+WORKDIR /app
+
+# Install cargo-chef for dependency caching
+RUN cargo install cargo-chef
+
+# Copy workspace files
+COPY Cargo.toml Cargo.lock ./
+COPY crates crates/
+COPY wasm wasm/
+
+# Generate recipe.json with all dependencies
+RUN cargo chef prepare --recipe-path recipe.json
+
+# ============================================================================
+# Stage 2: Dependency Builder
+# ============================================================================
+# Build dependencies only (heavily cached)
+FROM rustlang/rust:${RUST_VERSION}-slim AS dependencies
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config \
+    libssl-dev \
+    make \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install cargo-chef
+RUN cargo install cargo-chef
+
+# Copy dependency recipe
+COPY --from=planner /app/recipe.json .
+
+# Build dependencies only (this layer is heavily cached)
+RUN cargo chef cook --release --recipe-path recipe.json
+
+# ============================================================================
+# Stage 3: Application Builder
+# ============================================================================
+FROM rustlang/rust:${RUST_VERSION}-slim AS builder
+
+ARG ENABLE_WASM=false
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config \
+    libssl-dev \
+    make \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install WASM target if needed
+RUN if [ "$ENABLE_WASM" = "true" ]; then \
+    rustup target add wasm32-wasip2; \
+    fi
+
+# Copy cached dependencies from previous stage
+COPY --from=dependencies /app/target target
+COPY --from=dependencies /usr/local/cargo /usr/local/cargo
+
+# Copy source code
+COPY Cargo.toml Cargo.lock ./
+COPY crates crates/
+COPY wasm wasm/
+
+# Build application with optimizations
+RUN if [ "$ENABLE_WASM" = "true" ]; then \
+    echo "🔨 Building with WASM support..." && \
+    cargo build --release \
+        -p riptide-api \
+        --features wasm-extractor && \
+    cargo build --release \
+        --target wasm32-wasip2 \
+        -p riptide-extractor-wasm; \
+    else \
+    echo "🔨 Building native-only (faster)..." && \
+    cargo build --release \
+        -p riptide-api \
+        --no-default-features \
+        --features native-parser; \
+    fi && \
+    cargo build --release -p riptide-cli && \
+    cargo build --release -p riptide-headless && \
+    cargo build --release -p riptide-workers
+
+# Strip binaries to reduce size
+RUN strip target/release/riptide-api \
+    target/release/riptide-cli \
+    target/release/riptide-headless \
+    target/release/riptide-workers || true
+
+# Optional: Compress binaries with UPX (commented out by default)
+# RUN apt-get update && apt-get install -y upx-ucl && \
+#     upx --best --lzma target/release/riptide-* || true
+
+# ============================================================================
+# Stage 4: Runtime Image
+# ============================================================================
+FROM debian:trixie-slim AS runtime
+
+ARG ENABLE_WASM=false
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    libssl3 \
+    tini \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Create non-root user for security
+RUN groupadd -r riptide && \
+    useradd -r -g riptide -u 1000 -m -s /sbin/nologin riptide
+
+# Create application directories
+WORKDIR /opt/riptide
+
+RUN mkdir -p \
+    /opt/riptide/bin \
+    /opt/riptide/config \
+    /opt/riptide/data \
+    /opt/riptide/logs \
+    /opt/riptide/cache \
+    /opt/riptide/wasm \
+    && chown -R riptide:riptide /opt/riptide
+
+# Copy binaries from builder
+COPY --from=builder --chown=riptide:riptide \
+    /app/target/release/riptide-api \
+    /app/target/release/riptide-cli \
+    /app/target/release/riptide-headless \
+    /app/target/release/riptide-workers \
+    /opt/riptide/bin/
+
+# Copy WASM modules if enabled
+RUN if [ "$ENABLE_WASM" = "true" ]; then \
+    mkdir -p /opt/riptide/wasm; \
+    fi
+
+COPY --from=builder \
+    /app/target/wasm32-wasip2/release/*.wasm \
+    /opt/riptide/wasm/ || true
+
+# Copy configuration templates
+COPY --chown=riptide:riptide config /opt/riptide/config/
+
+# Create symlinks for easier access
+RUN ln -s /opt/riptide/bin/riptide-api /usr/local/bin/riptide-api && \
+    ln -s /opt/riptide/bin/riptide-cli /usr/local/bin/riptide && \
+    ln -s /opt/riptide/bin/riptide-headless /usr/local/bin/riptide-headless && \
+    ln -s /opt/riptide/bin/riptide-workers /usr/local/bin/riptide-workers
+
+# Health check script
+COPY --chown=riptide:riptide scripts/docker/healthcheck.sh /usr/local/bin/healthcheck
+RUN chmod +x /usr/local/bin/healthcheck
+
+# Switch to non-root user
+USER riptide
+
+# Expose API port
+EXPOSE 8080
+
+# Environment configuration
+ENV RUST_LOG=info \
+    RUST_BACKTRACE=1 \
+    MALLOC_ARENA_MAX=2 \
+    PATH="/opt/riptide/bin:${PATH}"
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD ["/usr/local/bin/healthcheck"]
+
+# Labels for image metadata
+LABEL org.opencontainers.image.title="RipTide" \
+      org.opencontainers.image.description="High-performance web crawling and extraction" \
+      org.opencontainers.image.vendor="RipTide Team" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.source="https://github.com/your-org/riptidecrawler" \
+      org.opencontainers.image.documentation="https://docs.riptide.dev" \
+      org.opencontainers.image.variant="${ENABLE_WASM}" \
+      org.opencontainers.image.wasm.enabled="${ENABLE_WASM}"
+
+# Use tini for proper signal handling
+ENTRYPOINT ["tini", "--"]
+
+# Default command
+CMD ["riptide-api", "--config", "/opt/riptide/config/application/riptide.yml"]

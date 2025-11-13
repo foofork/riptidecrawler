@@ -43,6 +43,7 @@ pub mod conditional;
 pub mod config;
 pub mod error;
 pub mod extracted;
+pub mod extraction_method; // Facade-level extraction methods
 pub mod extractors;
 pub mod http_types;
 pub mod pipeline;
@@ -64,6 +65,7 @@ pub use extracted::{
     BasicExtractedDoc, ComponentInfo, ContentChunk, ExtractedContent, ExtractedDoc,
     ExtractionQuality, ExtractionStats, HealthStatus, ParserMetadata,
 };
+pub use extraction_method::ExtractionMethod;
 pub use http_types::{
     ContentMetadata, CrawledPage, ExtractOptions, ExtractRequest, ExtractResponse,
     ParserMetadataHttp, ResultMode, SearchQuery, SearchResponse, SearchResult, SpiderResultPages,

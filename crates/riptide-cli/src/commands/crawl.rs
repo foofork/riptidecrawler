@@ -531,7 +531,10 @@ fn print_summary(response: &CrawlResponse) {
         "  Avg Processing Time: {:.2}ms",
         response.statistics.avg_processing_time_ms
     );
-    println!("  Total Processing Time: {}ms", response.statistics.total_processing_time_ms);
+    println!(
+        "  Total Processing Time: {}ms",
+        response.statistics.total_processing_time_ms
+    );
 
     println!("\nGate Decisions:");
     println!("  Raw: {}", response.statistics.gate_decisions.raw);

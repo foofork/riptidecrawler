@@ -146,9 +146,7 @@ async fn run() -> Result<()> {
         Commands::Render(args) => commands::render::execute(client, args, cli.output).await,
         Commands::Doctor(args) => commands::doctor::execute(client, args, cli.output).await,
         Commands::Session(args) => commands::session::execute(client, args, cli.output).await,
-        Commands::Strategies(args) => {
-            commands::strategies::execute(client, args, cli.output).await
-        }
+        Commands::Strategies(args) => commands::strategies::execute(client, args, cli.output).await,
         Commands::Crawl(args) => commands::crawl::execute(client, args, cli.output).await,
         #[cfg(feature = "pdf")]
         Commands::Pdf(args) => commands::pdf::execute(&args).await,

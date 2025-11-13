@@ -9,18 +9,17 @@ use std::time::Instant;
 use crate::context::ApplicationContext;
 
 // Import HTTP DTOs from riptide-types (Phase 2C.1 - breaking circular dependency)
-use riptide_types::ExtractRequest;
+use riptide_types::{ExtractRequest, ExtractionMethod};
 
-// Import ExtractionStrategy from facade
-use riptide_facade::facades::ExtractionStrategy;
-
-/// Parse strategy string to ExtractionStrategy enum
-pub(crate) fn parse_extraction_strategy(strategy_str: &str) -> Option<ExtractionStrategy> {
+/// Parse strategy string to ExtractionMethod enum
+pub(crate) fn parse_extraction_strategy(strategy_str: &str) -> Option<ExtractionMethod> {
     match strategy_str.to_lowercase().as_str() {
-        "native" | "css" => Some(ExtractionStrategy::HtmlCss),
-        "wasm" => Some(ExtractionStrategy::Wasm),
+        "native" | "css" => Some(ExtractionMethod::HtmlCss),
+        "wasm" => Some(ExtractionMethod::Wasm),
+        "regex" => Some(ExtractionMethod::HtmlRegex),
+        "fallback" => Some(ExtractionMethod::Fallback),
         "auto" | "multi" => None, // None means use default UnifiedExtractor
-        "markdown" => None, // Handled separately via as_markdown flag
+        "markdown" => None,       // Handled separately via as_markdown flag
         _ => None,
     }
 }

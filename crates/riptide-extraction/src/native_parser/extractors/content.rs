@@ -123,9 +123,21 @@ impl ContentExtractor {
 
         // CRITICAL FIX: Expanded content selectors to capture more content
         let content_selectors = [
-            "p", "h1", "h2", "h3", "h4", "h5", "h6",
-            "li", "blockquote", "div", "section", "aside",
-            "code", "pre", "span"
+            "p",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+            "li",
+            "blockquote",
+            "div",
+            "section",
+            "aside",
+            "code",
+            "pre",
+            "span",
         ];
 
         for selector_str in &content_selectors {

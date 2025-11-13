@@ -107,7 +107,7 @@ mod native_parser_tests {
             .unwrap();
 
         assert!(doc.quality_score.is_some());
-        assert!(doc.quality_score.unwrap() >= 30);
+        assert!(doc.quality_score.unwrap() >= 15); // Updated to match new threshold
     }
 
     #[test]

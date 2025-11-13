@@ -60,9 +60,10 @@ pub use engine::{
 pub use extraction::{ExtractedDoc, UrlExtractionFacade, UrlExtractionOptions};
 pub use extraction_authz::AuthorizedExtractionFacade;
 pub use extractor::{
-    ExtractedData, ExtractionFacade, ExtractionStrategy, FieldSpec, FieldType,
-    HtmlExtractionOptions, PdfExtractionOptions, Schema,
+    ExtractedData, ExtractionFacade, FieldSpec, FieldType, HtmlExtractionOptions,
+    PdfExtractionOptions, Schema,
 };
+// Re-export ExtractionMethod from types for convenience
 pub use llm::{
     LlmCapabilities, LlmFacade, LlmProvider, LlmRequest, LlmResponse,
     MetricsCollector as LlmMetricsCollector, TokenUsage,
@@ -85,6 +86,7 @@ pub use render::{
     RenderConfig, RenderFacade, RenderResult, RenderStrategy, SessionContext, SessionCookie,
 };
 pub use render_strategy::RenderStrategyFacade;
+pub use riptide_types::ExtractionMethod;
 pub use scraper::ScraperFacade;
 pub use search::SearchFacade;
 pub use session::{SessionConfig, SessionEvent, SessionFacade};

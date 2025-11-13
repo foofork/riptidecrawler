@@ -17,7 +17,7 @@ mod session_validation_tests {
         // This test documents the requirements for session ID validation
 
         // Valid session IDs:
-        let valid_ids = vec![
+        let valid_ids = [
             "abc123",
             "session-123",
             "session_456",
@@ -26,13 +26,13 @@ mod session_validation_tests {
         ];
 
         // Invalid session IDs:
-        let invalid_ids = vec![
-            "",                    // empty
-            "session@123",        // has @ symbol
-            "session 123",        // has space
-            "session#test",       // has # symbol
-            "session/test",       // has / symbol
-            "session\\test",      // has backslash
+        let invalid_ids = [
+            "",              // empty
+            "session@123",   // has @ symbol
+            "session 123",   // has space
+            "session#test",  // has # symbol
+            "session/test",  // has / symbol
+            "session\\test", // has backslash
         ];
 
         // Since validation functions are private, this test documents expected behavior
@@ -49,7 +49,7 @@ mod session_validation_tests {
     #[test]
     fn test_url_validation_requirements() {
         // Valid URLs:
-        let valid_urls = vec![
+        let valid_urls = [
             "http://example.com",
             "https://example.com",
             "http://subdomain.example.com",
@@ -58,13 +58,13 @@ mod session_validation_tests {
         ];
 
         // Invalid URLs:
-        let invalid_urls = vec![
-            "",                           // empty
-            "example.com",               // missing scheme
-            "ftp://example.com",         // wrong scheme
-            "http://",                   // no domain
-            "https://",                  // no domain
-            "http://localhost",          // no dot (basic check)
+        let invalid_urls = [
+            "",                  // empty
+            "example.com",       // missing scheme
+            "ftp://example.com", // wrong scheme
+            "http://",           // no domain
+            "https://",          // no domain
+            "http://localhost",  // no dot (basic check)
         ];
 
         assert!(valid_urls.len() == 5);
@@ -78,10 +78,10 @@ mod session_validation_tests {
     #[test]
     fn test_response_status_requirements() {
         // Success codes:
-        let success_codes = vec![200, 201, 204];
+        let success_codes = [200, 201, 204];
 
         // Error codes that should fail:
-        let error_codes = vec![400, 401, 403, 404, 500, 502, 503];
+        let error_codes = [400, 401, 403, 404, 500, 502, 503];
 
         assert!(success_codes.len() == 3);
         assert!(error_codes.len() == 7);

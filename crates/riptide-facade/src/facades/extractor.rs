@@ -15,43 +15,13 @@ use riptide_extraction::{css_extract, ContentExtractor, CssExtractorStrategy, Un
 use riptide_extraction::StrategyWasmExtractor;
 
 use riptide_pdf::{create_pdf_processor, AnyPdfProcessor, PdfConfig};
+use riptide_types::ExtractionMethod; // Import from types layer
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 /// Result type alias for extraction operations
 pub type Result<T> = std::result::Result<T, RiptideError>;
-
-/// Extraction strategies available
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ExtractionStrategy {
-    /// HTML extraction with CSS selectors
-    HtmlCss,
-    /// HTML extraction with regex patterns
-    HtmlRegex,
-    /// WASM-based extraction (high quality)
-    Wasm,
-    /// Fallback extraction (basic scraping)
-    Fallback,
-    /// PDF text extraction
-    PdfText,
-    /// Schema-based extraction
-    Schema,
-}
-
-impl ExtractionStrategy {
-    /// Get strategy name
-    pub fn name(&self) -> &'static str {
-        match self {
-            Self::HtmlCss => "html_css",
-            Self::HtmlRegex => "html_regex",
-            Self::Wasm => "wasm",
-            Self::Fallback => "fallback",
-            Self::PdfText => "pdf_text",
-            Self::Schema => "schema",
-        }
-    }
-}
 
 /// Options for HTML extraction
 #[derive(Debug, Clone, Default)]
@@ -68,8 +38,8 @@ pub struct HtmlExtractionOptions {
     pub extract_images: bool,
     /// Custom CSS selectors
     pub custom_selectors: Option<HashMap<String, String>>,
-    /// Specific extraction strategy to use (None = auto/UnifiedExtractor)
-    pub extraction_strategy: Option<ExtractionStrategy>,
+    /// Specific extraction method to use (None = auto/UnifiedExtractor)
+    pub extraction_strategy: Option<ExtractionMethod>,
 }
 
 /// Options for PDF extraction
@@ -233,7 +203,7 @@ impl ExtractionFacade {
         } else if let Some(strategy) = options.extraction_strategy {
             // Use specific requested strategy
             match strategy {
-                ExtractionStrategy::HtmlCss => {
+                ExtractionMethod::HtmlCss => {
                     // Use native CSS extractor directly
                     let css_extractor = CssExtractorStrategy::new();
                     css_extractor
@@ -241,12 +211,12 @@ impl ExtractionFacade {
                         .await
                         .map_err(|e| RiptideError::extraction(e.to_string()))?
                 }
-                ExtractionStrategy::Wasm => {
+                ExtractionMethod::Wasm => {
                     // Use WASM extractor if available
                     #[cfg(feature = "wasm-extractor")]
                     {
                         let wasm_extractor = StrategyWasmExtractor::new(
-                            std::env::var("WASM_EXTRACTOR_PATH").ok().as_deref()
+                            std::env::var("WASM_EXTRACTOR_PATH").ok().as_deref(),
                         )
                         .await
                         .map_err(|e| RiptideError::extraction(e.to_string()))?;
@@ -259,11 +229,11 @@ impl ExtractionFacade {
                     #[cfg(not(feature = "wasm-extractor"))]
                     {
                         return Err(RiptideError::extraction(
-                            "WASM extractor not available - compile with 'wasm-extractor' feature"
+                            "WASM extractor not available - compile with 'wasm-extractor' feature",
                         ));
                     }
                 }
-                ExtractionStrategy::Fallback => {
+                ExtractionMethod::Fallback => {
                     // Use UnifiedExtractor (native-first with WASM fallback)
                     let extractor = UnifiedExtractor::new(None)
                         .await
@@ -283,9 +253,10 @@ impl ExtractionFacade {
             }
         } else {
             // Default: Use UnifiedExtractor (auto mode - native-first with WASM fallback)
-            let extractor = UnifiedExtractor::new(std::env::var("WASM_EXTRACTOR_PATH").ok().as_deref())
-                .await
-                .map_err(|e| RiptideError::extraction(e.to_string()))?;
+            let extractor =
+                UnifiedExtractor::new(std::env::var("WASM_EXTRACTOR_PATH").ok().as_deref())
+                    .await
+                    .map_err(|e| RiptideError::extraction(e.to_string()))?;
 
             extractor
                 .extract(html, url)
@@ -418,12 +389,12 @@ impl ExtractionFacade {
         })
     }
 
-    /// Extract content with a specific strategy
+    /// Extract content with a specific method
     pub async fn extract_with_strategy(
         &self,
         content: &str,
         url: &str,
-        strategy: ExtractionStrategy,
+        strategy: ExtractionMethod,
     ) -> Result<ExtractedData> {
         let strategy_name = strategy.name();
         let start_time = std::time::Instant::now();
@@ -436,7 +407,7 @@ impl ExtractionFacade {
         );
 
         let result = match strategy {
-            ExtractionStrategy::HtmlCss => {
+            ExtractionMethod::HtmlCss => {
                 let extractors = self.extractors.read().await;
                 if let Some(extractor) = extractors.get_strategy("html_css") {
                     extractor
@@ -447,7 +418,7 @@ impl ExtractionFacade {
                     return Err(RiptideError::extraction("CSS extractor not available"));
                 }
             }
-            ExtractionStrategy::Wasm => {
+            ExtractionMethod::Wasm => {
                 let extractors = self.extractors.read().await;
                 if let Some(extractor) = extractors.get_strategy("wasm") {
                     extractor
@@ -458,13 +429,14 @@ impl ExtractionFacade {
                     return Err(RiptideError::extraction("WASM extractor not available"));
                 }
             }
-            ExtractionStrategy::Fallback => {
+            ExtractionMethod::Fallback => {
                 // Use UnifiedExtractor with native-first strategy
                 let extractor = UnifiedExtractor::new(None)
                     .await
                     .map_err(|e| RiptideError::extraction(e.to_string()))?;
 
-                extractor.extract(content, url)
+                extractor
+                    .extract(content, url)
                     .await
                     .map_err(|e| RiptideError::extraction(e.to_string()))?
             }
@@ -505,7 +477,7 @@ impl ExtractionFacade {
         &self,
         content: &str,
         url: &str,
-        strategies: &[ExtractionStrategy],
+        strategies: &[ExtractionMethod],
     ) -> Result<ExtractedData> {
         let mut last_error = None;
         let mut best_result: Option<ExtractedData> = None;
@@ -800,9 +772,9 @@ mod tests {
         "#;
 
         let strategies = vec![
-            ExtractionStrategy::Wasm,
-            ExtractionStrategy::HtmlCss,
-            ExtractionStrategy::Fallback,
+            ExtractionMethod::Wasm,
+            ExtractionMethod::HtmlCss,
+            ExtractionMethod::Fallback,
         ];
 
         let result = facade

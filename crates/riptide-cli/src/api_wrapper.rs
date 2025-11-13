@@ -12,10 +12,7 @@ pub struct ApiWrapper {
 
 impl ApiWrapper {
     /// Create a new API wrapper
-    pub fn new(
-        client: ApiClient,
-        execution_mode: ExecutionMode,
-    ) -> Result<Self> {
+    pub fn new(client: ApiClient, execution_mode: ExecutionMode) -> Result<Self> {
         Ok(Self {
             client,
             execution_mode,

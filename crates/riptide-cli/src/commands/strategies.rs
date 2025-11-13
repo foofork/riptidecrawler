@@ -66,11 +66,7 @@ struct CrawlRequest {
 }
 
 /// Execute the strategies command
-pub async fn execute(
-    client: ApiClient,
-    args: StrategyArgs,
-    output_format: String,
-) -> Result<()> {
+pub async fn execute(client: ApiClient, args: StrategyArgs, output_format: String) -> Result<()> {
     match args.command {
         StrategyCommands::List => execute_list(client, output_format).await,
         StrategyCommands::Info { name } => execute_info(client, name, output_format).await,
@@ -266,7 +262,12 @@ fn print_strategies_text(response: &StrategyResponse) -> Result<()> {
     println!("Available Strategies:\n");
 
     for (i, strategy) in response.alternatives.iter().enumerate() {
-        println!("{}. {} (Score: {:.2})", i + 1, strategy.strategy, strategy.score);
+        println!(
+            "{}. {} (Score: {:.2})",
+            i + 1,
+            strategy.strategy,
+            strategy.score
+        );
 
         if !strategy.pros.is_empty() {
             println!("   Pros:");
@@ -311,10 +312,7 @@ fn print_strategy_info(strategy: &AlternativeStrategy, format: OutputFormat) -> 
                 .apply_modifier(UTF8_ROUND_CORNERS)
                 .set_header(vec!["Property", "Value"]);
 
-            table.add_row(vec![
-                Cell::new("Strategy"),
-                Cell::new(&strategy.strategy),
-            ]);
+            table.add_row(vec![Cell::new("Strategy"), Cell::new(&strategy.strategy)]);
 
             let score_cell = {
                 let score = strategy.score;
@@ -330,15 +328,9 @@ fn print_strategy_info(strategy: &AlternativeStrategy, format: OutputFormat) -> 
 
             table.add_row(vec![Cell::new("Score"), score_cell]);
 
-            table.add_row(vec![
-                Cell::new("Pros"),
-                Cell::new(strategy.pros.join("\n")),
-            ]);
+            table.add_row(vec![Cell::new("Pros"), Cell::new(strategy.pros.join("\n"))]);
 
-            table.add_row(vec![
-                Cell::new("Cons"),
-                Cell::new(strategy.cons.join("\n")),
-            ]);
+            table.add_row(vec![Cell::new("Cons"), Cell::new(strategy.cons.join("\n"))]);
 
             println!("{}", table);
         }
@@ -406,10 +398,7 @@ fn print_crawl_result(response: &StrategyResponse, format: OutputFormat) -> Resu
 
             table.add_row(vec![Cell::new("Confidence"), confidence_cell]);
 
-            table.add_row(vec![
-                Cell::new("Reasoning"),
-                Cell::new(&response.reasoning),
-            ]);
+            table.add_row(vec![Cell::new("Reasoning"), Cell::new(&response.reasoning)]);
 
             table.add_row(vec![
                 Cell::new("Processing Time"),

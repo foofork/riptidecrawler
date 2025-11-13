@@ -111,6 +111,7 @@ pub fn convert_to_markdown(_data: &[u8]) -> Result<String> {
 
 /// Extract full PDF content
 #[cfg(feature = "riptide-pdf")]
+#[allow(dead_code)]
 pub fn extract_full_content(data: &[u8]) -> Result<riptide_pdf::PdfContent> {
     let extractor = PdfExtractor::from_bytes(data).context("Failed to create PDF extractor")?;
 
@@ -120,6 +121,7 @@ pub fn extract_full_content(data: &[u8]) -> Result<riptide_pdf::PdfContent> {
 }
 
 #[cfg(not(feature = "riptide-pdf"))]
+#[allow(dead_code)]
 pub fn extract_full_content(_data: &[u8]) -> Result<serde_json::Value> {
     anyhow::bail!("PDF processing feature not enabled. Rebuild with --features riptide-pdf")
 }

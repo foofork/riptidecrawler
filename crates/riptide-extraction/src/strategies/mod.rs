@@ -156,7 +156,7 @@ impl StrategyManager {
                         content: html_result.content,
                         summary: html_result.summary,
                         url: html_result.url,
-                        strategy_used: "wasm_fallback:regex".to_string(),
+                        strategy_used: "native_scraper:regex".to_string(),
                         extraction_confidence: html_result.extraction_confidence,
                     })
                 }

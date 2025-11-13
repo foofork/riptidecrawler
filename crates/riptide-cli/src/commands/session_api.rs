@@ -52,11 +52,7 @@ async fn check_response_status(response: reqwest::Response) -> Result<reqwest::R
             .await
             .unwrap_or_else(|_| "Unable to read error response".to_string());
 
-        bail!(
-            "API request failed with status {}: {}",
-            status,
-            error_body
-        );
+        bail!("API request failed with status {}: {}", status, error_body);
     }
 
     Ok(response)

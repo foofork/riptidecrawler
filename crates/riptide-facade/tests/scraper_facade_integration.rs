@@ -188,7 +188,7 @@ async fn test_scraper_invalid_url() {
     let test_cases = vec![
         ("not a url", "relative URL without a base"), // InvalidUrl - parse error
         ("://missing-scheme", "relative URL without a base"), // InvalidUrl - parse error
-        ("", "relative URL without a base"), // InvalidUrl - empty string parse error
+        ("", "relative URL without a base"),          // InvalidUrl - empty string parse error
     ];
 
     for (invalid_url, expected_msg) in test_cases {
