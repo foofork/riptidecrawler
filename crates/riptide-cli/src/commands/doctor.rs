@@ -11,11 +11,10 @@
 ///
 /// Provides actionable remediation steps for any failing components.
 use crate::client::ApiClient;
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use clap::Args;
 use colored::Colorize;
 use serde::{Deserialize, Serialize};
-use std::process;
 
 #[derive(Args, Clone, Debug)]
 pub struct DoctorArgs {
@@ -87,27 +86,106 @@ pub async fn execute(client: ApiClient, args: DoctorArgs, _output_format: String
     // JSON output mode
     if args.json {
         println!("{}", serde_json::to_string_pretty(&health)?);
-        if !is_healthy(&health) {
-            process::exit(1);
-        }
+        validate_health(&health)?;
         return Ok(());
     }
 
     // Human-readable output
     print_diagnostics(&health, args.full, status_code.as_u16());
 
-    // Exit with error if critical components are down
-    if !is_healthy(&health) {
-        process::exit(1);
-    }
+    // Validate health and return error if critical components are down
+    validate_health(&health)?;
 
     Ok(())
 }
 
-/// Check if system is healthy overall
-fn is_healthy(health: &HealthResponse) -> bool {
-    // Critical components: API server, Redis, Extractor, HTTP client
-    health.status == "healthy" || health.status == "degraded"
+/// Validate system health and return detailed error if unhealthy
+fn validate_health(health: &HealthResponse) -> Result<()> {
+    let mut unhealthy_components = Vec::new();
+
+    // Check critical components (must all be healthy)
+    if health.dependencies.redis.status != "healthy" {
+        unhealthy_components.push(format!(
+            "Redis: {}",
+            health
+                .dependencies
+                .redis
+                .message
+                .as_deref()
+                .unwrap_or("unhealthy")
+        ));
+    }
+
+    if health.dependencies.extractor.status != "healthy" {
+        unhealthy_components.push(format!(
+            "WASM Extractor: {}",
+            health
+                .dependencies
+                .extractor
+                .message
+                .as_deref()
+                .unwrap_or("unhealthy")
+        ));
+    }
+
+    if health.dependencies.http_client.status != "healthy" {
+        unhealthy_components.push(format!(
+            "HTTP Client: {}",
+            health
+                .dependencies
+                .http_client
+                .message
+                .as_deref()
+                .unwrap_or("unhealthy")
+        ));
+    }
+
+    // Check optional components
+    if let Some(ref headless) = health.dependencies.headless_service {
+        if headless.status != "healthy" {
+            unhealthy_components.push(format!(
+                "Headless Pool: {}",
+                headless.message.as_deref().unwrap_or("unhealthy")
+            ));
+        }
+    }
+
+    if let Some(ref spider) = health.dependencies.spider_engine {
+        if spider.status != "healthy" {
+            unhealthy_components.push(format!(
+                "Spider Engine: {}",
+                spider.message.as_deref().unwrap_or("unhealthy")
+            ));
+        }
+    }
+
+    if let Some(ref worker) = health.dependencies.worker_service {
+        if worker.status != "healthy" {
+            unhealthy_components.push(format!(
+                "Worker Service: {}",
+                worker.message.as_deref().unwrap_or("unhealthy")
+            ));
+        }
+    }
+
+    // Return error if any components are unhealthy
+    if !unhealthy_components.is_empty() {
+        bail!(
+            "Health check failed with {} unhealthy component(s):\n  - {}",
+            unhealthy_components.len(),
+            unhealthy_components.join("\n  - ")
+        );
+    }
+
+    // Also check overall status
+    if health.status != "healthy" {
+        bail!(
+            "Overall system status is '{}' (expected 'healthy')",
+            health.status
+        );
+    }
+
+    Ok(())
 }
 
 /// Print human-readable diagnostics

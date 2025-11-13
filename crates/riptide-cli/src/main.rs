@@ -10,7 +10,11 @@ mod client;
 mod commands;
 mod config;
 mod error;
+mod execution_mode;
 mod output;
+
+#[cfg(feature = "riptide-pdf")]
+mod pdf_impl;
 
 use error::ExitCode;
 
@@ -42,6 +46,14 @@ struct Cli {
     /// Verbose mode - show detailed debug information
     #[arg(long, short = 'v')]
     verbose: bool,
+
+    /// Use direct execution only (offline mode, no API calls)
+    #[arg(long, global = true)]
+    direct: bool,
+
+    /// Use API only (no fallback to direct execution)
+    #[arg(long, global = true)]
+    api_only: bool,
 
     #[command(subcommand)]
     command: Commands,
@@ -78,6 +90,17 @@ enum Commands {
     ///
     /// Manage browser sessions for sites requiring authentication.
     Session(commands::session::SessionArgs),
+
+    /// Manage extraction strategies
+    ///
+    /// List, inspect, and use different extraction strategies (native/wasm/headless).
+    Strategies(commands::strategies::StrategyArgs),
+
+    /// PDF extraction and processing
+    ///
+    /// Extract content from PDF files with optional OCR support.
+    #[cfg(feature = "pdf")]
+    Pdf(commands::pdf::PdfArgs),
 }
 
 #[tokio::main]
@@ -101,6 +124,10 @@ async fn run() -> Result<()> {
 
     let cli = Cli::parse();
 
+    // Determine execution mode from flags
+    let execution_mode = execution_mode::ExecutionMode::from_flags(cli.direct, cli.api_only);
+    log::debug!("Execution mode: {}", execution_mode.description());
+
     // Create API client with base URL and optional API key
     let client = client::ApiClient::new(cli.url, cli.api_key)?;
 
@@ -114,6 +141,11 @@ async fn run() -> Result<()> {
         Commands::Render(args) => commands::render::execute(client, args, cli.output).await,
         Commands::Doctor(args) => commands::doctor::execute(client, args, cli.output).await,
         Commands::Session(args) => commands::session::execute(client, args, cli.output).await,
+        Commands::Strategies(args) => {
+            commands::strategies::execute(client, args, cli.output).await
+        }
+        #[cfg(feature = "pdf")]
+        Commands::Pdf(args) => commands::pdf::execute(&args).await,
     }
 }
 
@@ -130,11 +162,17 @@ mod tests {
 
     #[test]
     fn test_default_values() {
+        // Ensure clean environment for this test
+        std::env::remove_var("RIPTIDE_BASE_URL");
+        std::env::remove_var("RIPTIDE_API_KEY");
+
         let cli = Cli::parse_from(["riptide", "extract", "https://example.com"]);
         assert_eq!(cli.url, "http://localhost:8080");
         assert_eq!(cli.output, "text");
         assert!(!cli.quiet);
         assert!(!cli.verbose);
+        assert!(!cli.direct);
+        assert!(!cli.api_only);
     }
 
     #[test]

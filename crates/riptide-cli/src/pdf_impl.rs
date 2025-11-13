@@ -6,7 +6,7 @@
 use anyhow::{Context, Result};
 use std::fs;
 
-#[cfg(feature = "pdf")]
+#[cfg(feature = "riptide-pdf")]
 use riptide_pdf::PdfExtractor;
 
 /// Download PDF from URL
@@ -44,7 +44,7 @@ pub async fn load_pdf(input: &str) -> Result<Vec<u8>> {
 }
 
 /// Extract text from PDF
-#[cfg(feature = "pdf")]
+#[cfg(feature = "riptide-pdf")]
 pub fn extract_text(data: &[u8]) -> Result<String> {
     let extractor = PdfExtractor::from_bytes(data).context("Failed to create PDF extractor")?;
 
@@ -55,13 +55,13 @@ pub fn extract_text(data: &[u8]) -> Result<String> {
     Ok(content.text)
 }
 
-#[cfg(not(feature = "pdf"))]
+#[cfg(not(feature = "riptide-pdf"))]
 pub fn extract_text(_data: &[u8]) -> Result<String> {
-    anyhow::bail!("PDF processing feature not enabled. Rebuild with --features pdf")
+    anyhow::bail!("PDF processing feature not enabled. Rebuild with --features riptide-pdf")
 }
 
 /// Extract tables from PDF
-#[cfg(feature = "pdf")]
+#[cfg(feature = "riptide-pdf")]
 pub fn extract_tables(data: &[u8]) -> Result<Vec<riptide_pdf::ExtractedTable>> {
     let extractor = PdfExtractor::from_bytes(data).context("Failed to create PDF extractor")?;
 
@@ -72,13 +72,13 @@ pub fn extract_tables(data: &[u8]) -> Result<Vec<riptide_pdf::ExtractedTable>> {
     Ok(content.tables)
 }
 
-#[cfg(not(feature = "pdf"))]
+#[cfg(not(feature = "riptide-pdf"))]
 pub fn extract_tables(_data: &[u8]) -> Result<Vec<serde_json::Value>> {
-    anyhow::bail!("PDF processing feature not enabled. Rebuild with --features pdf")
+    anyhow::bail!("PDF processing feature not enabled. Rebuild with --features riptide-pdf")
 }
 
 /// Extract metadata from PDF
-#[cfg(feature = "pdf")]
+#[cfg(feature = "riptide-pdf")]
 pub fn extract_metadata(data: &[u8]) -> Result<riptide_pdf::PdfDocMetadata> {
     let extractor = PdfExtractor::from_bytes(data).context("Failed to create PDF extractor")?;
 
@@ -87,13 +87,13 @@ pub fn extract_metadata(data: &[u8]) -> Result<riptide_pdf::PdfDocMetadata> {
         .context("Failed to extract PDF metadata")
 }
 
-#[cfg(not(feature = "pdf"))]
+#[cfg(not(feature = "riptide-pdf"))]
 pub fn extract_metadata(_data: &[u8]) -> Result<serde_json::Value> {
-    anyhow::bail!("PDF processing feature not enabled. Rebuild with --features pdf")
+    anyhow::bail!("PDF processing feature not enabled. Rebuild with --features riptide-pdf")
 }
 
 /// Convert PDF to markdown
-#[cfg(feature = "pdf")]
+#[cfg(feature = "riptide-pdf")]
 pub fn convert_to_markdown(data: &[u8]) -> Result<String> {
     let extractor = PdfExtractor::from_bytes(data).context("Failed to create PDF extractor")?;
 
@@ -104,13 +104,13 @@ pub fn convert_to_markdown(data: &[u8]) -> Result<String> {
     Ok(extractor.to_markdown(&content))
 }
 
-#[cfg(not(feature = "pdf"))]
+#[cfg(not(feature = "riptide-pdf"))]
 pub fn convert_to_markdown(_data: &[u8]) -> Result<String> {
-    anyhow::bail!("PDF processing feature not enabled. Rebuild with --features pdf")
+    anyhow::bail!("PDF processing feature not enabled. Rebuild with --features riptide-pdf")
 }
 
 /// Extract full PDF content
-#[cfg(feature = "pdf")]
+#[cfg(feature = "riptide-pdf")]
 pub fn extract_full_content(data: &[u8]) -> Result<riptide_pdf::PdfContent> {
     let extractor = PdfExtractor::from_bytes(data).context("Failed to create PDF extractor")?;
 
@@ -119,9 +119,9 @@ pub fn extract_full_content(data: &[u8]) -> Result<riptide_pdf::PdfContent> {
         .context("Failed to extract PDF content")
 }
 
-#[cfg(not(feature = "pdf"))]
+#[cfg(not(feature = "riptide-pdf"))]
 pub fn extract_full_content(_data: &[u8]) -> Result<serde_json::Value> {
-    anyhow::bail!("PDF processing feature not enabled. Rebuild with --features pdf")
+    anyhow::bail!("PDF processing feature not enabled. Rebuild with --features riptide-pdf")
 }
 
 /// Parse page range string (e.g., "1-5,10-15")

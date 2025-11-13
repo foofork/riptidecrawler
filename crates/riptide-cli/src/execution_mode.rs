@@ -64,6 +64,7 @@ impl ExecutionMode {
 }
 
 /// Get execution mode from environment and CLI flags
+#[allow(dead_code)] // TODO: Remove once wired into main CLI
 pub fn get_execution_mode(direct: bool, api_only: bool) -> ExecutionMode {
     ExecutionMode::from_flags(direct, api_only)
 }

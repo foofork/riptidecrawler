@@ -1,8 +1,66 @@
 use crate::client::ApiClient;
 use crate::output;
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+
+/// Validates that a session ID is non-empty and contains only alphanumeric characters and hyphens
+fn validate_session_id(session_id: &str) -> Result<()> {
+    if session_id.is_empty() {
+        bail!("Session ID cannot be empty");
+    }
+
+    if !session_id
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+    {
+        bail!("Session ID must contain only alphanumeric characters, hyphens, and underscores");
+    }
+
+    Ok(())
+}
+
+/// Validates that a URL has a proper scheme and format
+fn validate_url(url: &str) -> Result<()> {
+    if url.is_empty() {
+        bail!("URL cannot be empty");
+    }
+
+    if !url.starts_with("http://") && !url.starts_with("https://") {
+        bail!("URL must start with http:// or https://");
+    }
+
+    // Basic URL validation - check for at least a domain
+    let url_without_scheme = url
+        .strip_prefix("http://")
+        .or_else(|| url.strip_prefix("https://"))
+        .unwrap();
+
+    if url_without_scheme.is_empty() || !url_without_scheme.contains('.') {
+        bail!("Invalid URL format - must include a domain");
+    }
+
+    Ok(())
+}
+
+/// Checks HTTP response status and parses error body if request failed
+async fn check_response_status(response: reqwest::Response) -> Result<reqwest::Response> {
+    let status = response.status();
+
+    if !status.is_success() {
+        let error_body = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unable to read error response".to_string());
+
+        bail!(
+            "API request failed with status {}: {}",
+            status,
+            error_body
+        );
+    }
+
+    Ok(response)
+}
 
 #[derive(Debug, Clone, clap::Subcommand)]
 pub enum SessionApiCommands {
@@ -193,11 +251,14 @@ pub async fn execute(
         }
 
         SessionApiCommands::Get { session_id } => {
+            validate_session_id(&session_id)?;
+
             let response = client
                 .get(&format!("/sessions/{}", session_id))
                 .await
                 .context("Failed to get session")?;
 
+            let response = check_response_status(response).await?;
             let response: SessionDetails = response.json().await?;
 
             match output_format {
@@ -226,12 +287,14 @@ pub async fn execute(
         }
 
         SessionApiCommands::Delete { session_id } => {
-            // Note: delete endpoint not available in ApiClient, use POST with _method override or implement DELETE
+            validate_session_id(&session_id)?;
+
             let response = client
-                .post_json(&format!("/sessions/{}/delete", session_id), json!({}))
+                .delete(&format!("/sessions/{}", session_id))
                 .await
                 .context("Failed to delete session")?;
 
+            let response = check_response_status(response).await?;
             let _ = response.text().await?;
 
             match output_format {
@@ -241,6 +304,9 @@ pub async fn execute(
         }
 
         SessionApiCommands::Add { session_id, url } => {
+            validate_session_id(&session_id)?;
+            validate_url(&url)?;
+
             let request = AddUrlRequest { url: url.clone() };
 
             let response = client
@@ -251,6 +317,7 @@ pub async fn execute(
                 .await
                 .context("Failed to add URL to session")?;
 
+            let response = check_response_status(response).await?;
             let _ = response.text().await?;
 
             match output_format {
@@ -266,6 +333,8 @@ pub async fn execute(
             session_id,
             strategy,
         } => {
+            validate_session_id(&session_id)?;
+
             let request = ExtractRequest {
                 strategy: strategy.clone(),
             };
@@ -278,6 +347,7 @@ pub async fn execute(
                 .await
                 .context("Failed to extract session content")?;
 
+            let response = check_response_status(response).await?;
             let _ = response.text().await?;
 
             match output_format {
@@ -294,11 +364,14 @@ pub async fn execute(
         }
 
         SessionApiCommands::Results { session_id } => {
+            validate_session_id(&session_id)?;
+
             let response = client
                 .get(&format!("/sessions/{}/results", session_id))
                 .await
                 .context("Failed to get session results")?;
 
+            let response = check_response_status(response).await?;
             let response: serde_json::Value = response.json().await?;
 
             match output_format {
@@ -334,6 +407,8 @@ pub async fn execute(
         }
 
         SessionApiCommands::Export { session_id, format } => {
+            validate_session_id(&session_id)?;
+
             let response = client
                 .get(&format!(
                     "/sessions/{}/export?format={}",
@@ -342,6 +417,7 @@ pub async fn execute(
                 .await
                 .context("Failed to export session")?;
 
+            let response = check_response_status(response).await?;
             let response: serde_json::Value = response.json().await?;
 
             match output_format {

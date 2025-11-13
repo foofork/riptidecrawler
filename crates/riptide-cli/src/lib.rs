@@ -27,8 +27,15 @@
 //!     )?;
 //!
 //!     let args = extract::ExtractArgs {
-//!         url: "https://example.com".to_string(),
-//!         ..Default::default()
+//!         urls: vec!["https://example.com".to_string()],
+//!         strategy: "multi".to_string(),
+//!         selector: None,
+//!         pattern: None,
+//!         quality_threshold: 0.7,
+//!         timeout: 30000,
+//!         concurrency: 5,
+//!         cache: "auto".to_string(),
+//!         output_file: None,
 //!     };
 //!
 //!     extract::execute(client, args, "json".to_string()).await?;
@@ -44,11 +51,13 @@ pub mod config;
 pub mod error;
 pub mod output;
 
-// Legacy module exports (for backward compatibility during refactoring)
-pub mod api_client {
-    //! Legacy API client module - redirects to new client module
-    pub use crate::client::*;
-}
+// Supporting modules for CLI operations
+pub mod api_wrapper;
+pub mod execution_mode;
+pub mod validation_adapter;
+
+#[cfg(feature = "riptide-pdf")]
+pub mod pdf_impl;
 
 // Re-export commonly used types for convenience
 pub use client::ApiClient;

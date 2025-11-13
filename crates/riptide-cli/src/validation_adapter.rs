@@ -2,13 +2,13 @@
 //!
 //! Provides the HTTP client implementation required by the validation checks.
 
-use crate::client::RipTideClient;
+use crate::client::ApiClient;
 use anyhow::Result;
 use riptide_monitoring::validation::HttpClient;
 
-/// Adapter to make RipTideClient compatible with validation checks
+/// Adapter to make ApiClient compatible with validation checks
 #[async_trait::async_trait]
-impl HttpClient for RipTideClient {
+impl HttpClient for ApiClient {
     async fn get_json(&self, path: &str) -> Result<serde_json::Value> {
         let response = self.get(path).await?;
         Ok(response.json().await?)

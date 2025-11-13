@@ -229,6 +229,33 @@ impl ApiClient {
             .context(format!("Failed to send POST stream request to {}", url))
     }
 
+    /// Performs a DELETE request to the specified path
+    ///
+    /// # Arguments
+    /// * `path` - The API path to request (e.g., "/api/sessions/123")
+    ///
+    /// # Example
+    /// ```no_run
+    /// # use riptide_cli::client::ApiClient;
+    /// # async fn example() -> anyhow::Result<()> {
+    /// let client = ApiClient::new("http://localhost:8080".to_string(), None)?;
+    /// let response = client.delete("/api/sessions/abc123").await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn delete(&self, path: &str) -> Result<Response> {
+        let url = self.build_url(path);
+        let mut req = self.client.delete(&url);
+
+        if let Some(key) = &self.api_key {
+            req = req.bearer_auth(key);
+        }
+
+        req.send()
+            .await
+            .context(format!("Failed to send DELETE request to {}", url))
+    }
+
     /// Returns the base URL of this client
     #[allow(dead_code)]
     pub fn base_url(&self) -> &str {

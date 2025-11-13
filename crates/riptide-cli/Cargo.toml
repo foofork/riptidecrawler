@@ -43,12 +43,20 @@ base64 = "0.21"
 futures-util = "0.3"
 tokio-util = { version = "0.7", features = ["io"] }
 
-# Config & Logging (2 dependencies)
+# Config & Logging (3 dependencies)
 env_logger.workspace = true
+log = "0.4"
 chrono.workspace = true
 
 # Error Handling
 thiserror = "1.0"
+
+# Async utilities (for validation_adapter)
+async-trait = "0.1"
+
+# Internal crates (optional features)
+riptide-monitoring = { version = "0.5.0", path = "../riptide-monitoring" }
+riptide-pdf = { version = "0.5.0", path = "../riptide-pdf", optional = true }
 
 # ===== REMOVED - Business logic now in API server =====
 # Previously removed in commit a1cac80, mistakenly re-added in 13035be
@@ -64,9 +72,15 @@ thiserror = "1.0"
 # riptide-monitoring    # Metrics collection → API server
 #
 # tracing, opentelemetry  # Heavy telemetry → not needed in thin CLI
-# futures, async-trait    # Not needed for simple HTTP calls
+# futures                  # Not needed for simple HTTP calls
 # once_cell, rand, uuid   # Utility bloat
 # chromiumoxide           # Browser automation → API server
+
+[features]
+default = []
+riptide-pdf = ["dep:riptide-pdf"]
+# Alias for backward compatibility
+pdf = ["riptide-pdf"]
 
 [dev-dependencies]
 tempfile = "3.13"
