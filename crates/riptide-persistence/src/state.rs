@@ -219,12 +219,10 @@ impl StateManager {
     /// Convert SessionState to Session (for SessionStorage trait)
     fn to_session(&self, state: &SessionState) -> Session {
         // Convert DateTime<Utc> to SystemTime
-        let created_at = SystemTime::UNIX_EPOCH
-            + Duration::from_secs(state.created_at.timestamp() as u64);
+        let created_at =
+            SystemTime::UNIX_EPOCH + Duration::from_secs(state.created_at.timestamp() as u64);
         let expires_at = SystemTime::UNIX_EPOCH
-            + Duration::from_secs(
-                (state.created_at.timestamp() + state.ttl_seconds as i64) as u64,
-            );
+            + Duration::from_secs((state.created_at.timestamp() + state.ttl_seconds as i64) as u64);
 
         // Convert metadata
         let mut metadata = HashMap::new();

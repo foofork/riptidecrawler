@@ -210,10 +210,7 @@ async fn main() -> anyhow::Result<()> {
             "/health/metrics",
             get(handlers::health::health_metrics_check),
         )
-        .route(
-            "/health/capabilities",
-            get(handlers::health_capabilities),
-        )
+        .route("/health/capabilities", get(handlers::health_capabilities))
         // Metrics - both root and v1 paths
         .route("/metrics", get(handlers::metrics))
         .route("/api/v1/metrics", get(handlers::metrics)) // v1 alias

@@ -386,8 +386,7 @@ mod tests {
         assert_eq!(msg.payload_string(), Some("hello".to_string()));
 
         // Invalid UTF-8
-        let invalid_msg =
-            SubscriberMessage::new("test".to_string(), vec![0xFF, 0xFE], None);
+        let invalid_msg = SubscriberMessage::new("test".to_string(), vec![0xFF, 0xFE], None);
         assert!(invalid_msg.payload_string().is_none());
     }
 }

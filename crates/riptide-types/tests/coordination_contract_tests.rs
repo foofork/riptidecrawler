@@ -6,7 +6,7 @@
 mod contracts;
 
 use contracts::coordination_contract::{self, CacheSync};
-use riptide_types::error::{Result as RiptideResult};
+use riptide_types::error::Result as RiptideResult;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 

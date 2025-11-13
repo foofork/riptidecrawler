@@ -1,5 +1,5 @@
-use thiserror::Error;
 use riptide_types::error::RiptideError;
+use thiserror::Error;
 
 /// Result type for persistence operations
 pub type PersistenceResult<T> = Result<T, PersistenceError>;

@@ -96,7 +96,10 @@ impl RedisCoordination {
     }
 
     /// Create new coordination adapter with custom key version
-    pub async fn with_version(redis_url: &str, version: impl Into<String>) -> CoordinationResult<Self> {
+    pub async fn with_version(
+        redis_url: &str,
+        version: impl Into<String>,
+    ) -> CoordinationResult<Self> {
         let mut coord = Self::new(redis_url).await?;
         coord.key_version = version.into();
         Ok(coord)
@@ -173,14 +176,10 @@ impl DistributedCoordination for RedisCoordination {
         debug!("Creating subscription");
 
         // Create new connection for subscription
-        let pubsub_conn = self
-            .client
-            .get_async_pubsub()
-            .await
-            .map_err(|e| {
-                error!("Failed to create pub/sub connection: {}", e);
-                RiptideError::Cache(format!("Failed to create pub/sub connection: {}", e))
-            })?;
+        let pubsub_conn = self.client.get_async_pubsub().await.map_err(|e| {
+            error!("Failed to create pub/sub connection: {}", e);
+            RiptideError::Cache(format!("Failed to create pub/sub connection: {}", e))
+        })?;
 
         let subscriber = RedisSubscriber::new(pubsub_conn, channels).await?;
 
@@ -208,7 +207,12 @@ impl DistributedCoordination for RedisCoordination {
     }
 
     #[instrument(skip(self, value), fields(key = %key, value_size = value.len(), ttl_secs = ttl.map(|d| d.as_secs())))]
-    async fn cache_set(&self, key: &str, value: &[u8], ttl: Option<Duration>) -> CoordinationResult<()> {
+    async fn cache_set(
+        &self,
+        key: &str,
+        value: &[u8],
+        ttl: Option<Duration>,
+    ) -> CoordinationResult<()> {
         debug!("Setting cache value");
 
         let versioned_key = self.cache_key(key);
@@ -317,7 +321,12 @@ impl DistributedCoordination for RedisCoordination {
     }
 
     #[instrument(skip(self), fields(key = %key, amount = amount, ttl_secs = ttl.map(|d| d.as_secs())))]
-    async fn cache_incr(&self, key: &str, amount: i64, ttl: Option<Duration>) -> CoordinationResult<i64> {
+    async fn cache_incr(
+        &self,
+        key: &str,
+        amount: i64,
+        ttl: Option<Duration>,
+    ) -> CoordinationResult<i64> {
         debug!("Incrementing counter");
 
         let versioned_key = self.cache_key(key);
@@ -378,7 +387,11 @@ impl DistributedCoordination for RedisCoordination {
     }
 
     #[instrument(skip(self), fields(election_key = %election_key, node_id = %node_id))]
-    async fn release_leadership(&self, election_key: &str, node_id: &str) -> CoordinationResult<bool> {
+    async fn release_leadership(
+        &self,
+        election_key: &str,
+        node_id: &str,
+    ) -> CoordinationResult<bool> {
         debug!("Releasing leadership");
 
         let key = self.leader_key(election_key);
@@ -478,9 +491,7 @@ impl DistributedCoordination for RedisCoordination {
         let prefix = self.heartbeat_key("");
         let nodes: HashSet<String> = keys
             .into_iter()
-            .filter_map(|key| {
-                key.strip_prefix(&prefix).map(|id| id.to_string())
-            })
+            .filter_map(|key| key.strip_prefix(&prefix).map(|id| id.to_string()))
             .collect();
 
         debug!(count = nodes.len(), "Active nodes retrieved");
@@ -488,7 +499,10 @@ impl DistributedCoordination for RedisCoordination {
     }
 
     #[instrument(skip(self), fields(node_id = %node_id))]
-    async fn get_node_metadata(&self, node_id: &str) -> CoordinationResult<Option<HashMap<String, String>>> {
+    async fn get_node_metadata(
+        &self,
+        node_id: &str,
+    ) -> CoordinationResult<Option<HashMap<String, String>>> {
         let node_key = self.node_key(node_id);
         let mut conn = self.conn.lock().await;
 
@@ -499,10 +513,11 @@ impl DistributedCoordination for RedisCoordination {
 
         match metadata_json {
             Some(json) => {
-                let metadata: HashMap<String, String> = serde_json::from_str(&json).map_err(|e| {
-                    error!("Failed to deserialize metadata: {}", e);
-                    RiptideError::Cache(format!("Failed to deserialize metadata: {}", e))
-                })?;
+                let metadata: HashMap<String, String> =
+                    serde_json::from_str(&json).map_err(|e| {
+                        error!("Failed to deserialize metadata: {}", e);
+                        RiptideError::Cache(format!("Failed to deserialize metadata: {}", e))
+                    })?;
                 Ok(Some(metadata))
             }
             None => Ok(None),

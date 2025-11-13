@@ -764,7 +764,8 @@ impl ApplicationContext {
             .map_err(|e| anyhow::anyhow!("Invalid cache configuration: {}", e))?;
 
         // Create cache via factory with graceful fallback
-        let cache: Arc<dyn CacheStorage> = CacheFactory::create_with_fallback(&storage_config).await;
+        let cache: Arc<dyn CacheStorage> =
+            CacheFactory::create_with_fallback(&storage_config).await;
         tracing::info!(
             backend = %storage_config.backend,
             ttl_secs = storage_config.default_ttl_secs,
@@ -913,10 +914,14 @@ impl ApplicationContext {
                     .await
                     .map_err(|e| anyhow::anyhow!("Failed to initialize worker service: {}", e))?;
                 let ws: Arc<dyn riptide_types::ports::WorkerService> = Arc::new(ws);
-                tracing::info!("Worker service initialized successfully - async job processing enabled");
+                tracing::info!(
+                    "Worker service initialized successfully - async job processing enabled"
+                );
                 Some(ws)
             } else {
-                tracing::info!("Worker service disabled - running in single-process mode without job queue");
+                tracing::info!(
+                    "Worker service disabled - running in single-process mode without job queue"
+                );
                 None
             }
         };
@@ -1347,13 +1352,14 @@ impl ApplicationContext {
 
         // Initialize engine facade with cache storage adapter via factory
         let engine_cache_config = if !config.redis_url.is_empty() {
-            StorageConfig::redis_with_fallback(&config.redis_url)
-                .with_ttl_secs(config.cache_ttl)
+            StorageConfig::redis_with_fallback(&config.redis_url).with_ttl_secs(config.cache_ttl)
         } else {
             StorageConfig::memory().with_ttl_secs(config.cache_ttl)
         };
         let engine_cache_storage = CacheFactory::create_with_fallback(&engine_cache_config).await;
-        let engine_facade = Arc::new(riptide_facade::facades::EngineFacade::new(engine_cache_storage));
+        let engine_facade = Arc::new(riptide_facade::facades::EngineFacade::new(
+            engine_cache_storage,
+        ));
         tracing::info!(
             backend = %engine_cache_config.backend,
             "EngineFacade initialized successfully with cache backend"
@@ -1409,10 +1415,7 @@ impl ApplicationContext {
         #[cfg(not(feature = "workers"))]
         let workers_enabled = false;
 
-        let capabilities = SystemCapabilities::detect(
-            &cache_backend_str,
-            workers_enabled,
-        );
+        let capabilities = SystemCapabilities::detect(&cache_backend_str, workers_enabled);
         tracing::info!(
             deployment_mode = %capabilities.deployment_mode,
             cache_backend = %capabilities.cache_backend,
@@ -1839,15 +1842,22 @@ impl ApplicationContext {
             CacheFactory::memory()
         } else {
             // Try Redis with fallback to memory
-            let storage_config = StorageConfig::redis_with_fallback(&redis_url)
-                .with_connection_timeout_secs(2); // Short timeout for tests
+            let storage_config =
+                StorageConfig::redis_with_fallback(&redis_url).with_connection_timeout_secs(2); // Short timeout for tests
 
             let cache_storage = CacheFactory::create_with_fallback(&storage_config).await;
 
             // Verify Redis is actually working (not fallback) if SKIP_REDIS_TESTS not set
             if storage_config.backend == riptide_cache::storage_config::CacheBackend::Redis {
                 // Test connection to ensure Redis is available
-                match cache_storage.set("test:healthcheck", b"ok", Some(std::time::Duration::from_secs(1))).await {
+                match cache_storage
+                    .set(
+                        "test:healthcheck",
+                        b"ok",
+                        Some(std::time::Duration::from_secs(1)),
+                    )
+                    .await
+                {
                     Ok(_) => {
                         let _ = cache_storage.delete("test:healthcheck").await;
                         cache_storage
@@ -1985,8 +1995,8 @@ impl ApplicationContext {
         let search_facade = None;
 
         // Initialize engine facade for tests using factory
-        let engine_cache_config = StorageConfig::redis_with_fallback(&redis_url)
-            .with_connection_timeout_secs(2);
+        let engine_cache_config =
+            StorageConfig::redis_with_fallback(&redis_url).with_connection_timeout_secs(2);
         let cache_storage = CacheFactory::create_with_fallback(&engine_cache_config).await;
         let engine_facade = Arc::new(riptide_facade::facades::EngineFacade::new(cache_storage));
 

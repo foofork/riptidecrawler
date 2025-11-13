@@ -458,4 +458,3 @@ pub async fn health_capabilities(
 
     Ok(Json(capabilities))
 }
-

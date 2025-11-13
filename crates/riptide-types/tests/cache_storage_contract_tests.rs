@@ -6,7 +6,7 @@
 mod contracts;
 
 use contracts::cache_storage_contract;
-use riptide_types::error::{Result as RiptideResult};
+use riptide_types::error::Result as RiptideResult;
 use riptide_types::ports::CacheStorage;
 use std::collections::HashMap;
 use std::sync::Arc;

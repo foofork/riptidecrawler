@@ -23,8 +23,8 @@ pub mod redis_session_storage;
 pub mod redis_rate_limiter;
 
 // Distributed coordination adapters
-pub mod redis_coordination;
 pub mod memory_coordination;
+pub mod redis_coordination;
 
 // Phase 2: Circuit breaker adapters
 pub mod llm_circuit_breaker;
@@ -40,8 +40,8 @@ pub use redis_session_storage::RedisSessionStorage;
 pub use redis_rate_limiter::{RedisPerHostRateLimiter, RedisRateLimiter};
 
 // Distributed coordination exports
-pub use redis_coordination::RedisCoordination;
 pub use memory_coordination::MemoryCoordination;
+pub use redis_coordination::RedisCoordination;
 
 // Phase 2: Circuit breaker exports
 pub use llm_circuit_breaker::LlmCircuitBreakerAdapter;

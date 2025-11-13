@@ -8,9 +8,9 @@
 //!
 //! These tests serve as documentation for desired future features.
 
-use riptide_persistence::*;
 use riptide_cache::adapters::RedisSessionStorage;
 use riptide_cache::RedisStorage;
+use riptide_persistence::*;
 use std::sync::Arc;
 
 #[cfg(test)]

@@ -72,10 +72,7 @@ pub struct StorageConfig {
     pub redis_url: Option<String>,
 
     /// Default TTL for cache entries (in seconds)
-    #[serde(
-        default = "default_ttl_secs",
-        skip_serializing_if = "is_default_ttl"
-    )]
+    #[serde(default = "default_ttl_secs", skip_serializing_if = "is_default_ttl")]
     pub default_ttl_secs: u64,
 
     /// Maximum number of Redis connections in pool
@@ -215,9 +212,7 @@ impl StorageConfig {
         match self.backend {
             CacheBackend::Redis => {
                 if self.redis_url.is_none() {
-                    return Err(
-                        "Redis URL is required when backend is set to 'redis'".to_string()
-                    );
+                    return Err("Redis URL is required when backend is set to 'redis'".to_string());
                 }
                 if let Some(url) = &self.redis_url {
                     if !url.starts_with("redis://") && !url.starts_with("rediss://") {
@@ -318,10 +313,7 @@ mod tests {
     fn test_redis_config() {
         let config = StorageConfig::redis("redis://localhost:6379");
         assert_eq!(config.backend, CacheBackend::Redis);
-        assert_eq!(
-            config.redis_url,
-            Some("redis://localhost:6379".to_string())
-        );
+        assert_eq!(config.redis_url, Some("redis://localhost:6379".to_string()));
         assert!(!config.enable_fallback);
     }
 
@@ -421,8 +413,7 @@ mod tests {
 
     #[test]
     fn test_serialize_deserialize() {
-        let config = StorageConfig::redis("redis://localhost:6379")
-            .with_ttl_secs(300);
+        let config = StorageConfig::redis("redis://localhost:6379").with_ttl_secs(300);
 
         let json = serde_json::to_string(&config).unwrap();
         let deserialized: StorageConfig = serde_json::from_str(&json).unwrap();

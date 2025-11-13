@@ -284,12 +284,7 @@ mod tests {
     use std::collections::HashMap;
     use std::time::SystemTime;
 
-    fn create_test_session(
-        id: &str,
-        user_id: &str,
-        tenant_id: &str,
-        ttl: Duration,
-    ) -> Session {
+    fn create_test_session(id: &str, user_id: &str, tenant_id: &str, ttl: Duration) -> Session {
         Session {
             id: id.to_string(),
             user_id: user_id.to_string(),
@@ -390,12 +385,9 @@ mod tests {
     async fn test_list_sessions_by_tenant() {
         let storage = InMemorySessionStorage::without_cleanup();
 
-        let session1 =
-            create_test_session("s1", "user1", "tenant1", Duration::from_secs(3600));
-        let session2 =
-            create_test_session("s2", "user2", "tenant1", Duration::from_secs(3600));
-        let session3 =
-            create_test_session("s3", "user3", "tenant2", Duration::from_secs(3600));
+        let session1 = create_test_session("s1", "user1", "tenant1", Duration::from_secs(3600));
+        let session2 = create_test_session("s2", "user2", "tenant1", Duration::from_secs(3600));
+        let session3 = create_test_session("s3", "user3", "tenant2", Duration::from_secs(3600));
 
         storage.save_session(&session1).await.unwrap();
         storage.save_session(&session2).await.unwrap();
@@ -416,12 +408,9 @@ mod tests {
     async fn test_list_sessions_by_user() {
         let storage = InMemorySessionStorage::without_cleanup();
 
-        let session1 =
-            create_test_session("s1", "user1", "tenant1", Duration::from_secs(3600));
-        let session2 =
-            create_test_session("s2", "user1", "tenant2", Duration::from_secs(3600));
-        let session3 =
-            create_test_session("s3", "user2", "tenant1", Duration::from_secs(3600));
+        let session1 = create_test_session("s1", "user1", "tenant1", Duration::from_secs(3600));
+        let session2 = create_test_session("s2", "user1", "tenant2", Duration::from_secs(3600));
+        let session3 = create_test_session("s3", "user2", "tenant1", Duration::from_secs(3600));
 
         storage.save_session(&session1).await.unwrap();
         storage.save_session(&session2).await.unwrap();
@@ -473,8 +462,7 @@ mod tests {
     async fn test_update_session() {
         let storage = InMemorySessionStorage::without_cleanup();
 
-        let mut session =
-            create_test_session("s1", "user1", "tenant1", Duration::from_secs(3600));
+        let mut session = create_test_session("s1", "user1", "tenant1", Duration::from_secs(3600));
         storage.save_session(&session).await.unwrap();
 
         // Update session metadata
@@ -484,10 +472,7 @@ mod tests {
         storage.save_session(&session).await.unwrap();
 
         let retrieved = storage.get_session("s1").await.unwrap().unwrap();
-        assert_eq!(
-            retrieved.metadata.get("updated"),
-            Some(&"true".to_string())
-        );
+        assert_eq!(retrieved.metadata.get("updated"), Some(&"true".to_string()));
     }
 
     #[tokio::test]
@@ -580,12 +565,9 @@ mod tests {
     async fn test_combined_filters() {
         let storage = InMemorySessionStorage::without_cleanup();
 
-        let session1 =
-            create_test_session("s1", "user1", "tenant1", Duration::from_secs(3600));
-        let session2 =
-            create_test_session("s2", "user1", "tenant2", Duration::from_secs(3600));
-        let session3 =
-            create_test_session("s3", "user2", "tenant1", Duration::from_secs(3600));
+        let session1 = create_test_session("s1", "user1", "tenant1", Duration::from_secs(3600));
+        let session2 = create_test_session("s2", "user1", "tenant2", Duration::from_secs(3600));
+        let session3 = create_test_session("s3", "user2", "tenant1", Duration::from_secs(3600));
 
         storage.save_session(&session1).await.unwrap();
         storage.save_session(&session2).await.unwrap();

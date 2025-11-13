@@ -7,11 +7,11 @@
 //! - Error handling
 //! - Performance characteristics
 
+use riptide_cache::adapters::RedisSessionStorage;
 use riptide_persistence::{
     config::StateConfig,
     state::{SessionMetadata, SessionStatus, StateManager},
 };
-use riptide_cache::adapters::RedisSessionStorage;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tempfile::TempDir;

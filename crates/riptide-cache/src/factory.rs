@@ -32,8 +32,8 @@
 //! }
 //! ```
 
-use crate::storage_config::{CacheBackend, StorageConfig};
 use crate::redis_storage::RedisStorage;
+use crate::storage_config::{CacheBackend, StorageConfig};
 use anyhow::{Context, Result};
 use riptide_types::ports::cache::CacheStorage;
 use riptide_types::ports::memory_cache::InMemoryCache;
@@ -96,10 +96,8 @@ impl CacheFactory {
                 );
 
                 // Attempt to connect to Redis with timeout
-                let result = tokio::time::timeout(
-                    config.connection_timeout(),
-                    RedisStorage::new(url)
-                ).await;
+                let result =
+                    tokio::time::timeout(config.connection_timeout(), RedisStorage::new(url)).await;
 
                 match result {
                     Ok(Ok(storage)) => {
@@ -236,7 +234,10 @@ impl CacheFactory {
                 None
             }
             Err(_) => {
-                warn!(timeout_secs = timeout.as_secs(), "Redis connection timed out");
+                warn!(
+                    timeout_secs = timeout.as_secs(),
+                    "Redis connection timed out"
+                );
                 None
             }
         }
@@ -349,11 +350,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_try_redis_unavailable() {
-        let result = CacheFactory::try_redis(
-            "redis://localhost:9999",
-            Duration::from_millis(100),
-        )
-        .await;
+        let result =
+            CacheFactory::try_redis("redis://localhost:9999", Duration::from_millis(100)).await;
 
         assert!(result.is_none());
     }
@@ -361,11 +359,7 @@ mod tests {
     #[tokio::test]
     #[ignore] // Requires running Redis instance
     async fn test_try_redis_success() {
-        let cache = CacheFactory::try_redis(
-            "redis://localhost:6379",
-            Duration::from_secs(5),
-        )
-        .await;
+        let cache = CacheFactory::try_redis("redis://localhost:6379", Duration::from_secs(5)).await;
 
         assert!(cache.is_some());
 

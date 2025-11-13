@@ -72,10 +72,7 @@ pub async fn test_exists<C: CacheStorage>(cache: &C) -> RiptideResult<()> {
     let value = b"test_value";
 
     // Non-existent key
-    assert!(
-        !cache.exists(key).await?,
-        "Key should not exist initially"
-    );
+    assert!(!cache.exists(key).await?, "Key should not exist initially");
 
     // After setting
     cache.set(key, value, None).await?;
@@ -103,23 +100,21 @@ pub async fn test_ttl_expiration<C: CacheStorage>(cache: &C) -> RiptideResult<()
     let value = b"test_value";
 
     // Set with 1 second TTL
-    cache
-        .set(key, value, Some(Duration::from_secs(1)))
-        .await?;
+    cache.set(key, value, Some(Duration::from_secs(1))).await?;
 
     // Should exist immediately
     assert!(cache.exists(key).await?, "Key should exist immediately");
     let retrieved = cache.get(key).await?;
-    assert!(retrieved.is_some(), "Value should be retrievable immediately");
+    assert!(
+        retrieved.is_some(),
+        "Value should be retrievable immediately"
+    );
 
     // Wait for expiration
     tokio::time::sleep(Duration::from_millis(1100)).await;
 
     // Should not exist after expiration
-    assert!(
-        !cache.exists(key).await?,
-        "Key should not exist after TTL"
-    );
+    assert!(!cache.exists(key).await?, "Key should not exist after TTL");
     let expired = cache.get(key).await?;
     assert!(expired.is_none(), "Expired key should return None");
 
@@ -168,7 +163,11 @@ pub async fn test_batch_operations<C: CacheStorage>(cache: &C) -> RiptideResult<
     let mixed_keys = vec!["batch_key_1", "non_existent", "batch_key_3"];
     let mixed_results = cache.mget(&mixed_keys).await?;
 
-    assert_eq!(mixed_results.len(), 3, "Should return same number of results");
+    assert_eq!(
+        mixed_results.len(),
+        3,
+        "Should return same number of results"
+    );
     assert!(mixed_results[0].is_some(), "First key should exist");
     assert!(mixed_results[1].is_none(), "Second key should not exist");
     assert!(mixed_results[2].is_some(), "Third key should exist");
@@ -253,9 +252,7 @@ pub async fn test_ttl_query<C: CacheStorage>(cache: &C) -> RiptideResult<()> {
     let value = b"test_value";
 
     // Set with 10 second TTL
-    cache
-        .set(key, value, Some(Duration::from_secs(10)))
-        .await?;
+    cache.set(key, value, Some(Duration::from_secs(10))).await?;
 
     // Check initial TTL
     let ttl = cache.ttl(key).await?;
@@ -274,10 +271,7 @@ pub async fn test_ttl_query<C: CacheStorage>(cache: &C) -> RiptideResult<()> {
         tokio::time::sleep(Duration::from_millis(500)).await;
         let ttl2 = cache.ttl(key).await?;
         if let Some(remaining2) = ttl2 {
-            assert!(
-                remaining2 < remaining,
-                "TTL should decrease over time"
-            );
+            assert!(remaining2 < remaining, "TTL should decrease over time");
         }
     }
 
@@ -320,10 +314,7 @@ pub async fn test_incr<C: CacheStorage>(cache: &C) -> RiptideResult<()> {
     // Test error on non-numeric value
     cache.set("non_numeric", b"not_a_number", None).await?;
     let result = cache.incr("non_numeric", 1).await;
-    assert!(
-        result.is_err(),
-        "Should error on non-numeric value"
-    );
+    assert!(result.is_err(), "Should error on non-numeric value");
 
     // Cleanup
     cache.delete("non_numeric").await?;

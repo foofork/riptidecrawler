@@ -16,8 +16,8 @@
 //! }
 //! ```
 
-use riptide_types::error::{Result as RiptideResult};
 use async_trait::async_trait;
+use riptide_types::error::Result as RiptideResult;
 
 /// CacheSync trait for testing - mirrors the trait from riptide-persistence
 #[async_trait]
@@ -267,7 +267,10 @@ mod tests {
         test_basic_notifications(&coordinator).await.unwrap();
 
         let notifications = coordinator.get_notifications().await;
-        assert!(notifications.len() >= 6, "Should have at least 6 notifications");
+        assert!(
+            notifications.len() >= 6,
+            "Should have at least 6 notifications"
+        );
     }
 
     #[tokio::test]
@@ -276,7 +279,10 @@ mod tests {
         test_pattern_invalidation(&coordinator).await.unwrap();
 
         let notifications = coordinator.get_notifications().await;
-        assert!(notifications.len() >= 4, "Should have at least 4 invalidations");
+        assert!(
+            notifications.len() >= 4,
+            "Should have at least 4 invalidations"
+        );
     }
 
     #[tokio::test]
@@ -285,6 +291,9 @@ mod tests {
         test_concurrent_notifications(&coordinator).await.unwrap();
 
         let notifications = coordinator.get_notifications().await;
-        assert!(notifications.len() >= 10, "Should have concurrent notifications");
+        assert!(
+            notifications.len() >= 10,
+            "Should have concurrent notifications"
+        );
     }
 }

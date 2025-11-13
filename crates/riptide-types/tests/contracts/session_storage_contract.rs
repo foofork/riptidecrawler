@@ -24,12 +24,7 @@ use std::collections::HashMap;
 use std::time::{Duration, SystemTime};
 
 /// Create a test session with given parameters
-fn create_test_session(
-    id: &str,
-    user_id: &str,
-    tenant_id: &str,
-    ttl: Duration,
-) -> Session {
+fn create_test_session(id: &str, user_id: &str, tenant_id: &str, ttl: Duration) -> Session {
     Session {
         id: id.to_string(),
         user_id: user_id.to_string(),
@@ -49,12 +44,7 @@ fn create_test_session(
 /// - Returns None for non-existent sessions
 pub async fn test_crud_operations<S: SessionStorage>(storage: &S) -> RiptideResult<()> {
     // Create session
-    let session = create_test_session(
-        "session_1",
-        "user_1",
-        "tenant_1",
-        Duration::from_secs(3600),
-    );
+    let session = create_test_session("session_1", "user_1", "tenant_1", Duration::from_secs(3600));
 
     // Save session
     storage.save_session(&session).await?;
@@ -91,14 +81,20 @@ pub async fn test_crud_operations<S: SessionStorage>(storage: &S) -> RiptideResu
     // Delete session
     storage.delete_session("session_1").await?;
     let after_delete = storage.get_session("session_1").await?;
-    assert!(after_delete.is_none(), "Session should not exist after delete");
+    assert!(
+        after_delete.is_none(),
+        "Session should not exist after delete"
+    );
 
     // Delete non-existent session (should not error)
     storage.delete_session("non_existent").await?;
 
     // Get non-existent session
     let non_existent = storage.get_session("non_existent").await?;
-    assert!(non_existent.is_none(), "Non-existent session should return None");
+    assert!(
+        non_existent.is_none(),
+        "Non-existent session should return None"
+    );
 
     Ok(())
 }
@@ -287,11 +283,7 @@ pub async fn test_user_filtering<S: SessionStorage>(storage: &S) -> RiptideResul
         active_only: false,
     };
     let user1_sessions = storage.list_sessions(user1_filter).await?;
-    assert_eq!(
-        user1_sessions.len(),
-        2,
-        "Should find 2 sessions for user_1"
-    );
+    assert_eq!(user1_sessions.len(), 2, "Should find 2 sessions for user_1");
     assert!(
         user1_sessions.iter().all(|s| s.user_id == "user_1"),
         "All sessions should belong to user_1"
@@ -421,7 +413,9 @@ pub async fn test_metadata<S: SessionStorage>(storage: &S) -> RiptideResult<()> 
     );
 
     // Update metadata
-    session.metadata.insert("updated".to_string(), "true".to_string());
+    session
+        .metadata
+        .insert("updated".to_string(), "true".to_string());
     storage.save_session(&session).await?;
 
     let updated = storage.get_session("metadata_session").await?;
@@ -465,8 +459,8 @@ pub async fn test_concurrent_operations<S: SessionStorage>(storage: &S) -> Ripti
     // Collect sessions and save them
     let mut sessions = Vec::new();
     while let Some(result) = tasks.join_next().await {
-        let session = result
-            .map_err(|e| RiptideError::Cache(format!("Task join error: {}", e)))??;
+        let session =
+            result.map_err(|e| RiptideError::Cache(format!("Task join error: {}", e)))??;
         storage.save_session(&session).await?;
         sessions.push(session);
     }

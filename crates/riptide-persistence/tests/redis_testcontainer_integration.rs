@@ -10,11 +10,11 @@ use std::time::Duration;
 use testcontainers::clients::Cli;
 use tokio::time::sleep;
 
+use riptide_cache::RedisStorage;
 use riptide_persistence::{
     cache::{CacheMetadata, PersistentCacheManager},
     config::{CacheConfig, CompressionAlgorithm, EvictionPolicy},
 };
-use riptide_cache::RedisStorage;
 
 // Import test helpers
 mod helpers;
@@ -266,9 +266,8 @@ async fn test_metadata_support() -> Result<()> {
 async fn test_concurrent_operations() -> Result<()> {
     let docker = Cli::default();
     let redis_container = RedisTestContainer::new(&docker).await?;
-    let cache = std::sync::Arc::new(
-        create_cache_manager(redis_container.get_connection_string()).await?,
-    );
+    let cache =
+        std::sync::Arc::new(create_cache_manager(redis_container.get_connection_string()).await?);
 
     let mut handles = vec![];
     for i in 0..10 {

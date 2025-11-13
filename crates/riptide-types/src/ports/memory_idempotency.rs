@@ -242,9 +242,10 @@ impl IdempotencyStore for InMemoryIdempotencyStore {
                 Ok(IdempotencyToken::new(key, ttl))
             } else {
                 // Valid lock exists
-                Err(RiptideError::AlreadyExists(
-                    format!("Idempotency key '{}' already acquired", key)
-                ))
+                Err(RiptideError::AlreadyExists(format!(
+                    "Idempotency key '{}' already acquired",
+                    key
+                )))
             }
         } else {
             // No entry exists, insert new one
@@ -346,7 +347,10 @@ mod tests {
         // Second acquisition fails
         let result = store.try_acquire("test-key", ttl).await;
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), RiptideError::AlreadyExists(_)));
+        assert!(matches!(
+            result.unwrap_err(),
+            RiptideError::AlreadyExists(_)
+        ));
     }
 
     #[tokio::test]
@@ -419,7 +423,10 @@ mod tests {
         tokio::time::sleep(Duration::from_millis(150)).await;
 
         // Should be able to acquire again after expiration
-        let token = store.try_acquire("test-key", Duration::from_secs(3600)).await.unwrap();
+        let token = store
+            .try_acquire("test-key", Duration::from_secs(3600))
+            .await
+            .unwrap();
         assert_eq!(token.key, "test-key");
     }
 
@@ -432,7 +439,10 @@ mod tests {
 
         // Store result
         let result_data = b"test result";
-        store.store_result("test-key", result_data, Duration::from_secs(300)).await.unwrap();
+        store
+            .store_result("test-key", result_data, Duration::from_secs(300))
+            .await
+            .unwrap();
 
         // Retrieve result
         let retrieved = store.get_result("test-key").await.unwrap();
@@ -443,7 +453,9 @@ mod tests {
     async fn test_store_result_nonexistent_key() {
         let store = InMemoryIdempotencyStore::new();
 
-        let result = store.store_result("nonexistent", b"data", Duration::from_secs(300)).await;
+        let result = store
+            .store_result("nonexistent", b"data", Duration::from_secs(300))
+            .await;
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), RiptideError::NotFound(_)));
     }
@@ -456,7 +468,10 @@ mod tests {
         store.try_acquire("test-key", ttl).await.unwrap();
 
         // Store result with short TTL
-        store.store_result("test-key", b"test", Duration::from_millis(100)).await.unwrap();
+        store
+            .store_result("test-key", b"test", Duration::from_millis(100))
+            .await
+            .unwrap();
 
         // Result should exist immediately
         assert!(store.get_result("test-key").await.unwrap().is_some());
@@ -477,7 +492,10 @@ mod tests {
         // Add multiple entries
         store.try_acquire("key1", ttl).await.unwrap();
         store.try_acquire("key2", ttl).await.unwrap();
-        store.try_acquire("key3", Duration::from_secs(3600)).await.unwrap();
+        store
+            .try_acquire("key3", Duration::from_secs(3600))
+            .await
+            .unwrap();
 
         assert_eq!(store.len(), 3);
 
@@ -545,7 +563,10 @@ mod tests {
         let store = InMemoryIdempotencyStore::with_cleanup_interval(Duration::from_millis(10));
 
         // Add some entries
-        store.try_acquire("key1", Duration::from_secs(3600)).await.unwrap();
+        store
+            .try_acquire("key1", Duration::from_secs(3600))
+            .await
+            .unwrap();
 
         // Shutdown should complete without hanging
         store.shutdown().await;

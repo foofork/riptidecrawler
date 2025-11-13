@@ -152,9 +152,11 @@ impl PersistentCacheManager {
         let start_time = Instant::now();
         let cache_key = self.generate_key(key, namespace);
 
-        let result = self.storage.get(&cache_key).await.map_err(|e| {
-            PersistenceError::cache(format!("Cache storage get failed: {}", e))
-        })?;
+        let result = self
+            .storage
+            .get(&cache_key)
+            .await
+            .map_err(|e| PersistenceError::cache(format!("Cache storage get failed: {}", e)))?;
 
         let elapsed = start_time.elapsed();
 
@@ -320,7 +322,11 @@ impl PersistentCacheManager {
 
         // Store in cache with TTL
         self.storage
-            .set(&cache_key, &entry_bytes, Some(Duration::from_secs(ttl_seconds)))
+            .set(
+                &cache_key,
+                &entry_bytes,
+                Some(Duration::from_secs(ttl_seconds)),
+            )
             .await
             .map_err(|e| PersistenceError::cache(format!("Cache storage set failed: {}", e)))?;
 
@@ -414,9 +420,10 @@ impl PersistentCacheManager {
             .collect();
 
         let cache_key_refs: Vec<&str> = cache_keys.iter().map(|s| s.as_str()).collect();
-        let results = self.storage.mget(&cache_key_refs).await.map_err(|e| {
-            PersistenceError::cache(format!("Cache storage mget failed: {}", e))
-        })?;
+        let results =
+            self.storage.mget(&cache_key_refs).await.map_err(|e| {
+                PersistenceError::cache(format!("Cache storage mget failed: {}", e))
+            })?;
 
         let mut result_map = HashMap::new();
 
@@ -510,11 +517,10 @@ impl PersistentCacheManager {
     /// Get cache statistics
     pub async fn get_stats(&self) -> PersistenceResult<CacheStats> {
         // Get backend stats
-        let backend_stats = self
-            .storage
-            .stats()
-            .await
-            .map_err(|e| PersistenceError::cache(format!("Failed to get storage stats: {}", e)))?;
+        let backend_stats =
+            self.storage.stats().await.map_err(|e| {
+                PersistenceError::cache(format!("Failed to get storage stats: {}", e))
+            })?;
 
         let metrics = self.metrics.get_current_stats().await;
 

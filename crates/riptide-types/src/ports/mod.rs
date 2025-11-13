@@ -99,7 +99,9 @@ pub use circuit_breaker::{
     with_circuit_breaker, CircuitBreaker, CircuitBreakerConfig, CircuitBreakerPermit,
     CircuitBreakerStats, CircuitState,
 };
-pub use coordination::{CoordinationResult, DistributedCoordination, Subscriber, SubscriberMessage};
+pub use coordination::{
+    CoordinationResult, DistributedCoordination, Subscriber, SubscriberMessage,
+};
 pub use events::{DomainEvent, EventBus, EventHandler, SubscriptionId};
 pub use extractor::{
     ContentExtractor, ExtractionResult, ReliabilityStats, ReliableContentExtractor,

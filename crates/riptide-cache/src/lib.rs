@@ -69,12 +69,12 @@
 
 pub mod connection_pool;
 pub mod factory;
-pub mod storage_config;
 pub mod key;
 pub mod pool; // Redis connection pooling
 pub mod redis; // Contains both CacheManager and RedisManager
-pub mod redis_storage; // CacheStorage trait adapter // Shared Redis connection pool for external crates
-                       // pub mod integrated;  // Temporarily disabled: circular dependency with riptide-core
+pub mod redis_storage;
+pub mod storage_config; // CacheStorage trait adapter // Shared Redis connection pool for external crates
+                        // pub mod integrated;  // Temporarily disabled: circular dependency with riptide-core
 pub mod warming;
 pub mod warming_integration;
 pub mod wasm;
@@ -86,18 +86,18 @@ pub mod adapters;
 // Re-exports for convenience
 pub use connection_pool::{PoolStats, RedisConnectionPool};
 pub use factory::CacheFactory;
-pub use storage_config::{CacheBackend, StorageConfig};
 pub use key::{
     generate_fetch_cache_key, generate_strategies_cache_key, generate_wasm_cache_key,
     CacheKeyBuilder, CacheKeyParams,
 };
 pub use pool::{RedisConfig, RedisPool};
 pub use redis::{CacheEntry, CacheManager, CacheMetadata, ConditionalResult, RedisManager};
-pub use redis_storage::RedisStorage; // Port adapter for CacheStorage trait // Shared connection pool
-                                     // pub use integrated::{
-                                     //     CachedContent, CacheCheckResult, IntegratedCacheConfig, IntegratedCacheManager,
-                                     //     IntegratedCacheStats, create_optimized_integrated_cache_manager,
-                                     // };
+pub use redis_storage::RedisStorage;
+pub use storage_config::{CacheBackend, StorageConfig}; // Port adapter for CacheStorage trait // Shared connection pool
+                                                       // pub use integrated::{
+                                                       //     CachedContent, CacheCheckResult, IntegratedCacheConfig, IntegratedCacheManager,
+                                                       //     IntegratedCacheStats, create_optimized_integrated_cache_manager,
+                                                       // };
 #[cfg(feature = "wasm-pool")]
 pub use warming::{
     CacheWarmingConfig, CacheWarmingManager, CacheWarmingOperation, CacheWarmingPoolExt,

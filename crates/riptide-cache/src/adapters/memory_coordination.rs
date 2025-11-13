@@ -140,9 +140,8 @@ impl MemoryCoordination {
     /// Remove expired entries from cache
     fn cleanup_expired_cache(&self) {
         let now = Instant::now();
-        self.cache.retain(|_, (_, expires_at)| {
-            expires_at.is_none_or(|exp| exp > now)
-        });
+        self.cache
+            .retain(|_, (_, expires_at)| expires_at.is_none_or(|exp| exp > now));
     }
 
     /// Remove expired nodes
@@ -182,9 +181,7 @@ impl DistributedCoordination for MemoryCoordination {
             receivers.push((channel.to_string(), sender.subscribe()));
         }
 
-        Ok(Box::new(MemorySubscriber {
-            receivers,
-        }))
+        Ok(Box::new(MemorySubscriber { receivers }))
     }
 
     // ========================================================================
@@ -220,7 +217,8 @@ impl DistributedCoordination for MemoryCoordination {
         ttl: Option<Duration>,
     ) -> CoordinationResult<()> {
         let expires_at = ttl.map(|d| Instant::now() + d);
-        self.cache.insert(key.to_string(), (value.to_vec(), expires_at));
+        self.cache
+            .insert(key.to_string(), (value.to_vec(), expires_at));
         Ok(())
     }
 
@@ -292,7 +290,8 @@ impl DistributedCoordination for MemoryCoordination {
     ) -> CoordinationResult<i64> {
         let expires_at = ttl.map(|d| Instant::now() + d);
 
-        let new_value = self.cache
+        let new_value = self
+            .cache
             .entry(key.to_string())
             .and_modify(|(value, exp)| {
                 // Try to parse existing value as i64
@@ -691,11 +690,7 @@ mod tests {
 
         // Register with short TTL
         coord
-            .register_node(
-                "node1",
-                HashMap::new(),
-                Duration::from_millis(100),
-            )
+            .register_node("node1", HashMap::new(), Duration::from_millis(100))
             .await
             .unwrap();
 
@@ -717,7 +712,10 @@ mod tests {
 
     #[test]
     fn test_pattern_matching() {
-        assert!(MemoryCoordination::matches_pattern("cache:*", "cache:user:123"));
+        assert!(MemoryCoordination::matches_pattern(
+            "cache:*",
+            "cache:user:123"
+        ));
         assert!(MemoryCoordination::matches_pattern("cache:*", "cache:post"));
         assert!(!MemoryCoordination::matches_pattern("cache:*", "user:123"));
 
