@@ -1,4 +1,5 @@
 mod adapters;
+mod capabilities; // System capabilities detection for deployment mode reporting
 mod config;
 mod context; // ApplicationContext - clean replacement for AppState
 mod dto;
@@ -170,10 +171,9 @@ async fn main() -> anyhow::Result<()> {
     let app_state = ApplicationContext::new(config, health_checker.clone()).await?;
     tracing::info!("Application state initialization complete");
 
-    // Worker service is initialized and ready to process jobs
-    // Note: The worker pool starts automatically when jobs are submitted
+    // Note: Worker service is optional and controlled by WORKERS_ENABLED env var
+    // When enabled, the worker pool starts automatically when jobs are submitted
     // No explicit background task is needed as the service manages its own lifecycle
-    tracing::info!("Worker service initialized and ready for job processing");
 
     // Perform initial health check
     let initial_health = app_state.health_check().await;
@@ -210,6 +210,7 @@ async fn main() -> anyhow::Result<()> {
             "/health/metrics",
             get(handlers::health::health_metrics_check),
         )
+        .route("/health/capabilities", get(handlers::health_capabilities))
         // Metrics - both root and v1 paths
         .route("/metrics", get(handlers::metrics))
         .route("/api/v1/metrics", get(handlers::metrics)) // v1 alias

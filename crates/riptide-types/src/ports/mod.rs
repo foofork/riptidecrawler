@@ -58,6 +58,8 @@ pub mod events;
 pub mod features;
 pub mod idempotency;
 pub mod infrastructure;
+pub mod memory_idempotency;
+pub mod memory_session;
 pub mod repository;
 pub mod session;
 
@@ -84,6 +86,9 @@ pub mod monitoring;
 pub mod resource;
 pub mod worker;
 
+// Coordination port (Redis-optional refactoring)
+pub mod coordination;
+
 // Spider port
 #[cfg(feature = "spider")]
 pub mod spider;
@@ -93,6 +98,9 @@ pub use cache::{CacheStats, CacheStorage};
 pub use circuit_breaker::{
     with_circuit_breaker, CircuitBreaker, CircuitBreakerConfig, CircuitBreakerPermit,
     CircuitBreakerStats, CircuitState,
+};
+pub use coordination::{
+    CoordinationResult, DistributedCoordination, Subscriber, SubscriberMessage,
 };
 pub use events::{DomainEvent, EventBus, EventHandler, SubscriptionId};
 pub use extractor::{
@@ -109,6 +117,8 @@ pub use infrastructure::{
     Clock, DeterministicEntropy, Entropy, FakeClock, SystemClock, SystemEntropy,
 };
 pub use memory_cache::InMemoryCache;
+pub use memory_idempotency::InMemoryIdempotencyStore;
+pub use memory_session::InMemorySessionStorage;
 pub use metrics::{BusinessMetrics, MetricsCollector, MetricsRegistry};
 pub use pool::{Pool, PoolError, PoolHealth, PoolStats, PooledResource};
 pub use rate_limit::{HostStats, PerHostRateLimiter, RateLimitStats, RateLimiter};

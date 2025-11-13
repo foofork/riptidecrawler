@@ -16,6 +16,7 @@
 
 use anyhow::Result;
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -24,6 +25,9 @@ use riptide_persistence::{
     cache::{CacheMetadata, PersistentCacheManager},
     config::{CacheConfig, CompressionAlgorithm, EvictionPolicy},
 };
+
+// Import Redis storage adapter
+use riptide_cache::RedisStorage;
 
 // Import test helpers
 mod helpers;
@@ -45,11 +49,17 @@ fn test_cache_config() -> CacheConfig {
     }
 }
 
+// Helper function to create cache manager with new constructor
+async fn create_cache_manager(redis_url: &str) -> Result<PersistentCacheManager> {
+    let storage = Arc::new(RedisStorage::new(redis_url).await?);
+    let config = test_cache_config();
+    Ok(PersistentCacheManager::new(storage, config)?)
+}
+
 /// Test 1: Redis connection establishment
 #[tokio::test]
 async fn test_redis_connection_establishment() -> Result<()> {
-    let config = test_cache_config();
-    let cache = PersistentCacheManager::new("redis://localhost:6379", config).await;
+    let cache = create_cache_manager("redis://localhost:6379").await;
 
     assert!(cache.is_ok() || cache.is_err()); // Connection attempt made
     Ok(())
@@ -58,8 +68,7 @@ async fn test_redis_connection_establishment() -> Result<()> {
 /// Test 2: Cache set operation
 #[tokio::test]
 async fn test_cache_set_operation() -> Result<()> {
-    let config = test_cache_config();
-    let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
+    let cache = create_cache_manager("redis://localhost:6379").await?;
 
     let result = cache.set("test_key", &"test_value", None, None, None).await;
     assert!(result.is_ok());
@@ -70,8 +79,7 @@ async fn test_cache_set_operation() -> Result<()> {
 /// Test 3: Cache get operation
 #[tokio::test]
 async fn test_cache_get_operation() -> Result<()> {
-    let config = test_cache_config();
-    let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
+    let cache = create_cache_manager("redis://localhost:6379").await?;
 
     cache.set("get_test", &"value123", None, None, None).await?;
 
@@ -84,8 +92,7 @@ async fn test_cache_get_operation() -> Result<()> {
 /// Test 4: Cache delete operation
 #[tokio::test]
 async fn test_cache_delete_operation() -> Result<()> {
-    let config = test_cache_config();
-    let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
+    let cache = create_cache_manager("redis://localhost:6379").await?;
 
     cache.set("delete_test", &"value", None, None, None).await?;
     cache.delete("delete_test", None).await?;
@@ -107,8 +114,7 @@ async fn test_cache_exists_check() -> Result<()> {
 /// Test 6: TTL-based expiration
 #[tokio::test]
 async fn test_ttl_expiration() -> Result<()> {
-    let config = test_cache_config();
-    let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
+    let cache = create_cache_manager("redis://localhost:6379").await?;
 
     cache
         .set(
@@ -142,8 +148,7 @@ async fn test_ttl_update() -> Result<()> {
 /// Test 8: Multi-tenant key isolation (using namespace)
 #[tokio::test]
 async fn test_multi_tenant_isolation() -> Result<()> {
-    let config = test_cache_config();
-    let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
+    let cache = create_cache_manager("redis://localhost:6379").await?;
 
     cache
         .set("shared_key", &"value1", Some("tenant1"), None, None)
@@ -164,8 +169,7 @@ async fn test_multi_tenant_isolation() -> Result<()> {
 /// Test 9: Batch set operation
 #[tokio::test]
 async fn test_batch_set_operation() -> Result<()> {
-    let config = test_cache_config();
-    let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
+    let cache = create_cache_manager("redis://localhost:6379").await?;
 
     let mut entries = HashMap::new();
     entries.insert("batch1".to_string(), "value1");
@@ -188,8 +192,7 @@ async fn test_batch_set_operation() -> Result<()> {
 /// Test 10: Batch delete operation
 #[tokio::test]
 async fn test_batch_delete_operation() -> Result<()> {
-    let config = test_cache_config();
-    let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
+    let cache = create_cache_manager("redis://localhost:6379").await?;
 
     cache.set("batch_del1", &"value1", None, None, None).await?;
     cache.set("batch_del2", &"value2", None, None, None).await?;
@@ -209,8 +212,7 @@ async fn test_batch_delete_operation() -> Result<()> {
 /// Test 11: Cache flush operation
 #[tokio::test]
 async fn test_cache_flush_operation() -> Result<()> {
-    let config = test_cache_config();
-    let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
+    let cache = create_cache_manager("redis://localhost:6379").await?;
 
     cache
         .set("flush_test1", &"value1", None, None, None)
@@ -233,8 +235,7 @@ async fn test_cache_flush_operation() -> Result<()> {
 /// Test 12: Connection pool size configuration
 #[tokio::test]
 async fn test_connection_pool_size() -> Result<()> {
-    let config = test_cache_config();
-    let cache = PersistentCacheManager::new("redis://localhost:6379", config).await;
+    let cache = create_cache_manager("redis://localhost:6379").await;
     assert!(cache.is_ok() || cache.is_err());
     Ok(())
 }
@@ -242,8 +243,7 @@ async fn test_connection_pool_size() -> Result<()> {
 /// Test 13: Connection timeout handling
 #[tokio::test]
 async fn test_connection_timeout() -> Result<()> {
-    let config = test_cache_config();
-    let cache = PersistentCacheManager::new("redis://invalid:9999", config).await;
+    let cache = create_cache_manager("redis://invalid:9999").await;
     assert!(cache.is_err());
     Ok(())
 }
@@ -259,8 +259,7 @@ async fn test_operation_timeout() -> Result<()> {
 /// Test 15: Large value storage
 #[tokio::test]
 async fn test_large_value_storage() -> Result<()> {
-    let config = test_cache_config();
-    let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
+    let cache = create_cache_manager("redis://localhost:6379").await?;
 
     let large_value = "x".repeat(10_000);
     cache
@@ -276,9 +275,7 @@ async fn test_large_value_storage() -> Result<()> {
 /// Test 16: Concurrent set operations
 #[tokio::test]
 async fn test_concurrent_set_operations() -> Result<()> {
-    let config = test_cache_config();
-    let cache =
-        std::sync::Arc::new(PersistentCacheManager::new("redis://localhost:6379", config).await?);
+    let cache = std::sync::Arc::new(create_cache_manager("redis://localhost:6379").await?);
 
     let mut handles = vec![];
     for i in 0..10 {
@@ -307,9 +304,7 @@ async fn test_concurrent_set_operations() -> Result<()> {
 /// Test 17: Concurrent get operations
 #[tokio::test]
 async fn test_concurrent_get_operations() -> Result<()> {
-    let config = test_cache_config();
-    let cache =
-        std::sync::Arc::new(PersistentCacheManager::new("redis://localhost:6379", config).await?);
+    let cache = std::sync::Arc::new(create_cache_manager("redis://localhost:6379").await?);
 
     for i in 0..10 {
         cache
@@ -362,8 +357,7 @@ async fn test_methods_not_implemented() -> Result<()> {
 /// Test 38: Cache statistics retrieval
 #[tokio::test]
 async fn test_cache_statistics() -> Result<()> {
-    let config = test_cache_config();
-    let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
+    let cache = create_cache_manager("redis://localhost:6379").await?;
 
     let stats = cache.get_stats().await?;
     // Just verify we got stats back (u64 is always >= 0)
@@ -385,7 +379,8 @@ async fn test_cache_compression_enabled() -> Result<()> {
         config.compression_algorithm = CompressionAlgorithm::Lz4;
     }
 
-    let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
+    let storage = Arc::new(RedisStorage::new("redis://localhost:6379").await?);
+    let cache = PersistentCacheManager::new(storage, config)?;
 
     let large_value = "x".repeat(1000);
     cache
@@ -409,8 +404,7 @@ async fn test_cache_warming() -> Result<()> {
 /// Test 41: Error handling - connection failure
 #[tokio::test]
 async fn test_connection_failure_handling() -> Result<()> {
-    let config = test_cache_config();
-    let cache = PersistentCacheManager::new("redis://nonexistent:9999", config).await;
+    let cache = create_cache_manager("redis://nonexistent:9999").await;
     assert!(cache.is_err());
     Ok(())
 }
@@ -421,7 +415,8 @@ async fn test_large_value_exceeding_max() -> Result<()> {
     let mut config = test_cache_config();
     config.max_entry_size_bytes = 1000;
 
-    let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
+    let storage = Arc::new(RedisStorage::new("redis://localhost:6379").await?);
+    let cache = PersistentCacheManager::new(storage, config)?;
 
     let too_large = "x".repeat(10_000);
     let result = cache.set("too_large", &too_large, None, None, None).await;
@@ -433,8 +428,7 @@ async fn test_large_value_exceeding_max() -> Result<()> {
 /// Test 43: Performance - rapid operations
 #[tokio::test]
 async fn test_performance_rapid_operations() -> Result<()> {
-    let config = test_cache_config();
-    let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
+    let cache = create_cache_manager("redis://localhost:6379").await?;
 
     let start = std::time::Instant::now();
 
@@ -461,9 +455,7 @@ async fn test_performance_rapid_operations() -> Result<()> {
 /// Test 44: Performance - concurrent operations
 #[tokio::test]
 async fn test_performance_concurrent() -> Result<()> {
-    let config = test_cache_config();
-    let cache =
-        std::sync::Arc::new(PersistentCacheManager::new("redis://localhost:6379", config).await?);
+    let cache = std::sync::Arc::new(create_cache_manager("redis://localhost:6379").await?);
 
     let start = std::time::Instant::now();
 
@@ -499,8 +491,7 @@ async fn test_performance_concurrent() -> Result<()> {
 /// Test 45: Data consistency across operations
 #[tokio::test]
 async fn test_data_consistency() -> Result<()> {
-    let config = test_cache_config();
-    let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
+    let cache = create_cache_manager("redis://localhost:6379").await?;
 
     // Set initial value
     cache
@@ -517,8 +508,7 @@ async fn test_data_consistency() -> Result<()> {
 /// Test 46: Batch get operation
 #[tokio::test]
 async fn test_batch_get_operation() -> Result<()> {
-    let config = test_cache_config();
-    let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
+    let cache = create_cache_manager("redis://localhost:6379").await?;
 
     cache.set("batch_get1", &"value1", None, None, None).await?;
     cache.set("batch_get2", &"value2", None, None, None).await?;
@@ -543,8 +533,7 @@ async fn test_batch_get_operation() -> Result<()> {
 /// Test 47: Metadata support
 #[tokio::test]
 async fn test_metadata_support() -> Result<()> {
-    let config = test_cache_config();
-    let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
+    let cache = create_cache_manager("redis://localhost:6379").await?;
 
     let mut metadata = CacheMetadata {
         version: "v2".to_string(),
@@ -576,8 +565,7 @@ async fn test_metadata_support() -> Result<()> {
 /// Test 48: Key generation with namespace
 #[tokio::test]
 async fn test_key_generation_with_namespace() -> Result<()> {
-    let config = test_cache_config();
-    let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
+    let cache = create_cache_manager("redis://localhost:6379").await?;
 
     let key1 = cache.generate_key("mykey", None);
     let key2 = cache.generate_key("mykey", Some("namespace1"));
@@ -593,8 +581,7 @@ async fn test_key_generation_with_namespace() -> Result<()> {
 /// Test 49: TTL with custom duration
 #[tokio::test]
 async fn test_ttl_custom_duration() -> Result<()> {
-    let config = test_cache_config();
-    let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
+    let cache = create_cache_manager("redis://localhost:6379").await?;
 
     cache
         .set(
@@ -615,8 +602,7 @@ async fn test_ttl_custom_duration() -> Result<()> {
 /// Test 50: Clear all entries
 #[tokio::test]
 async fn test_clear_all_entries() -> Result<()> {
-    let config = test_cache_config();
-    let cache = PersistentCacheManager::new("redis://localhost:6379", config).await?;
+    let cache = create_cache_manager("redis://localhost:6379").await?;
 
     cache
         .set("clear_test1", &"value1", None, None, None)

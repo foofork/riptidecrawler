@@ -2,6 +2,7 @@
 //!
 //! All business logic delegated to WorkersFacade.
 //! Handlers are <50 LOC total, focused only on HTTP transport concerns.
+//! Phase 1: Workers are optional - handlers return SERVICE_UNAVAILABLE if workers disabled.
 
 use crate::{context::ApplicationContext, dto::workers::*};
 use axum::{
@@ -11,15 +12,24 @@ use axum::{
 };
 use uuid::Uuid;
 
+/// Check if workers are enabled, return 503 if not
+fn check_workers_enabled(
+    worker_service: &Option<std::sync::Arc<riptide_workers::WorkerService>>,
+) -> Result<&std::sync::Arc<riptide_workers::WorkerService>, StatusCode> {
+    worker_service
+        .as_ref()
+        .ok_or(StatusCode::SERVICE_UNAVAILABLE)
+}
+
 /// Submit a job (ultra-thin - 5 LOC)
 pub async fn submit_job(
     State(state): State<ApplicationContext>,
     Json(request): Json<SubmitJobRequest>,
 ) -> Result<Json<SubmitJobResponse>, StatusCode> {
+    let worker_service = check_workers_enabled(&state.worker_service)?;
     let job = request.into_job().map_err(|_| StatusCode::BAD_REQUEST)?;
     let job_type = format_job_type(&job.job_type);
-    let job_id = state
-        .worker_service
+    let job_id = worker_service
         .submit_job(job)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -35,8 +45,8 @@ pub async fn get_job_status(
     State(state): State<ApplicationContext>,
     Path(job_id): Path<Uuid>,
 ) -> Result<Json<JobStatusResponse>, StatusCode> {
-    let job = state
-        .worker_service
+    let worker_service = check_workers_enabled(&state.worker_service)?;
+    let job = worker_service
         .get_job(job_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
@@ -49,8 +59,8 @@ pub async fn get_job_result(
     State(state): State<ApplicationContext>,
     Path(job_id): Path<Uuid>,
 ) -> Result<Json<JobResultResponse>, StatusCode> {
-    let result = state
-        .worker_service
+    let worker_service = check_workers_enabled(&state.worker_service)?;
+    let result = worker_service
         .get_job_result(job_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
@@ -70,8 +80,8 @@ pub async fn get_job_result(
 pub async fn get_queue_stats(
     State(state): State<ApplicationContext>,
 ) -> Result<Json<QueueStatsResponse>, StatusCode> {
-    let s = state
-        .worker_service
+    let worker_service = check_workers_enabled(&state.worker_service)?;
+    let s = worker_service
         .get_queue_stats()
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -90,8 +100,8 @@ pub async fn get_queue_stats(
 pub async fn get_worker_stats(
     State(state): State<ApplicationContext>,
 ) -> Result<Json<WorkerPoolStatsResponse>, StatusCode> {
-    let s = state
-        .worker_service
+    let worker_service = check_workers_enabled(&state.worker_service)?;
+    let s = worker_service
         .get_worker_stats()
         .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
     // Phase D: Worker stats now tracked via business_metrics
@@ -116,6 +126,7 @@ pub async fn create_scheduled_job(
     State(state): State<ApplicationContext>,
     Json(request): Json<CreateScheduledJobRequest>,
 ) -> Result<Json<ScheduledJobResponse>, StatusCode> {
+    let worker_service = check_workers_enabled(&state.worker_service)?;
     let mut job = riptide_workers::ScheduledJob::new(
         request.name.clone(),
         request.cron_expression.clone(),
@@ -134,13 +145,11 @@ pub async fn create_scheduled_job(
     if let Some(m) = request.metadata {
         job.metadata = m;
     }
-    let job_id = state
-        .worker_service
+    let job_id = worker_service
         .add_scheduled_job(job.clone())
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let jobs = state
-        .worker_service
+    let jobs = worker_service
         .list_scheduled_jobs()
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let job = jobs
@@ -154,8 +163,8 @@ pub async fn create_scheduled_job(
 pub async fn list_scheduled_jobs(
     State(state): State<ApplicationContext>,
 ) -> Result<Json<Vec<ScheduledJobResponse>>, StatusCode> {
-    let jobs = state
-        .worker_service
+    let worker_service = check_workers_enabled(&state.worker_service)?;
+    let jobs = worker_service
         .list_scheduled_jobs()
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(jobs.iter().map(ScheduledJobResponse::from).collect()))
@@ -166,8 +175,8 @@ pub async fn delete_scheduled_job(
     State(state): State<ApplicationContext>,
     Path(job_id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    let deleted = state
-        .worker_service
+    let worker_service = check_workers_enabled(&state.worker_service)?;
+    let deleted = worker_service
         .remove_scheduled_job(job_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -182,7 +191,8 @@ pub async fn delete_scheduled_job(
 pub async fn get_worker_metrics(
     State(state): State<ApplicationContext>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let m = state.worker_service.get_metrics().await;
+    let worker_service = check_workers_enabled(&state.worker_service)?;
+    let m = worker_service.get_metrics().await;
     // Phase D: Worker metrics tracked via business_metrics (detailed breakdown)
     // record_worker_metrics takes: worker_id, jobs_completed, avg_duration_ms
     // We use "aggregate" as worker_id since we're tracking all workers
@@ -201,10 +211,11 @@ pub async fn list_jobs(
     State(state): State<ApplicationContext>,
     Query(q): Query<JobListQuery>,
 ) -> Result<Json<JobListResponse>, (StatusCode, String)> {
+    let worker_service = check_workers_enabled(&state.worker_service)
+        .map_err(|e| (e, "Worker service not available".to_string()))?;
     let limit = q.limit.unwrap_or(50).min(500);
     let offset = q.offset.unwrap_or(0);
-    let jobs = state
-        .worker_service
+    let jobs = worker_service
         .list_jobs(
             q.status.as_deref(),
             q.job_type.as_deref(),
@@ -221,4 +232,14 @@ pub async fn list_jobs(
         limit,
         offset,
     }))
+}
+
+/// Helper function to format job type for metrics
+fn format_job_type(job_type: &riptide_workers::JobType) -> String {
+    match job_type {
+        riptide_workers::JobType::SingleCrawl => "single_crawl".to_string(),
+        riptide_workers::JobType::BatchCrawl => "batch_crawl".to_string(),
+        riptide_workers::JobType::Maintenance => "maintenance".to_string(),
+        riptide_workers::JobType::Custom(name) => format!("custom_{}", name),
+    }
 }

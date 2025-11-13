@@ -11,26 +11,25 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
-use redis::aio::MultiplexedConnection;
-use redis::{AsyncCommands, Client};
+use riptide_types::ports::session::{Session, SessionStorage};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 use tokio::fs;
-use tokio::sync::{broadcast, Mutex, RwLock};
+use tokio::sync::{broadcast, RwLock};
 use tokio::time::interval;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
 /// Comprehensive state manager
 pub struct StateManager {
-    /// Redis connection pool for persistence
-    pool: Arc<Mutex<MultiplexedConnection>>,
+    /// Session storage abstraction (Redis, PostgreSQL, etc.)
+    session_storage: Arc<dyn SessionStorage>,
     /// Configuration
     config: StateConfig,
-    /// Active sessions
+    /// Active sessions (in-memory cache)
     sessions: Arc<RwLock<HashMap<String, SessionState>>>,
     /// Configuration manager
     config_manager: Arc<ConfigurationManager>,
@@ -162,11 +161,11 @@ pub struct CompressionInfo {
 }
 
 impl StateManager {
-    /// Create new state manager
-    pub async fn new(redis_url: &str, config: StateConfig) -> PersistenceResult<Self> {
-        let client = Client::open(redis_url)?;
-        let conn = client.get_multiplexed_tokio_connection().await?;
-
+    /// Create new state manager with dependency injection
+    pub async fn new(
+        session_storage: Arc<dyn SessionStorage>,
+        config: StateConfig,
+    ) -> PersistenceResult<Self> {
         let config_manager = Arc::new(ConfigurationManager::new(config.clone()).await?);
 
         let checkpoint_manager = Arc::new(CheckpointManager::new(config.clone()).await?);
@@ -182,7 +181,7 @@ impl StateManager {
         let (shutdown_tx, _) = broadcast::channel(1);
 
         let mut state_manager = Self {
-            pool: Arc::new(Mutex::new(conn)),
+            session_storage,
             config: config.clone(),
             sessions: Arc::new(RwLock::new(HashMap::new())),
             config_manager,
@@ -215,6 +214,93 @@ impl StateManager {
         );
 
         Ok(state_manager)
+    }
+
+    /// Convert SessionState to Session (for SessionStorage trait)
+    fn to_session(&self, state: &SessionState) -> Session {
+        // Convert DateTime<Utc> to SystemTime
+        let created_at =
+            SystemTime::UNIX_EPOCH + Duration::from_secs(state.created_at.timestamp() as u64);
+        let expires_at = SystemTime::UNIX_EPOCH
+            + Duration::from_secs((state.created_at.timestamp() + state.ttl_seconds as i64) as u64);
+
+        // Convert metadata
+        let mut metadata = HashMap::new();
+        if let Some(ref client_ip) = state.metadata.client_ip {
+            metadata.insert("client_ip".to_string(), client_ip.clone());
+        }
+        if let Some(ref user_agent) = state.metadata.user_agent {
+            metadata.insert("user_agent".to_string(), user_agent.clone());
+        }
+        if let Some(ref source) = state.metadata.source {
+            metadata.insert("source".to_string(), source.clone());
+        }
+        for (k, v) in &state.metadata.attributes {
+            metadata.insert(k.clone(), v.clone());
+        }
+
+        Session {
+            id: state.id.clone(),
+            user_id: state.user_id.clone().unwrap_or_default(),
+            tenant_id: "default".to_string(), // StateManager doesn't have tenant_id
+            created_at,
+            expires_at,
+            metadata,
+        }
+    }
+
+    /// Convert Session to SessionState
+    fn convert_from_session(&self, session: &Session) -> PersistenceResult<SessionState> {
+        // Convert SystemTime to DateTime<Utc>
+        let created_at = DateTime::from_timestamp(
+            session
+                .created_at
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .map_err(|e| PersistenceError::state(format!("Invalid created_at: {}", e)))?
+                .as_secs() as i64,
+            0,
+        )
+        .ok_or_else(|| PersistenceError::state("Failed to convert created_at timestamp"))?;
+
+        let expires_at = session
+            .expires_at
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .map_err(|e| PersistenceError::state(format!("Invalid expires_at: {}", e)))?
+            .as_secs() as i64;
+
+        let ttl_seconds = (expires_at - created_at.timestamp()) as u64;
+
+        // Convert metadata
+        let client_ip = session.metadata.get("client_ip").cloned();
+        let user_agent = session.metadata.get("user_agent").cloned();
+        let source = session.metadata.get("source").cloned();
+
+        let mut attributes = HashMap::new();
+        for (k, v) in &session.metadata {
+            if k != "client_ip" && k != "user_agent" && k != "source" {
+                attributes.insert(k.clone(), v.clone());
+            }
+        }
+
+        Ok(SessionState {
+            id: session.id.clone(),
+            created_at,
+            last_accessed: Utc::now(),
+            data: HashMap::new(),
+            user_id: if session.user_id.is_empty() {
+                None
+            } else {
+                Some(session.user_id.clone())
+            },
+            metadata: SessionMetadata {
+                client_ip,
+                user_agent,
+                source,
+                attributes,
+            },
+            ttl_seconds,
+            status: SessionStatus::Active,
+        })
     }
 
     /// Start background maintenance tasks
@@ -321,37 +407,36 @@ impl StateManager {
         let now = Utc::now();
 
         let user_id_clone = user_id.clone();
-        let session = SessionState {
+        let ttl = ttl_seconds.unwrap_or(self.config.session_timeout_seconds);
+
+        let session_state = SessionState {
             id: session_id.clone(),
             created_at: now,
             last_accessed: now,
             data: HashMap::new(),
             user_id,
             metadata,
-            ttl_seconds: ttl_seconds.unwrap_or(self.config.session_timeout_seconds),
+            ttl_seconds: ttl,
             status: SessionStatus::Active,
         };
 
-        // Store in Redis
-        let session_key = format!("riptide:session:{}", session_id);
-        let session_data = serde_json::to_vec(&session)?;
-
-        let mut conn = self.pool.lock().await;
-        conn.set_ex::<_, _, ()>(&session_key, &session_data, session.ttl_seconds)
-            .await?;
-
-        let ttl_seconds = session.ttl_seconds;
+        // Convert to Session trait type and store via SessionStorage
+        let session = self.to_session(&session_state);
+        self.session_storage
+            .save_session(&session)
+            .await
+            .map_err(|e| PersistenceError::state(format!("Failed to save session: {}", e)))?;
 
         // Store in memory
         {
             let mut sessions = self.sessions.write().await;
-            sessions.insert(session_id.clone(), session);
+            sessions.insert(session_id.clone(), session_state);
         }
 
         debug!(
             session_id = %session_id,
             user_id = ?user_id_clone,
-            ttl_seconds = ttl_seconds,
+            ttl_seconds = ttl,
             "Session created"
         );
 
@@ -407,31 +492,32 @@ impl StateManager {
             return Ok(Some(spilled_session));
         }
 
-        // Try Redis
-        let session_key = format!("riptide:session:{}", session_id);
-        let mut conn = self.pool.lock().await;
-        let session_data: Option<Vec<u8>> = conn.get(&session_key).await?;
+        // Try SessionStorage
+        let session_opt = self
+            .session_storage
+            .get_session(session_id)
+            .await
+            .map_err(|e| PersistenceError::state(format!("Failed to get session: {}", e)))?;
 
-        if let Some(data) = session_data {
-            let mut session: SessionState = serde_json::from_slice(&data)?;
-
+        if let Some(session) = session_opt {
             // Check if expired
-            let age = Utc::now().signed_duration_since(session.created_at);
-            if age.num_seconds() > session.ttl_seconds as i64 {
-                session.status = SessionStatus::Expired;
+            if session.is_expired() {
                 self.terminate_session(session_id).await?;
                 return Ok(None);
             }
 
-            // Update last accessed
-            session.last_accessed = Utc::now();
-            self.update_session(session_id, &session).await?;
+            // Convert to SessionState
+            let mut session_state = self.convert_from_session(&session)?;
+            session_state.last_accessed = Utc::now();
+
+            // Update in storage
+            self.update_session(session_id, &session_state).await?;
 
             // Update LRU access tracker
             self.spillover_manager.update_access(session_id).await;
 
-            debug!(session_id = %session_id, "Session retrieved from Redis");
-            Ok(Some(session))
+            debug!(session_id = %session_id, "Session retrieved from storage");
+            Ok(Some(session_state))
         } else {
             debug!(session_id = %session_id, "Session not found");
             Ok(None)
@@ -465,19 +551,19 @@ impl StateManager {
     async fn update_session(
         &self,
         session_id: &str,
-        session: &SessionState,
+        session_state: &SessionState,
     ) -> PersistenceResult<()> {
-        let session_key = format!("riptide:session:{}", session_id);
-        let session_data = serde_json::to_vec(session)?;
-
-        let mut conn = self.pool.lock().await;
-        conn.set_ex::<_, _, ()>(&session_key, &session_data, session.ttl_seconds)
-            .await?;
+        // Convert to Session trait type and save via SessionStorage
+        let session = self.to_session(session_state);
+        self.session_storage
+            .save_session(&session)
+            .await
+            .map_err(|e| PersistenceError::state(format!("Failed to update session: {}", e)))?;
 
         // Update memory
         {
             let mut sessions = self.sessions.write().await;
-            sessions.insert(session_id.to_string(), session.clone());
+            sessions.insert(session_id.to_string(), session_state.clone());
         }
 
         Ok(())
@@ -485,29 +571,36 @@ impl StateManager {
 
     /// Update session last accessed time
     async fn update_session_access(&self, session_id: &str) -> PersistenceResult<()> {
-        // Avoid recursion by directly accessing the session storage
-        let session_key = format!("riptide:session:{}", session_id);
-        let mut conn = self.pool.lock().await;
-        let session_data: Option<Vec<u8>> = conn.get(&session_key).await?;
+        // Get session from storage
+        let session_opt = self
+            .session_storage
+            .get_session(session_id)
+            .await
+            .map_err(|e| PersistenceError::state(format!("Failed to get session: {}", e)))?;
 
-        if let Some(data) = session_data {
-            if let Ok(mut session) = serde_json::from_slice::<SessionState>(&data) {
-                session.last_accessed = Utc::now();
-                let updated_data = serde_json::to_vec(&session)?;
-                conn.set_ex::<_, _, ()>(&session_key, &updated_data, session.ttl_seconds)
-                    .await?;
-            }
+        if let Some(session) = session_opt {
+            let mut session_state = self.convert_from_session(&session)?;
+            session_state.last_accessed = Utc::now();
+
+            // Save updated session
+            let updated_session = self.to_session(&session_state);
+            self.session_storage
+                .save_session(&updated_session)
+                .await
+                .map_err(|e| {
+                    PersistenceError::state(format!("Failed to update session access: {}", e))
+                })?;
         }
         Ok(())
     }
 
     /// Terminate session
     pub async fn terminate_session(&self, session_id: &str) -> PersistenceResult<bool> {
-        let session_key = format!("riptide:session:{}", session_id);
-
-        // Remove from Redis
-        let mut conn = self.pool.lock().await;
-        let deleted: u64 = conn.del(&session_key).await?;
+        // Remove from SessionStorage
+        self.session_storage
+            .delete_session(session_id)
+            .await
+            .map_err(|e| PersistenceError::state(format!("Failed to delete session: {}", e)))?;
 
         // Remove from memory
         let session_size = {
@@ -516,14 +609,14 @@ impl StateManager {
                 .get(session_id)
                 .map(MemoryTracker::estimate_session_size)
                 .unwrap_or(0);
-            sessions.remove(session_id);
-            session_size
+            let existed = sessions.remove(session_id).is_some();
+            (session_size, existed)
         };
 
         // Update memory tracker
-        if session_size > 0 {
+        if session_size.0 > 0 {
             self.memory_tracker
-                .update_usage(-(session_size as i64))
+                .update_usage(-(session_size.0 as i64))
                 .await;
         }
 
@@ -535,11 +628,11 @@ impl StateManager {
 
         debug!(
             session_id = %session_id,
-            deleted = deleted > 0,
+            deleted = session_size.1,
             "Session terminated"
         );
 
-        Ok(deleted > 0)
+        Ok(session_size.1)
     }
 
     /// Get all active sessions
@@ -783,7 +876,7 @@ impl StateManager {
 impl Clone for StateManager {
     fn clone(&self) -> Self {
         Self {
-            pool: Arc::clone(&self.pool),
+            session_storage: Arc::clone(&self.session_storage),
             config: self.config.clone(),
             sessions: Arc::clone(&self.sessions),
             config_manager: Arc::clone(&self.config_manager),

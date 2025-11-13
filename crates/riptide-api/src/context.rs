@@ -13,6 +13,8 @@
 /// This struct contains all shared resources needed for crawling operations,
 /// including HTTP clients, cache connections, and content extractors. The state
 /// is wrapped in Arc for efficient sharing across async handlers.
+///
+use crate::capabilities::SystemCapabilities;
 use crate::config::RiptideApiConfig;
 use crate::health::HealthChecker;
 use crate::metrics_integration::CombinedMetrics;
@@ -114,6 +116,9 @@ pub struct ApplicationContext {
     /// Health checker for enhanced diagnostics
     pub health_checker: Arc<HealthChecker>,
 
+    /// System capabilities for deployment mode reporting
+    pub capabilities: SystemCapabilities,
+
     /// Session manager for persistent browser sessions
     pub session_manager: Arc<SessionManager>,
 
@@ -132,9 +137,9 @@ pub struct ApplicationContext {
     #[allow(dead_code)] // Public API - used via metrics.update_pdf_metrics_from_collector
     pub pdf_metrics: Arc<PdfMetricsCollector>,
 
-    /// Worker service for background job processing
+    /// Worker service for background job processing (Phase 1: Optional - disabled by default)
     #[cfg(feature = "workers")]
-    pub worker_service: Arc<dyn riptide_types::ports::WorkerService>,
+    pub worker_service: Option<Arc<riptide_workers::WorkerService>>,
 
     /// Event bus for centralized event coordination
     pub event_bus: Arc<EventBus>,
@@ -549,6 +554,12 @@ impl AppConfig {
         use riptide_workers::{QueueConfig, SchedulerConfig, WorkerConfig};
 
         WorkerServiceConfig {
+            // Phase 1: Workers disabled by default, require explicit opt-in
+            enabled: std::env::var("WORKERS_ENABLED")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(false),
+
             redis_url: std::env::var("WORKER_REDIS_URL")
                 .or_else(|_| std::env::var("REDIS_URL"))
                 .unwrap_or_else(|_| "redis://localhost:6379".to_string()),
@@ -729,13 +740,38 @@ impl ApplicationContext {
         };
         tracing::debug!("HTTP client initialized with trait-based abstraction");
 
-        // Establish Redis connection with trait-based abstraction
-        let cache: Arc<dyn CacheStorage> = Arc::new(
-            riptide_cache::RedisStorage::new(&config.redis_url)
-                .await
-                .context("Failed to create Redis storage adapter")?,
+        // Establish cache storage with automatic backend selection and fallback
+        use riptide_cache::factory::CacheFactory;
+        use riptide_cache::storage_config::StorageConfig;
+
+        // Build storage configuration from environment/config
+        let storage_config = if !config.redis_url.is_empty() {
+            tracing::info!(
+                redis_url = %config.redis_url,
+                "Configuring Redis cache with automatic fallback to in-memory"
+            );
+            StorageConfig::redis_with_fallback(&config.redis_url)
+                .with_ttl_secs(config.cache_ttl)
+                .with_connection_timeout_secs(5)
+        } else {
+            tracing::info!("Redis URL empty, using in-memory cache backend");
+            StorageConfig::memory().with_ttl_secs(config.cache_ttl)
+        };
+
+        // Validate configuration
+        storage_config
+            .validate()
+            .map_err(|e| anyhow::anyhow!("Invalid cache configuration: {}", e))?;
+
+        // Create cache via factory with graceful fallback
+        let cache: Arc<dyn CacheStorage> =
+            CacheFactory::create_with_fallback(&storage_config).await;
+        tracing::info!(
+            backend = %storage_config.backend,
+            ttl_secs = storage_config.default_ttl_secs,
+            fallback_enabled = storage_config.enable_fallback,
+            "Cache storage initialized successfully"
         );
-        tracing::info!("Redis cache storage established: {}", config.redis_url);
 
         // Initialize unified extractor with automatic fallback
         #[cfg(feature = "extraction")]
@@ -856,16 +892,38 @@ impl ApplicationContext {
         let pdf_metrics = Arc::new(PdfMetricsCollector::new());
         tracing::info!("PDF metrics collector initialized for monitoring PDF processing");
 
-        // Initialize worker service for background job processing
+        // Initialize worker service for background job processing (Phase 1: Optional)
         #[cfg(feature = "workers")]
         let worker_service = {
-            tracing::info!("Initializing worker service for background jobs");
-            let ws = WorkerService::new(config.worker_config.clone())
-                .await
-                .map_err(|e| anyhow::anyhow!("Failed to initialize worker service: {}", e))?;
-            let ws: Arc<dyn riptide_types::ports::WorkerService> = Arc::new(ws);
-            tracing::info!("Worker service initialized successfully");
-            ws
+            if config.worker_config.enabled {
+                // Validate configuration if workers enabled
+                if config.worker_config.redis_url.is_empty() {
+                    return Err(anyhow::anyhow!(
+                        "Worker service enabled (WORKERS_ENABLED=true) but redis_url not configured. \
+                         Set WORKER_REDIS_URL or REDIS_URL environment variable."
+                    ));
+                }
+
+                tracing::info!(
+                    redis_url = %config.worker_config.redis_url,
+                    worker_count = config.worker_config.worker_config.worker_count,
+                    "Starting worker service with Redis queue"
+                );
+
+                let ws = WorkerService::new(config.worker_config.clone())
+                    .await
+                    .map_err(|e| anyhow::anyhow!("Failed to initialize worker service: {}", e))?;
+                let ws: Arc<dyn riptide_types::ports::WorkerService> = Arc::new(ws);
+                tracing::info!(
+                    "Worker service initialized successfully - async job processing enabled"
+                );
+                Some(ws)
+            } else {
+                tracing::info!(
+                    "Worker service disabled - running in single-process mode without job queue"
+                );
+                None
+            }
         };
 
         // Initialize event bus with configuration
@@ -1292,14 +1350,20 @@ impl ApplicationContext {
                 })?,
         );
 
-        // Initialize engine facade with cache storage adapter
-        let cache_storage = Arc::new(
-            riptide_cache::RedisStorage::new(&config.redis_url)
-                .await
-                .context("Failed to create Redis storage for engine facade")?,
+        // Initialize engine facade with cache storage adapter via factory
+        let engine_cache_config = if !config.redis_url.is_empty() {
+            StorageConfig::redis_with_fallback(&config.redis_url).with_ttl_secs(config.cache_ttl)
+        } else {
+            StorageConfig::memory().with_ttl_secs(config.cache_ttl)
+        };
+        let engine_cache_storage = CacheFactory::create_with_fallback(&engine_cache_config).await;
+        let engine_facade = Arc::new(riptide_facade::facades::EngineFacade::new(
+            engine_cache_storage,
+        ));
+        tracing::info!(
+            backend = %engine_cache_config.backend,
+            "EngineFacade initialized successfully with cache backend"
         );
-        let engine_facade = Arc::new(riptide_facade::facades::EngineFacade::new(cache_storage));
-        tracing::info!("EngineFacade initialized successfully");
 
         // Initialize resource facade (Sprint 4.4)
         use crate::adapters::ResourceManagerPoolAdapter;
@@ -1343,6 +1407,23 @@ impl ApplicationContext {
         #[cfg(feature = "search")]
         let search_facade = None;
 
+        // Detect system capabilities for deployment mode reporting
+        let cache_backend_str = storage_config.backend.to_string();
+        // Phase 1: Check actual runtime config, not just feature flag
+        #[cfg(feature = "workers")]
+        let workers_enabled = worker_service.is_some();
+        #[cfg(not(feature = "workers"))]
+        let workers_enabled = false;
+
+        let capabilities = SystemCapabilities::detect(&cache_backend_str, workers_enabled);
+        tracing::info!(
+            deployment_mode = %capabilities.deployment_mode,
+            cache_backend = %capabilities.cache_backend,
+            async_jobs = %capabilities.async_jobs,
+            distributed = %capabilities.distributed,
+            "System capabilities detected"
+        );
+
         Ok(Self {
             http_client,
             cache,
@@ -1356,6 +1437,7 @@ impl ApplicationContext {
             transport_metrics,
             combined_metrics,
             health_checker,
+            capabilities,
             session_manager,
             streaming,
             telemetry,
@@ -1652,17 +1734,21 @@ impl ApplicationContext {
         #[cfg(feature = "workers")]
         {
             health.worker_service = {
-                let worker_health = self.worker_service.health_check().await;
-                if worker_health.overall_healthy {
-                    DependencyHealth::Healthy
+                if let Some(worker_svc) = &self.worker_service {
+                    let worker_health = worker_svc.health_check().await;
+                    if worker_health.overall_healthy {
+                        DependencyHealth::Healthy
+                    } else {
+                        health.healthy = false;
+                        DependencyHealth::Unhealthy(format!(
+                            "Worker service unhealthy: queue={}, pool={}, scheduler={}",
+                            worker_health.queue_healthy,
+                            worker_health.worker_pool_healthy,
+                            worker_health.scheduler_healthy
+                        ))
+                    }
                 } else {
-                    health.healthy = false;
-                    DependencyHealth::Unhealthy(format!(
-                        "Worker service unhealthy: queue={}, pool={}, scheduler={}",
-                        worker_health.queue_healthy,
-                        worker_health.worker_pool_healthy,
-                        worker_health.scheduler_healthy
-                    ))
+                    DependencyHealth::Healthy
                 }
             };
         }
@@ -1751,29 +1837,45 @@ impl ApplicationContext {
         let redis_url =
             std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
 
-        // Create cache storage with trait-based abstraction
+        // Create cache storage using factory with automatic fallback
+        use riptide_cache::factory::CacheFactory;
+        use riptide_cache::storage_config::StorageConfig;
+
         let cache: Arc<dyn CacheStorage> = if std::env::var("SKIP_REDIS_TESTS").is_ok() {
-            eprintln!("⚠️  SKIP_REDIS_TESTS is set - using mock cache for tests");
-            // Try to create real cache, panic with helpful message if it fails
-            match riptide_cache::RedisStorage::new(&redis_url).await {
-                Ok(storage) => Arc::new(storage),
-                Err(e) => {
-                    eprintln!("Using mock cache (Redis unavailable: {})", e);
-                    panic!("Mock cache not implemented - Redis is required for tests. Start Redis with: docker run -d -p 6379:6379 redis")
-                }
-            }
+            eprintln!("⚠️  SKIP_REDIS_TESTS is set - using in-memory cache for tests");
+            CacheFactory::memory()
         } else {
-            // Try to create real cache storage
-            match riptide_cache::RedisStorage::new(&redis_url).await {
-                Ok(storage) => Arc::new(storage),
-                Err(e) => {
-                    eprintln!("Warning: Redis not available for tests ({})", e);
-                    eprintln!("\n⚠️  Redis connection failed");
-                    eprintln!("   To run tests, start Redis: docker run -d -p 6379:6379 redis");
-                    eprintln!("   Or set REDIS_URL to point to your Redis instance");
-                    eprintln!("   Or set SKIP_REDIS_TESTS=1 to skip Redis-dependent tests\n");
-                    panic!("Redis required for integration tests")
+            // Try Redis with fallback to memory
+            let storage_config =
+                StorageConfig::redis_with_fallback(&redis_url).with_connection_timeout_secs(2); // Short timeout for tests
+
+            let cache_storage = CacheFactory::create_with_fallback(&storage_config).await;
+
+            // Verify Redis is actually working (not fallback) if SKIP_REDIS_TESTS not set
+            if storage_config.backend == riptide_cache::storage_config::CacheBackend::Redis {
+                // Test connection to ensure Redis is available
+                match cache_storage
+                    .set(
+                        "test:healthcheck",
+                        b"ok",
+                        Some(std::time::Duration::from_secs(1)),
+                    )
+                    .await
+                {
+                    Ok(_) => {
+                        let _ = cache_storage.delete("test:healthcheck").await;
+                        cache_storage
+                    }
+                    Err(_) => {
+                        eprintln!("\n⚠️  Redis connection failed");
+                        eprintln!("   To run tests, start Redis: docker run -d -p 6379:6379 redis");
+                        eprintln!("   Or set REDIS_URL to point to your Redis instance");
+                        eprintln!("   Or set SKIP_REDIS_TESTS=1 to skip Redis-dependent tests\n");
+                        panic!("Redis required for integration tests")
+                    }
                 }
+            } else {
+                cache_storage
             }
         };
 
@@ -1830,11 +1932,11 @@ impl ApplicationContext {
         #[cfg(feature = "workers")]
         let worker_service = {
             let worker_config = WorkerServiceConfig::default();
-            Arc::new(
+            Some(Arc::new(
                 WorkerService::new(worker_config)
                     .await
                     .expect("Failed to create worker service"),
-            )
+            ) as Arc<dyn riptide_types::ports::WorkerService>)
         };
 
         let event_bus = Arc::new(EventBus::new());
@@ -1896,22 +1998,21 @@ impl ApplicationContext {
         #[cfg(feature = "search")]
         let search_facade = None;
 
-        // Initialize engine facade for tests
-        let cache_storage = Arc::new(
-            riptide_cache::RedisStorage::new(&redis_url)
-                .await
-                .expect("Failed to create Redis storage for tests"),
-        );
+        // Initialize engine facade for tests using factory
+        let engine_cache_config =
+            StorageConfig::redis_with_fallback(&redis_url).with_connection_timeout_secs(2);
+        let cache_storage = CacheFactory::create_with_fallback(&engine_cache_config).await;
         let engine_facade = Arc::new(riptide_facade::facades::EngineFacade::new(cache_storage));
 
         // Initialize resource facade for tests (Sprint 4.4)
         let resource_pool_adapter = Arc::new(crate::adapters::ResourceManagerPoolAdapter::new(
             resource_manager.clone(),
         ));
+        // Create Redis manager for rate limiting (reuses same Redis as cache)
         let redis_manager = Arc::new(
             riptide_cache::redis::RedisManager::new(&redis_url)
                 .await
-                .expect("Failed to create Redis manager for tests"),
+                .expect("Failed to create Redis manager for tests (set SKIP_REDIS_TESTS=1 to use in-memory cache)"),
         );
         let redis_rate_limiter = Arc::new(riptide_cache::adapters::RedisRateLimiter::new(
             redis_manager,
@@ -1944,6 +2045,13 @@ impl ApplicationContext {
                 .expect("Failed to create combined metrics for tests"),
         );
 
+        // Detect capabilities for test state (workers disabled in tests by default)
+        #[cfg(feature = "workers")]
+        let workers_enabled = true;
+        #[cfg(not(feature = "workers"))]
+        let workers_enabled = false;
+        let capabilities = SystemCapabilities::detect("redis", workers_enabled);
+
         Self {
             http_client,
             cache,
@@ -1957,6 +2065,7 @@ impl ApplicationContext {
             transport_metrics,
             combined_metrics,
             health_checker,
+            capabilities,
             session_manager,
             streaming,
             telemetry: None,

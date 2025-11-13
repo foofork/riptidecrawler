@@ -145,7 +145,7 @@ async fn test_render_request_with_stealth_config() {
 #[tokio::test]
 async fn test_page_action_variants() {
     // Test all PageAction variants can be created
-    let actions = vec![
+    let actions = [
         PageAction::WaitForCss {
             css: "#element".to_string(),
             timeout_ms: Some(3000),
@@ -256,7 +256,7 @@ async fn test_multiple_concurrent_requests() {
     let launcher = Arc::new(HeadlessLauncher::with_config(config).await.unwrap());
 
     // Create multiple render requests
-    let requests = vec![
+    let requests = [
         RenderReq {
             url: "https://example.com".to_string(),
             wait_for: None,

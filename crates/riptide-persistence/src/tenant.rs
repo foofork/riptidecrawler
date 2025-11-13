@@ -11,22 +11,21 @@ use crate::{
     metrics::TenantMetrics,
 };
 use chrono::{DateTime, Utc};
-use redis::aio::MultiplexedConnection;
-use redis::{AsyncCommands, Client};
+use riptide_types::ports::CacheStorage;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::RwLock;
 use tokio::time::interval;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
 /// Comprehensive tenant manager
 pub struct TenantManager {
-    /// Redis connection pool
-    pool: Arc<Mutex<MultiplexedConnection>>,
+    /// Cache storage for tenant data
+    storage: Arc<dyn CacheStorage>,
     /// Configuration
     config: crate::config::TenantConfig,
     /// Active tenants
@@ -265,21 +264,18 @@ pub struct ContactInfo {
 }
 
 impl TenantManager {
-    /// Create new tenant manager
+    /// Create new tenant manager with dependency injection
     pub async fn new(
-        redis_url: &str,
+        storage: Arc<dyn CacheStorage>,
         config: crate::config::TenantConfig,
         metrics: Arc<RwLock<TenantMetrics>>,
     ) -> PersistenceResult<Self> {
-        let client = Client::open(redis_url)?;
-        let conn = client.get_multiplexed_tokio_connection().await?;
-
         let usage_tracker = Arc::new(ResourceUsageTracker::new(config.clone()).await?);
         let billing_tracker = Arc::new(BillingTracker::new(config.clone()).await?);
         let security_manager = Arc::new(SecurityBoundary::new(config.clone()).await?);
 
         let manager = Self {
-            pool: Arc::new(Mutex::new(conn)),
+            storage,
             config: config.clone(),
             tenants: Arc::new(RwLock::new(HashMap::new())),
             usage_tracker,
@@ -404,12 +400,11 @@ impl TenantManager {
             },
         };
 
-        // Store tenant in Redis
+        // Store tenant in cache
         let tenant_key = format!("riptide:tenant:{}", tenant_id);
         let tenant_data = serde_json::to_vec(&tenant_context)?;
 
-        let mut conn = self.pool.lock().await;
-        conn.set::<_, _, ()>(&tenant_key, &tenant_data).await?;
+        self.storage.set(&tenant_key, &tenant_data, None).await?;
 
         let tenant_name = tenant_context.config.name.clone();
         let isolation_level = tenant_context.config.isolation_level.clone();
@@ -453,10 +448,9 @@ impl TenantManager {
             }
         }
 
-        // Try Redis
+        // Try cache storage
         let tenant_key = format!("riptide:tenant:{}", tenant_id);
-        let mut conn = self.pool.lock().await;
-        let tenant_data: Option<Vec<u8>> = conn.get(&tenant_key).await?;
+        let tenant_data = self.storage.get(&tenant_key).await?;
 
         if let Some(data) = tenant_data {
             let tenant_context: TenantContext = serde_json::from_slice(&data)?;
@@ -467,7 +461,7 @@ impl TenantManager {
                 tenants.insert(tenant_id.to_string(), tenant_context.clone());
             }
 
-            debug!(tenant_id = %tenant_id, "Tenant loaded from Redis");
+            debug!(tenant_id = %tenant_id, "Tenant loaded from cache");
             Ok(Some(tenant_context))
         } else {
             Ok(None)
@@ -498,8 +492,7 @@ impl TenantManager {
             let tenant_key = format!("riptide:tenant:{}", tenant_id);
             let tenant_data = serde_json::to_vec(&tenant)?;
 
-            let mut conn = self.pool.lock().await;
-            conn.set::<_, _, ()>(&tenant_key, &tenant_data).await?;
+            self.storage.set(&tenant_key, &tenant_data, None).await?;
 
             // Update memory
             {
@@ -674,8 +667,7 @@ impl TenantManager {
             let tenant_key = format!("riptide:tenant:{}", tenant_id);
             let tenant_data = serde_json::to_vec(&tenant)?;
 
-            let mut conn = self.pool.lock().await;
-            conn.set::<_, _, ()>(&tenant_key, &tenant_data).await?;
+            self.storage.set(&tenant_key, &tenant_data, None).await?;
 
             // Update memory
             {
@@ -692,10 +684,9 @@ impl TenantManager {
 
     /// Delete tenant (admin function)
     pub async fn delete_tenant(&self, tenant_id: &str) -> PersistenceResult<()> {
-        // Remove from Redis
+        // Remove from cache
         let tenant_key = format!("riptide:tenant:{}", tenant_id);
-        let mut conn = self.pool.lock().await;
-        let deleted: u64 = conn.del(&tenant_key).await?;
+        self.storage.delete(&tenant_key).await?;
 
         // Remove from memory
         {
@@ -711,11 +702,7 @@ impl TenantManager {
         // Clean up tenant data
         self.cleanup_tenant_data(tenant_id).await?;
 
-        info!(
-            tenant_id = %tenant_id,
-            deleted = deleted > 0,
-            "Tenant deleted"
-        );
+        info!(tenant_id = %tenant_id, "Tenant deleted");
 
         Ok(())
     }
@@ -779,23 +766,26 @@ impl TenantManager {
     }
 
     async fn cleanup_tenant_data(&self, tenant_id: &str) -> PersistenceResult<()> {
-        // Clean up all tenant-specific data from Redis
+        // Clean up all tenant-specific data from cache
         let pattern = format!("riptide:tenant:{}:*", tenant_id);
-        let mut conn = self.pool.lock().await;
 
-        let keys: Vec<String> = redis::cmd("KEYS")
-            .arg(&pattern)
-            .query_async(&mut *conn)
-            .await
-            .unwrap_or_default();
-
-        if !keys.is_empty() {
-            let deleted: u64 = conn.del(&keys).await?;
-            debug!(
-                tenant_id = %tenant_id,
-                deleted_keys = deleted,
-                "Tenant data cleaned up"
-            );
+        match self.storage.clear_pattern(&pattern).await {
+            Ok(deleted_count) => {
+                debug!(
+                    tenant_id = %tenant_id,
+                    deleted_keys = deleted_count,
+                    "Tenant data cleaned up"
+                );
+            }
+            Err(e) => {
+                // If clear_pattern is not supported by the backend, log a warning
+                // but don't fail the operation since the main tenant key was already deleted
+                warn!(
+                    tenant_id = %tenant_id,
+                    error = %e,
+                    "Could not clear tenant data pattern (may not be supported by cache backend)"
+                );
+            }
         }
 
         Ok(())
@@ -805,7 +795,7 @@ impl TenantManager {
 impl Clone for TenantManager {
     fn clone(&self) -> Self {
         Self {
-            pool: Arc::clone(&self.pool),
+            storage: Arc::clone(&self.storage),
             config: self.config.clone(),
             tenants: Arc::clone(&self.tenants),
             usage_tracker: Arc::clone(&self.usage_tracker),

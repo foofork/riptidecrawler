@@ -1,0 +1,157 @@
+name: Docker Modes Test
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'docker-compose*.yml'
+      - 'infra/docker/**'
+      - 'scripts/test-docker-modes.sh'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'docker-compose*.yml'
+      - 'infra/docker/**'
+      - 'scripts/test-docker-modes.sh'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Test mode (minimal, simple, distributed, or all)'
+        required: false
+        default: 'all'
+
+jobs:
+  test-minimal:
+    name: Test Minimal Mode
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.mode == 'minimal' || github.event.inputs.mode == 'all' || github.event.inputs.mode == '' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate docker-compose.minimal.yml
+        run: docker-compose -f docker-compose.minimal.yml config --quiet
+
+      - name: Test minimal mode
+        run: ./scripts/test-docker-modes.sh minimal
+        timeout-minutes: 10
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: minimal-mode-logs
+          path: |
+            **/*.log
+            /tmp/*.log
+
+  test-simple:
+    name: Test Simple Mode
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.mode == 'simple' || github.event.inputs.mode == 'all' || github.event.inputs.mode == '' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate docker-compose.simple.yml
+        run: docker-compose -f docker-compose.simple.yml config --quiet
+
+      - name: Test simple mode
+        run: ./scripts/test-docker-modes.sh simple
+        timeout-minutes: 15
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simple-mode-logs
+          path: |
+            **/*.log
+            /tmp/*.log
+
+  test-distributed:
+    name: Test Distributed Mode
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.mode == 'distributed' || github.event.inputs.mode == 'all' || github.event.inputs.mode == '' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate docker-compose.yml
+        run: docker-compose config --quiet
+
+      - name: Create .env file
+        run: |
+          cat > .env << EOF
+          RIPTIDE_API_PORT=8080
+          RUST_LOG=info
+          REQUIRE_AUTH=false
+          SPIDER_ENABLE=true
+          EOF
+
+      - name: Test distributed mode
+        run: ./scripts/test-docker-modes.sh distributed
+        timeout-minutes: 20
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: distributed-mode-logs
+          path: |
+            **/*.log
+            /tmp/*.log
+
+  validate-docs:
+    name: Validate Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check documentation exists
+        run: |
+          test -f docs/deployment/docker-modes.md
+          test -f docs/deployment/quick-start-docker.md
+          test -f docs/deployment/README.md
+          test -f docs/deployment/DEPLOYMENT-MODES-SUMMARY.md
+          echo "✅ All documentation files exist"
+
+      - name: Validate markdown links
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: 'yes'
+          config-file: '.github/markdown-link-check-config.json'
+          folder-path: 'docs/deployment'
+        continue-on-error: true
+
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [test-minimal, test-simple, test-distributed, validate-docs]
+    if: always()
+
+    steps:
+      - name: Check test results
+        run: |
+          echo "## Docker Modes Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Mode | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Minimal | ${{ needs.test-minimal.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Simple | ${{ needs.test-simple.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Distributed | ${{ needs.test-distributed.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Documentation | ${{ needs.validate-docs.result == 'success' && '✅ Valid' || '⚠️ Issues' }} |" >> $GITHUB_STEP_SUMMARY

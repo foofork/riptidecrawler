@@ -13,14 +13,12 @@ use crate::{
     metrics::CacheMetrics,
 };
 use chrono::{DateTime, Utc};
-use redis::aio::MultiplexedConnection;
-use redis::{AsyncCommands, Client, Pipeline};
+use riptide_types::ports::CacheStorage;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use tokio::sync::RwLock;
 use tracing::{debug, error, info, warn};
 
 /// Comprehensive cache entry with metadata
@@ -95,8 +93,8 @@ pub struct CacheStats {
 
 /// High-performance persistent cache manager
 pub struct PersistentCacheManager {
-    /// Redis connection pool
-    connections: Arc<RwLock<Vec<MultiplexedConnection>>>,
+    /// Cache storage backend (dependency injected)
+    storage: Arc<dyn CacheStorage>,
     /// Configuration
     config: CacheConfig,
     /// Metrics collector
@@ -108,33 +106,12 @@ pub struct PersistentCacheManager {
 }
 
 impl PersistentCacheManager {
-    /// Create a new cache manager with connection pooling
-    pub async fn new(redis_url: &str, config: CacheConfig) -> PersistenceResult<Self> {
-        let client = Client::open(redis_url)?;
-        let mut connections = Vec::new();
-
-        // Create connection pool (default 10 connections)
-        for i in 0..10 {
-            match client.get_multiplexed_tokio_connection().await {
-                Ok(conn) => {
-                    connections.push(conn);
-                    debug!(connection_id = i, "Created Redis connection");
-                }
-                Err(e) => {
-                    error!(connection_id = i, error = %e, "Failed to create Redis connection");
-                    return Err(PersistenceError::Redis(e));
-                }
-            }
-        }
-
-        info!(
-            pool_size = connections.len(),
-            redis_url = %redis_url,
-            "Initialized cache manager"
-        );
+    /// Create a new cache manager with dependency injection
+    pub fn new(storage: Arc<dyn CacheStorage>, config: CacheConfig) -> PersistenceResult<Self> {
+        info!("Initialized cache manager with injected storage");
 
         Ok(Self {
-            connections: Arc::new(RwLock::new(connections)),
+            storage,
             config,
             metrics: Arc::new(CacheMetrics::new().map_err(|e| {
                 PersistenceError::cache(format!("Failed to create cache metrics: {}", e))
@@ -142,16 +119,6 @@ impl PersistentCacheManager {
             sync_manager: None,
             warmer: None,
         })
-    }
-
-    /// Get a connection from the pool
-    async fn get_connection(&self) -> PersistenceResult<MultiplexedConnection> {
-        let connections = self.connections.read().await;
-        if let Some(conn) = connections.first() {
-            Ok(conn.clone())
-        } else {
-            Err(PersistenceError::cache("No available connections"))
-        }
     }
 
     /// Generate cache key with namespace and hashing
@@ -185,8 +152,11 @@ impl PersistentCacheManager {
         let start_time = Instant::now();
         let cache_key = self.generate_key(key, namespace);
 
-        let mut conn = self.get_connection().await?;
-        let result: Option<Vec<u8>> = conn.get(&cache_key).await?;
+        let result = self
+            .storage
+            .get(&cache_key)
+            .await
+            .map_err(|e| PersistenceError::cache(format!("Cache storage get failed: {}", e)))?;
 
         let elapsed = start_time.elapsed();
 
@@ -350,10 +320,15 @@ impl PersistentCacheManager {
         // Serialize complete entry
         let entry_bytes = serde_json::to_vec(&entry)?;
 
-        // Store in Redis with TTL
-        let mut conn = self.get_connection().await?;
-        conn.set_ex::<_, _, ()>(&cache_key, &entry_bytes, ttl_seconds)
-            .await?;
+        // Store in cache with TTL
+        self.storage
+            .set(
+                &cache_key,
+                &entry_bytes,
+                Some(Duration::from_secs(ttl_seconds)),
+            )
+            .await
+            .map_err(|e| PersistenceError::cache(format!("Cache storage set failed: {}", e)))?;
 
         let elapsed = start_time.elapsed();
 
@@ -390,14 +365,18 @@ impl PersistentCacheManager {
         reason: crate::metrics::EvictionReason,
     ) -> PersistenceResult<bool> {
         let cache_key = self.generate_key(key, namespace);
-        let mut conn = self.get_connection().await?;
 
         // Get entry metadata before deletion for eviction tracking
         #[cfg(feature = "metrics")]
-        let entry_data: Option<Vec<u8>> = conn.get(&cache_key).await.ok();
+        let entry_data = self.storage.get(&cache_key).await.ok().flatten();
 
-        let deleted: u64 = conn.del(&cache_key).await?;
-        let was_deleted = deleted > 0;
+        self.storage
+            .delete(&cache_key)
+            .await
+            .map_err(|e| PersistenceError::cache(format!("Cache storage delete failed: {}", e)))?;
+
+        // Assume deletion was successful (trait doesn't return bool)
+        let was_deleted = true;
 
         if was_deleted {
             debug!(key = %cache_key, reason = ?reason, "Cache entry deleted");
@@ -440,8 +419,11 @@ impl PersistentCacheManager {
             .map(|k| self.generate_key(k, namespace))
             .collect();
 
-        let mut conn = self.get_connection().await?;
-        let results: Vec<Option<Vec<u8>>> = conn.get(&cache_keys).await?;
+        let cache_key_refs: Vec<&str> = cache_keys.iter().map(|s| s.as_str()).collect();
+        let results =
+            self.storage.mget(&cache_key_refs).await.map_err(|e| {
+                PersistenceError::cache(format!("Cache storage mget failed: {}", e))
+            })?;
 
         let mut result_map = HashMap::new();
 
@@ -481,12 +463,14 @@ impl PersistentCacheManager {
     where
         T: Serialize,
     {
-        let mut conn = self.get_connection().await?;
-        let mut pipeline = Pipeline::new();
-
         let ttl_seconds = ttl
             .map(|d| d.as_secs())
             .unwrap_or(self.config.default_ttl_seconds);
+
+        let ttl_duration = Some(Duration::from_secs(ttl_seconds));
+
+        // Prepare all entries for batch operation
+        let mut batch_items = Vec::with_capacity(entries.len());
 
         for (key, value) in entries.iter() {
             let cache_key = self.generate_key(key, namespace);
@@ -510,10 +494,19 @@ impl PersistentCacheManager {
             };
 
             let entry_bytes = serde_json::to_vec(&entry)?;
-            pipeline.set_ex(&cache_key, &entry_bytes, ttl_seconds);
+            batch_items.push((cache_key, entry_bytes));
         }
 
-        pipeline.query_async::<()>(&mut conn).await?;
+        // Convert to slice references for mset
+        let batch_refs: Vec<(&str, &[u8])> = batch_items
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.as_slice()))
+            .collect();
+
+        self.storage
+            .mset(batch_refs, ttl_duration)
+            .await
+            .map_err(|e| PersistenceError::cache(format!("Cache storage mset failed: {}", e)))?;
 
         info!(count = entries.len(), "Batch set completed");
         self.metrics.record_batch_set(entries.len()).await;
@@ -523,30 +516,17 @@ impl PersistentCacheManager {
 
     /// Get cache statistics
     pub async fn get_stats(&self) -> PersistenceResult<CacheStats> {
-        let mut conn = self.get_connection().await?;
-
-        // Get Redis memory info
-        let info: String = redis::cmd("INFO")
-            .arg("memory")
-            .query_async(&mut conn)
-            .await
-            .unwrap_or_default();
-
-        let memory_usage = self.parse_memory_usage(&info);
-
-        // Count our keys
-        let pattern = format!("{}:{}:*", self.config.key_prefix, self.config.version);
-        let keys: Vec<String> = redis::cmd("KEYS")
-            .arg(&pattern)
-            .query_async(&mut conn)
-            .await
-            .unwrap_or_default();
+        // Get backend stats
+        let backend_stats =
+            self.storage.stats().await.map_err(|e| {
+                PersistenceError::cache(format!("Failed to get storage stats: {}", e))
+            })?;
 
         let metrics = self.metrics.get_current_stats().await;
 
         Ok(CacheStats {
-            total_keys: keys.len() as u64,
-            memory_usage_bytes: memory_usage,
+            total_keys: backend_stats.total_keys as u64,
+            memory_usage_bytes: backend_stats.memory_usage as u64,
             hit_rate: metrics.hit_rate,
             miss_rate: metrics.miss_rate,
             avg_access_time_us: metrics.avg_access_time_us,
@@ -578,19 +558,11 @@ impl PersistentCacheManager {
     /// Clear all cache entries
     pub async fn clear(&self) -> PersistenceResult<u64> {
         let pattern = format!("{}:{}:*", self.config.key_prefix, self.config.version);
-        let mut conn = self.get_connection().await?;
 
-        let keys: Vec<String> = redis::cmd("KEYS")
-            .arg(&pattern)
-            .query_async(&mut conn)
-            .await
-            .unwrap_or_default();
+        let deleted = self.storage.clear_pattern(&pattern).await.map_err(|e| {
+            PersistenceError::cache(format!("Cache storage clear_pattern failed: {}", e))
+        })? as u64;
 
-        if keys.is_empty() {
-            return Ok(0);
-        }
-
-        let deleted: u64 = conn.del(&keys).await?;
         info!(deleted = deleted, "Cache cleared");
 
         Ok(deleted)
@@ -618,19 +590,9 @@ impl PersistentCacheManager {
 
     async fn update_access_stats(&self, _cache_key: &str) -> PersistenceResult<()> {
         // Update last_accessed and access_count in background
-        // Implementation would depend on specific requirements
+        // Note: With CacheStorage trait, access tracking would need to be
+        // implemented at the application layer or in the storage backend
         Ok(())
-    }
-
-    fn parse_memory_usage(&self, info: &str) -> u64 {
-        for line in info.lines() {
-            if line.starts_with("used_memory:") {
-                if let Some(value) = line.split(':').nth(1) {
-                    return value.trim().parse().unwrap_or(0);
-                }
-            }
-        }
-        0
     }
 }
 

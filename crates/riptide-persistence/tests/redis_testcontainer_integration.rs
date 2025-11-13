@@ -5,10 +5,12 @@
 
 use anyhow::Result;
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::Duration;
 use testcontainers::clients::Cli;
 use tokio::time::sleep;
 
+use riptide_cache::RedisStorage;
 use riptide_persistence::{
     cache::{CacheMetadata, PersistentCacheManager},
     config::{CacheConfig, CompressionAlgorithm, EvictionPolicy},
@@ -35,13 +37,19 @@ fn test_cache_config() -> CacheConfig {
     }
 }
 
+// Helper function to create cache manager
+async fn create_cache_manager(redis_url: &str) -> Result<PersistentCacheManager> {
+    let storage = Arc::new(RedisStorage::new(redis_url).await?);
+    let config = test_cache_config();
+    Ok(PersistentCacheManager::new(storage, config)?)
+}
+
 #[tokio::test]
 async fn test_redis_connection_with_testcontainer() -> Result<()> {
     let docker = Cli::default();
     let redis_container = RedisTestContainer::new(&docker).await?;
-    let config = test_cache_config();
 
-    let cache = PersistentCacheManager::new(redis_container.get_connection_string(), config).await;
+    let cache = create_cache_manager(redis_container.get_connection_string()).await;
     assert!(cache.is_ok(), "Should connect to testcontainer Redis");
 
     Ok(())
@@ -51,9 +59,7 @@ async fn test_redis_connection_with_testcontainer() -> Result<()> {
 async fn test_cache_set_and_get() -> Result<()> {
     let docker = Cli::default();
     let redis_container = RedisTestContainer::new(&docker).await?;
-    let config = test_cache_config();
-    let cache =
-        PersistentCacheManager::new(redis_container.get_connection_string(), config).await?;
+    let cache = create_cache_manager(redis_container.get_connection_string()).await?;
 
     // Set a value
     cache
@@ -71,9 +77,7 @@ async fn test_cache_set_and_get() -> Result<()> {
 async fn test_cache_delete() -> Result<()> {
     let docker = Cli::default();
     let redis_container = RedisTestContainer::new(&docker).await?;
-    let config = test_cache_config();
-    let cache =
-        PersistentCacheManager::new(redis_container.get_connection_string(), config).await?;
+    let cache = create_cache_manager(redis_container.get_connection_string()).await?;
 
     cache.set("delete_test", &"value", None, None, None).await?;
     cache.delete("delete_test", None).await?;
@@ -88,9 +92,7 @@ async fn test_cache_delete() -> Result<()> {
 async fn test_ttl_expiration() -> Result<()> {
     let docker = Cli::default();
     let redis_container = RedisTestContainer::new(&docker).await?;
-    let config = test_cache_config();
-    let cache =
-        PersistentCacheManager::new(redis_container.get_connection_string(), config).await?;
+    let cache = create_cache_manager(redis_container.get_connection_string()).await?;
 
     cache
         .set(
@@ -117,9 +119,7 @@ async fn test_ttl_expiration() -> Result<()> {
 async fn test_multi_tenant_isolation() -> Result<()> {
     let docker = Cli::default();
     let redis_container = RedisTestContainer::new(&docker).await?;
-    let config = test_cache_config();
-    let cache =
-        PersistentCacheManager::new(redis_container.get_connection_string(), config).await?;
+    let cache = create_cache_manager(redis_container.get_connection_string()).await?;
 
     cache
         .set("shared_key", &"value1", Some("tenant1"), None, None)
@@ -141,9 +141,7 @@ async fn test_multi_tenant_isolation() -> Result<()> {
 async fn test_batch_operations() -> Result<()> {
     let docker = Cli::default();
     let redis_container = RedisTestContainer::new(&docker).await?;
-    let config = test_cache_config();
-    let cache =
-        PersistentCacheManager::new(redis_container.get_connection_string(), config).await?;
+    let cache = create_cache_manager(redis_container.get_connection_string()).await?;
 
     let mut entries = HashMap::new();
     entries.insert("batch1".to_string(), "value1");
@@ -167,9 +165,7 @@ async fn test_batch_operations() -> Result<()> {
 async fn test_batch_get() -> Result<()> {
     let docker = Cli::default();
     let redis_container = RedisTestContainer::new(&docker).await?;
-    let config = test_cache_config();
-    let cache =
-        PersistentCacheManager::new(redis_container.get_connection_string(), config).await?;
+    let cache = create_cache_manager(redis_container.get_connection_string()).await?;
 
     cache.set("batch_get1", &"value1", None, None, None).await?;
     cache.set("batch_get2", &"value2", None, None, None).await?;
@@ -195,9 +191,7 @@ async fn test_batch_get() -> Result<()> {
 async fn test_cache_clear() -> Result<()> {
     let docker = Cli::default();
     let redis_container = RedisTestContainer::new(&docker).await?;
-    let config = test_cache_config();
-    let cache =
-        PersistentCacheManager::new(redis_container.get_connection_string(), config).await?;
+    let cache = create_cache_manager(redis_container.get_connection_string()).await?;
 
     cache
         .set("clear_test1", &"value1", None, None, None)
@@ -222,9 +216,7 @@ async fn test_cache_clear() -> Result<()> {
 async fn test_large_value_storage() -> Result<()> {
     let docker = Cli::default();
     let redis_container = RedisTestContainer::new(&docker).await?;
-    let config = test_cache_config();
-    let cache =
-        PersistentCacheManager::new(redis_container.get_connection_string(), config).await?;
+    let cache = create_cache_manager(redis_container.get_connection_string()).await?;
 
     let large_value = "x".repeat(10_000);
     cache
@@ -241,9 +233,7 @@ async fn test_large_value_storage() -> Result<()> {
 async fn test_metadata_support() -> Result<()> {
     let docker = Cli::default();
     let redis_container = RedisTestContainer::new(&docker).await?;
-    let config = test_cache_config();
-    let cache =
-        PersistentCacheManager::new(redis_container.get_connection_string(), config).await?;
+    let cache = create_cache_manager(redis_container.get_connection_string()).await?;
 
     let mut metadata = CacheMetadata {
         version: "v2".to_string(),
@@ -276,10 +266,8 @@ async fn test_metadata_support() -> Result<()> {
 async fn test_concurrent_operations() -> Result<()> {
     let docker = Cli::default();
     let redis_container = RedisTestContainer::new(&docker).await?;
-    let config = test_cache_config();
-    let cache = std::sync::Arc::new(
-        PersistentCacheManager::new(redis_container.get_connection_string(), config).await?,
-    );
+    let cache =
+        std::sync::Arc::new(create_cache_manager(redis_container.get_connection_string()).await?);
 
     let mut handles = vec![];
     for i in 0..10 {
@@ -309,9 +297,7 @@ async fn test_concurrent_operations() -> Result<()> {
 async fn test_performance_rapid_operations() -> Result<()> {
     let docker = Cli::default();
     let redis_container = RedisTestContainer::new(&docker).await?;
-    let config = test_cache_config();
-    let cache =
-        PersistentCacheManager::new(redis_container.get_connection_string(), config).await?;
+    let cache = create_cache_manager(redis_container.get_connection_string()).await?;
 
     let start = std::time::Instant::now();
 
@@ -337,8 +323,7 @@ async fn test_performance_rapid_operations() -> Result<()> {
 
 #[tokio::test]
 async fn test_connection_failure_handling() -> Result<()> {
-    let config = test_cache_config();
-    let cache = PersistentCacheManager::new("redis://nonexistent:9999", config).await;
+    let cache = create_cache_manager("redis://nonexistent:9999").await;
     assert!(cache.is_err(), "Should fail with invalid connection");
     Ok(())
 }
@@ -347,9 +332,7 @@ async fn test_connection_failure_handling() -> Result<()> {
 async fn test_cache_statistics() -> Result<()> {
     let docker = Cli::default();
     let redis_container = RedisTestContainer::new(&docker).await?;
-    let config = test_cache_config();
-    let cache =
-        PersistentCacheManager::new(redis_container.get_connection_string(), config).await?;
+    let cache = create_cache_manager(redis_container.get_connection_string()).await?;
 
     cache.set("stats_test", &"value", None, None, None).await?;
 

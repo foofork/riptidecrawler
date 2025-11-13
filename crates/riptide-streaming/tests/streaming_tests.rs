@@ -107,7 +107,7 @@ mod streaming_tests {
             .returning(move |_, _| Ok(stream_handle_clone.clone()));
 
         // Expect chunk sending
-        let test_chunks = vec![
+        let test_chunks = [
             StreamChunk {
                 sequence: 1,
                 data: b"Hello ".to_vec(),

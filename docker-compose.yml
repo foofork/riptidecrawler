@@ -1,54 +1,22 @@
 # ============================================================================
-# RipTide - Default Docker Compose Configuration
+# RipTide - Docker Compose Configuration
 # ============================================================================
-# FULL-FEATURED deployment with COMPLETE functionality:
-#   ✅ RipTide API (REST API + WebSocket)
-#   ✅ Chrome Browser Service (5 browser pool for JavaScript rendering)
-#   ✅ Redis (caching and session storage)
-#   ✅ Swagger UI (API documentation)
-#   ✅ Health monitoring
+# Simple deployment with optional Redis.
 #
-# This is the RECOMMENDED configuration for 95% of users!
+# Quick Start (No Redis):
+#   docker-compose up -d
 #
-# Quick Start:
-#   cp .env.example .env           # Configure environment
-#   # Edit .env: Add SERPER_API_KEY
-#   docker-compose up -d            # Start all services
-#   docker-compose logs -f          # View logs
-#   docker-compose down             # Stop services
+# Quick Start (With Redis):
+#   docker-compose --profile redis up -d
 #
-# What You Get:
-#   - Full Chrome rendering with 5-browser pool
-#   - JavaScript execution for SPA pages
-#   - WASM extraction as fallback
-#   - Memory: ~1.2GB total
-#
+# Stop:
+#   docker-compose down
 # ============================================================================
-# CONFIGURATION OPTIONS
-# ============================================================================
-#
-# Option 1: DEFAULT (Included Chrome - Recommended)
-#   HEADLESS_URL=http://riptide-headless:9123
-#   Keep riptide-headless service uncommented (lines 161-193)
-#   Result: Full Chrome rendering with 5 browsers ✅
-#
-# Option 2: EXTERNAL BROWSER FARM (Advanced)
-#   HEADLESS_URL=https://your-browser-farm.example.com:9123
-#   Comment out riptide-headless service (lines 161-193)
-#   Result: API uses your external Chrome infrastructure
-#
-# Option 3: LIGHTWEIGHT (WASM-only)
-#   Use: docker-compose -f docker-compose.lite.yml up -d
-#   Result: WASM extraction only, no Chrome (~440MB)
-#
-# ============================================================================
-
-version: '3.8'
 
 services:
   # =========================================================================
   # RipTide API - Core web scraping and extraction service
-  # Native-parser only (optimized for production)
+  # Native build only (no WASM)
   # =========================================================================
   riptide-api:
     build:
@@ -77,13 +45,15 @@ services:
       - RIPTIDE_API_KEY=${RIPTIDE_API_KEY}
       - REQUIRE_AUTH=${REQUIRE_AUTH:-false}
 
-      # Redis connection (uses service name for DNS)
-      - REDIS_URL=redis://redis:6379/0
+      # Cache backend (memory or redis)
+      # Set to "redis" and enable redis profile to use Redis
+      - CACHE_BACKEND=${CACHE_BACKEND:-memory}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
 
       # Headless browser service (optional)
       - HEADLESS_URL=${HEADLESS_URL:-http://riptide-headless:9123}
 
-      # Spider crawling engine (for deep multi-page site crawling)
+      # Spider crawling engine
       - SPIDER_ENABLE=${SPIDER_ENABLE:-true}
 
       # Output directories (container paths)
@@ -103,27 +73,14 @@ services:
       - RIPTIDE_MAX_CONCURRENT_REQUESTS=${RIPTIDE_MAX_CONCURRENT_REQUESTS:-100}
       - RIPTIDE_POOL_SIZE=${RIPTIDE_POOL_SIZE:-10}
 
-    # Optional: Load additional config from .env if it exists
-    # Most users don't need this - all critical defaults are set above
-    # env_file:
-    #   - .env
-
     volumes:
       # Persistent data volumes (managed by Docker)
       - riptide-data:/opt/riptide/data
       - riptide-cache:/opt/riptide/cache
       - riptide-logs:/opt/riptide/logs
 
-      # Optional: Override config with custom settings
-      # Uncomment to use custom configuration
-      # - ./config:/opt/riptide/config:ro
-
     networks:
       - riptide-network
-
-    depends_on:
-      redis:
-        condition: service_healthy
 
     healthcheck:
       test: ["CMD", "/usr/local/bin/healthcheck"]
@@ -132,7 +89,7 @@ services:
       retries: 3
       start_period: 40s
 
-    # Resource limits for production
+    # Resource limits
     deploy:
       resources:
         limits:
@@ -144,12 +101,14 @@ services:
 
 
   # =========================================================================
-  # Redis - Caching and session storage
+  # Redis - OPTIONAL caching and session storage
+  # Enable with: docker-compose --profile redis up -d
   # =========================================================================
   redis:
     image: redis:7-alpine
     container_name: riptide-redis
     restart: unless-stopped
+    profiles: ["redis"]
 
     ports:
       - "${REDIS_PORT:-6379}:6379"
@@ -220,41 +179,12 @@ services:
           memory: 512M
 
 
-  # =========================================================================
-  # Swagger UI - API Documentation
-  # =========================================================================
-  # swagger-ui (OPTIONAL - uncomment to enable API documentation UI)
-  # Adds 132MB overhead - only enable if you need interactive API docs
-  # swagger-ui:
-  #   image: swaggerapi/swagger-ui:latest
-  #   container_name: riptide-swagger-ui
-  #   restart: unless-stopped
-  #
-  #   ports:
-  #     - "${SWAGGER_PORT:-8081}:8080"
-  #
-  #   environment:
-  #     - SWAGGER_JSON=/openapi.yaml
-  #     - BASE_URL=/docs
-  #
-  #   volumes:
-  #     - ./docs/api/openapi.yaml:/openapi.yaml:ro
-  #
-  #   networks:
-  #     - riptide-network
-  #   depends_on:
-  #     - riptide-api
-
-
 # =============================================================================
 # Networks
 # =============================================================================
 networks:
   riptide-network:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.28.0.0/16
 
 
 # =============================================================================

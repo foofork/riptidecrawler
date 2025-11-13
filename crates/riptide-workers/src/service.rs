@@ -17,6 +17,8 @@ use uuid::Uuid;
 /// Configuration for the worker service
 #[derive(Debug, Clone)]
 pub struct WorkerServiceConfig {
+    /// Enable worker service (Phase 1: Make workers optional)
+    pub enabled: bool,
     /// Redis URL for job queue
     pub redis_url: String,
     /// Worker pool configuration
@@ -38,6 +40,10 @@ pub struct WorkerServiceConfig {
 impl Default for WorkerServiceConfig {
     fn default() -> Self {
         Self {
+            enabled: std::env::var("WORKERS_ENABLED")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(false), // Phase 1: Workers disabled by default
             redis_url: std::env::var("REDIS_URL")
                 .unwrap_or_else(|_| "redis://localhost:6379".to_string()),
             worker_config: WorkerConfig::default(),

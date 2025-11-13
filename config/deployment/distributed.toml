@@ -1,0 +1,569 @@
+# ============================================================================
+# RipTide Distributed Configuration - Full Redis Features
+# ============================================================================
+# Perfect for:
+#   - Enterprise production deployments
+#   - Multi-instance horizontal scaling
+#   - Background job processing with workers
+#   - High-traffic applications (>1000 req/min)
+#   - Distributed state management
+#
+# Features:
+#   ✅ Everything in Enhanced mode
+#   ✅ Distributed job queue
+#   ✅ Multi-instance horizontal scaling
+#   ✅ Background worker pool
+#   ✅ Job retry and error recovery
+#   ✅ Load balancing across instances
+#   ✅ Distributed coordination
+#   ⚠️ Requires Redis server
+#   ⚠️ Requires worker service
+#   ⚠️ More complex deployment
+#
+# Quick Start:
+#   # 1. Start Redis
+#   docker run -d -p 6379:6379 redis:7-alpine
+#
+#   # 2. Start RipTide API (multiple instances)
+#   docker-compose up --scale riptide-api=3
+#
+#   # 3. Start Workers
+#   docker-compose up --scale riptide-worker=2
+#
+#   # Or manually:
+#   cargo run --bin riptide-api --config config/deployment/distributed.toml &
+#   cargo run --bin riptide-worker --config config/deployment/distributed.toml &
+#
+# Resource Requirements:
+#   - Memory: ~1.2GB per API instance + ~800MB per worker
+#   - CPU: 2.0-4.0 cores (API + workers)
+#   - Disk: Redis persistence (~5GB)
+#   - Network: Redis + multi-instance coordination
+# ============================================================================
+
+# -----------------------------------------------------------------------------
+# Cache Configuration
+# -----------------------------------------------------------------------------
+[cache]
+# Use Redis cache (required for distributed mode)
+backend = "redis"
+
+# Redis connection URL for cache
+# Format: redis://[username:password@]host:port[/database]
+# Use database 0 for cache
+redis_url = "redis://localhost:6379/0"
+
+# Redis connection pool settings (higher for distributed)
+redis_pool_size = 50
+redis_timeout_ms = 5000
+redis_max_retries = 5
+
+
+# -----------------------------------------------------------------------------
+# Worker Configuration
+# -----------------------------------------------------------------------------
+[workers]
+# Enable background workers (required for distributed mode)
+enabled = true
+
+# Redis URL for job queue (separate database recommended)
+# Use database 1 for job queue to isolate from cache
+redis_url = "redis://localhost:6379/1"
+
+# Worker pool size (tune based on CPU cores and workload)
+# Recommended: 2-4 workers per CPU core
+worker_count = 8
+
+# Job timeout in seconds (5 minutes)
+job_timeout = 300
+
+# Maximum retry attempts for failed jobs
+max_retries = 3
+
+# Retry backoff strategy: linear, exponential, constant
+retry_strategy = "exponential"
+retry_base_delay_ms = 1000
+
+# Job priority levels
+enable_priority = true
+
+# Dead letter queue for failed jobs
+dead_letter_queue = true
+dead_letter_ttl = 604800  # 7 days
+
+
+# -----------------------------------------------------------------------------
+# Server Configuration
+# -----------------------------------------------------------------------------
+[server]
+# Bind address (0.0.0.0 = all interfaces)
+host = "0.0.0.0"
+
+# HTTP port (use load balancer in front)
+port = 8080
+
+# Request timeout in milliseconds (higher for distributed)
+request_timeout_ms = 60000
+
+# Maximum concurrent requests per instance
+max_concurrent_requests = 200
+
+# Server worker threads (0 = number of CPU cores)
+worker_threads = 0
+
+# Graceful shutdown timeout
+shutdown_timeout_ms = 30000
+
+
+# -----------------------------------------------------------------------------
+# Distributed Configuration
+# -----------------------------------------------------------------------------
+[distributed]
+# Unique instance identifier (set via HOSTNAME env var in Docker)
+instance_id = "${HOSTNAME}"
+
+# Distributed coordination TTL in seconds
+coordination_ttl = 60
+
+# Leader election (for cron jobs, cleanup tasks)
+enable_leader_election = true
+leader_election_ttl = 30
+
+# Distributed lock timeout
+lock_timeout_ms = 5000
+
+# Cluster coordination Redis URL (same as cache)
+coordination_redis_url = "redis://localhost:6379/2"
+
+
+# -----------------------------------------------------------------------------
+# Extraction Configuration
+# -----------------------------------------------------------------------------
+[extraction]
+# Extraction timeout in milliseconds
+timeout_ms = 45000
+
+# Maximum content size in bytes (50MB for distributed)
+max_content_size = 52428800
+
+# Enable WASM extractor
+wasm_enabled = true
+
+# WASM extractor path
+wasm_path = "extractor/extractor.wasm"
+
+# Retry configuration (with exponential backoff)
+max_retries = 5
+retry_delay_ms = 1000
+retry_strategy = "exponential"
+
+
+# -----------------------------------------------------------------------------
+# Spider Configuration
+# -----------------------------------------------------------------------------
+[spider]
+# Enable spider crawling (distributed across workers)
+enabled = true
+
+# Maximum crawl depth (deep crawls with workers)
+max_depth = 10
+
+# Maximum pages to crawl per job (higher with workers)
+max_pages = 5000
+
+# Concurrent crawl workers per instance
+concurrency = 16
+
+# Respect robots.txt
+respect_robots = true
+
+# User agent for crawling
+user_agent = "RipTide/2.0 (Spider; +https://github.com/ruvnet/riptide)"
+
+# Distributed crawl coordination
+distributed = true
+coordination_ttl = 300  # 5 minutes
+
+# Cache crawl results in Redis
+cache_enabled = true
+cache_ttl = 86400  # 24 hours
+
+# Crawl job queue (uses worker queue)
+use_job_queue = true
+
+
+# -----------------------------------------------------------------------------
+# Session Configuration
+# -----------------------------------------------------------------------------
+[session]
+# Session TTL in seconds (24 hours, distributed across instances)
+ttl = 86400
+
+# Maximum concurrent sessions per instance
+max_sessions = 500
+
+# Session cleanup interval in seconds
+cleanup_interval = 300
+
+# Session persistence (Redis required)
+persistent = true
+
+# Distributed session sharing
+distributed = true
+
+
+# -----------------------------------------------------------------------------
+# Rate Limiting
+# -----------------------------------------------------------------------------
+[rate_limit]
+# Enable distributed rate limiting (Redis-backed)
+enabled = true
+
+# Requests per minute per API key (across all instances)
+requests_per_minute = 5000
+
+# Burst allowance (short-term burst)
+burst_size = 1000
+
+# Rate limit storage (redis = distributed)
+storage = "redis"
+
+# Rate limit window in seconds
+window = 60
+
+# Sliding window rate limiting (more accurate)
+sliding_window = true
+
+
+# -----------------------------------------------------------------------------
+# Logging Configuration
+# -----------------------------------------------------------------------------
+[logging]
+# Log level: trace, debug, info, warn, error
+level = "info"
+
+# Log format: json for production (structured logging)
+format = "json"
+
+# Log to file
+file = "/var/log/riptide/api.log"
+
+# Log rotation
+rotation = "daily"
+max_size_mb = 500
+max_files = 30
+
+# Centralized logging (optional)
+# syslog_endpoint = "syslog://log-aggregator:514"
+# loki_endpoint = "http://loki:3100"
+
+
+# -----------------------------------------------------------------------------
+# Headless Browser Configuration
+# -----------------------------------------------------------------------------
+[headless]
+# External headless service URL (load balanced)
+url = "http://headless-lb:9123"
+
+# Enable Chrome/Chromium for JavaScript rendering
+enabled = true
+
+# Browser pool size per instance (distributed)
+pool_size = 10
+
+# Browser timeout in milliseconds
+timeout_ms = 45000
+
+# Browser context persistence (stored in Redis)
+persistent_contexts = true
+context_ttl = 3600  # 1 hour
+
+# Distributed browser pool coordination
+distributed = true
+
+
+# -----------------------------------------------------------------------------
+# Search Configuration
+# -----------------------------------------------------------------------------
+[search]
+# Search backend: serper, serpapi, none
+backend = "serper"
+
+# API keys (set via environment variables or secrets manager)
+# serper_api_key = "${SERPER_API_KEY}"
+# serpapi_api_key = "${SERPAPI_API_KEY}"
+
+# Cache search results in Redis (distributed)
+cache_enabled = true
+cache_ttl = 3600  # 1 hour
+
+# Search request rate limiting
+rate_limit = 100  # per minute
+
+
+# -----------------------------------------------------------------------------
+# LLM Configuration
+# -----------------------------------------------------------------------------
+[llm]
+# LLM provider: openai, anthropic, none
+provider = "openai"
+
+# API keys (set via environment variables or secrets manager)
+# openai_api_key = "${OPENAI_API_KEY}"
+# anthropic_api_key = "${ANTHROPIC_API_KEY}"
+
+# Model settings
+model = "gpt-4-turbo-preview"
+max_tokens = 4096
+temperature = 0.1
+
+# Cache LLM responses in Redis (distributed)
+cache_enabled = true
+cache_ttl = 86400  # 24 hours
+
+# LLM request rate limiting
+rate_limit = 50  # per minute across all instances
+
+
+# -----------------------------------------------------------------------------
+# Metrics & Monitoring
+# -----------------------------------------------------------------------------
+[metrics]
+# Enable Prometheus metrics endpoint
+enabled = true
+
+# Metrics endpoint path
+endpoint = "/metrics"
+
+# Collect detailed metrics
+detailed = true
+
+# Store metrics in Redis (distributed aggregation)
+storage = "redis"
+
+# Metrics retention in seconds (30 days)
+retention = 2592000
+
+# Export metrics to external systems
+# prometheus_push_gateway = "http://prometheus-pushgateway:9091"
+# statsd_endpoint = "statsd:8125"
+
+
+# -----------------------------------------------------------------------------
+# Security
+# -----------------------------------------------------------------------------
+[security]
+# Require API key authentication
+require_auth = true
+
+# API key (set via environment variable or secrets manager)
+# api_key = "${RIPTIDE_API_KEY}"
+
+# Multi-tenancy support
+multi_tenant = true
+
+# Tenant isolation level: soft, hard
+tenant_isolation = "hard"
+
+# CORS allowed origins (specific domains)
+cors_origins = "https://yourdomain.com,https://app.yourdomain.com"
+
+# Maximum request body size in bytes (50MB)
+max_body_size = 52428800
+
+# Rate limiting per IP (distributed)
+ip_rate_limit = 10000  # requests per minute across all instances
+
+# Enable request signing
+request_signing = true
+
+# Enable mutual TLS
+mtls_enabled = false
+# mtls_ca_cert = "/etc/riptide/certs/ca.crt"
+# mtls_client_cert = "/etc/riptide/certs/client.crt"
+# mtls_client_key = "/etc/riptide/certs/client.key"
+
+
+# -----------------------------------------------------------------------------
+# Health Checks
+# -----------------------------------------------------------------------------
+[health]
+# Health check interval in seconds
+interval = 15
+
+# Include component health in responses
+detailed = true
+
+# Check external services (Redis, headless, workers)
+check_external = true
+
+# Health check timeout
+timeout_ms = 5000
+
+# Readiness probe delay (for Kubernetes)
+readiness_delay_seconds = 10
+
+# Liveness probe delay
+liveness_delay_seconds = 30
+
+
+# -----------------------------------------------------------------------------
+# Redis Specific Settings
+# -----------------------------------------------------------------------------
+[redis]
+# Connection pool size (higher for distributed)
+pool_size = 100
+
+# Connection timeout in milliseconds
+connect_timeout_ms = 5000
+
+# Command timeout in milliseconds
+command_timeout_ms = 3000
+
+# Retry strategy
+max_retries = 5
+retry_delay_ms = 100
+retry_strategy = "exponential"
+
+# Enable Redis persistence (AOF + RDB)
+persistence = true
+persistence_strategy = "appendonly"
+
+# Redis max memory policy
+max_memory_policy = "allkeys-lru"
+max_memory_mb = 4096
+
+# Redis cluster mode (optional)
+# cluster_enabled = false
+# cluster_nodes = ["redis-1:6379", "redis-2:6379", "redis-3:6379"]
+
+
+# -----------------------------------------------------------------------------
+# Job Queue Settings
+# -----------------------------------------------------------------------------
+[job_queue]
+# Job queue name prefix
+queue_prefix = "riptide:jobs"
+
+# Job priority queues
+priority_queues = ["critical", "high", "normal", "low"]
+
+# Job visibility timeout (seconds)
+visibility_timeout = 300
+
+# Max concurrent jobs per worker
+max_concurrent_jobs = 4
+
+# Job result retention (seconds)
+result_retention = 86400  # 24 hours
+
+# Enable job scheduling (cron-like)
+enable_scheduling = true
+
+
+# -----------------------------------------------------------------------------
+# Circuit Breaker
+# -----------------------------------------------------------------------------
+[circuit_breaker]
+# Enable circuit breaker for external services
+enabled = true
+
+# Failure threshold before opening circuit
+failure_threshold = 5
+
+# Success threshold to close circuit
+success_threshold = 2
+
+# Timeout in half-open state (seconds)
+timeout = 60
+
+# Reset timeout in open state (seconds)
+reset_timeout = 300
+
+
+# -----------------------------------------------------------------------------
+# Feature Flags
+# -----------------------------------------------------------------------------
+[features]
+# Enable experimental features
+experimental = false
+
+# Enable debug endpoints (disable in production)
+debug_endpoints = false
+
+# Enable response compression
+compression = true
+
+# Enable request caching (Redis-backed)
+request_cache = true
+request_cache_ttl = 300  # 5 minutes
+
+# Enable distributed tracing
+tracing = true
+# tracing_endpoint = "http://jaeger:14268/api/traces"
+
+
+# -----------------------------------------------------------------------------
+# Auto-Scaling (Optional)
+# -----------------------------------------------------------------------------
+[autoscaling]
+# Enable auto-scaling metrics collection
+enabled = false
+
+# Target CPU utilization (percentage)
+target_cpu_utilization = 70
+
+# Target memory utilization (percentage)
+target_memory_utilization = 80
+
+# Target request queue depth
+target_queue_depth = 100
+
+# Scaling cooldown period (seconds)
+scale_up_cooldown = 300
+scale_down_cooldown = 600
+
+
+# -----------------------------------------------------------------------------
+# Backup & Disaster Recovery
+# -----------------------------------------------------------------------------
+[backup]
+# Enable automated backups
+enabled = true
+
+# Backup schedule (cron expression)
+schedule = "0 2 * * *"  # 2 AM daily
+
+# Backup retention (days)
+retention_days = 30
+
+# Backup destination
+# s3_bucket = "s3://riptide-backups/distributed"
+# backup_path = "/var/backups/riptide"
+
+
+# -----------------------------------------------------------------------------
+# Environment Variable Overrides
+# -----------------------------------------------------------------------------
+# All settings can be overridden with environment variables:
+#
+# CACHE_BACKEND=redis
+# REDIS_URL=redis://redis-cluster:6379/0
+# WORKERS_ENABLED=true
+# WORKERS_REDIS_URL=redis://redis-cluster:6379/1
+# WORKER_COUNT=8
+# DISTRIBUTED_INSTANCE_ID=${HOSTNAME}
+# RIPTIDE_API_HOST=0.0.0.0
+# RIPTIDE_API_PORT=8080
+# RIPTIDE_API_KEY=your-secret-key
+# SERPER_API_KEY=your-serper-key
+# OPENAI_API_KEY=your-openai-key
+# RUST_LOG=info
+#
+# Kubernetes/Docker Compose Example:
+#   environment:
+#     - REDIS_URL=redis://redis:6379/0
+#     - WORKERS_REDIS_URL=redis://redis:6379/1
+#     - WORKER_COUNT=8
+#     - DISTRIBUTED_INSTANCE_ID=${HOSTNAME}
+# ============================================================================
