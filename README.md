@@ -4,9 +4,9 @@
 >
 > **This repository is now archived and serves as a prototype/reference implementation.**
 >
-> This open-source version of RipTide was instrumental in validating our core concepts for high-performance web crawling and extraction in Rust. We're grateful to everyone who explored, tested, or contributed feedback during this phase.
+> This open-source version of RipTide was instrumental in validating our core concepts for high-performance web crawling and extraction in Rust. 
 >
-> **Active development has moved to a private repository** where we're building the production version with enhanced features, performance optimizations, and enterprise-grade reliability.
+> **Active development has moved to a private repository**.
 >
 > **What this means:**
 > - ✅ This code remains available for reference and learning
@@ -14,7 +14,7 @@
 > - ❌ No new features or updates will be added to this repository
 > - ❌ Issues and pull requests will not be actively monitored
 >
-> Thank you for your interest in RipTide. This prototype helped us prove the viability of our approach and informed the direction of our production system.
+
 
 ---
 
