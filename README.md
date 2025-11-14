@@ -47,7 +47,7 @@ curl -X POST http://localhost:8080/api/extract \
 ./scripts/quick-test.sh
 ```
 
-**🔥 That's it!** See [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md) for more testing options.
+**See [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md) for more testing options.
 
 ---
 
@@ -69,17 +69,7 @@ curl http://localhost:8080/health
 * **Enhanced**: add Redis for persistence & sessions.
 * **Distributed**: API + workers + queue + optional Chrome pool for scale.
 
-## Roadmap (why things may move)
 
-* **Phase 0: Cleanup** — dedupe robots/Redis/rate limiting; define `CacheStorage`. 
-* **Phase 1: Ports & Adapters** — traits for infra, adapters, DI `ApplicationContext`. 
-* **Phase 3: Handlers → Facades** — handlers <50 LOC; business logic in facades. 
-* **Phase 4: Infra consolidation** — one HTTP client with circuit breakers; streaming via ports. 
-
-## Rough edges to expect
-
-* Breaking API changes during v1.0 work
-* Some crates still contain legacy wiring pending migration (see phases above)
 
 ## Where to look next
 
@@ -87,6 +77,4 @@ curl http://localhost:8080/health
 * `config/deployment/` for Minimal / Enhanced / Distributed configs
 * `crates/riptide-facade/` to see the new application layer take shape (facade = use-cases). 
 
----
 
-Questions or blockers? Open an issue with your mode (Minimal/Enhanced/Distributed) and your config snippet.
