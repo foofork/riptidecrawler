@@ -1,17 +1,34 @@
 # RipTide — Work in Progress
 
+> **⚠️ ARCHIVE NOTICE**
+>
+> **This repository is now archived and serves as a prototype/reference implementation.**
+>
+> This open-source version of RipTide was instrumental in validating our core concepts for high-performance web crawling and extraction in Rust. We're grateful to everyone who explored, tested, or contributed feedback during this phase.
+>
+> **Active development has moved to a private repository** where we're building the production version with enhanced features, performance optimizations, and enterprise-grade reliability.
+>
+> **What this means:**
+> - ✅ This code remains available for reference and learning
+> - ✅ The prototype demonstrates our architectural approach and design patterns
+> - ❌ No new features or updates will be added to this repository
+> - ❌ Issues and pull requests will not be actively monitored
+>
+> Thank you for your interest in RipTide. This prototype helped us prove the viability of our approach and informed the direction of our production system.
+
+---
+
 High-performance web crawling & extraction in Rust. Built for speed, reliability, and clean layering.
 
 ## Status
 
-**Not production-ready.** API v1.0 and a major refactor are in progress (thin handlers, ports/adapters, infra consolidation).   
+**Not production-ready.** This is a prototype implementation. API v1.0 and a major refactor were in progress at the time of archival (thin handlers, ports/adapters, infra consolidation).   
 
 ## What it does
 
 * Fast HTML/PDF extraction (native Rust, optional WASM sandbox)
 * Smart crawling (frontier management, headless fallback)
 * Real-time streaming (NDJSON/SSE/WebSocket)
-* Multi-LLM provider routing and failover
 
 ## ⚡ Quick Test (No Auth, No Setup)
 
